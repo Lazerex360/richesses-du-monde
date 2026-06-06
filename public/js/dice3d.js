@@ -139,7 +139,9 @@
   }
 
   const Dice3D = {
-    SIZE,
+    get SIZE() { return getDiceSize(); },
+    applyDiceSize,
+    getDiceSize,
     initCube,
     applySkinToScene,
     setCubeValue,

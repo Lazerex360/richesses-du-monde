@@ -1907,13 +1907,25 @@ function renderActions(state) {
       <div class="action-buttons">
         <button class="btn btn-primary" id="btn-pay-royalties">${t('action.pay_royalties')}</button>
         <button class="btn btn-secondary" id="btn-open-trade-royalty">${t('social.trade_btn')}</button>
+        ${canProposeAlliance(state, me) ? `<button class="btn btn-secondary" id="btn-open-ally-royalty">${t('social.ally_btn')}</button>` : ''}
       </div>`;
     $('#btn-pay-royalties').addEventListener('click', () => socket.emit('pay_royalties'));
     $('#btn-open-trade-royalty').addEventListener('click', () => openTradeModal(state));
+    $('#btn-open-ally-royalty')?.addEventListener('click', () => openAlliancePicker(state));
     return;
   }
 
   if (state.phase === 'rolling' && isMyTurn) {
+    if (!state.diceResult && isGameSequenceActive()) {
+      clearPawnMoveTimer();
+      if (landingPauseTimer) { clearTimeout(landingPauseTimer); landingPauseTimer = null; }
+      landingPauseActive = false;
+      pawnMoveSession.active = false;
+      pawnMoveSession.waitingDice = false;
+      pawnMoveSession.displayPos = null;
+      diceRollSession.active = false;
+      diceRollSession.result = null;
+    }
     area.innerHTML = `<p class="action-desc">${t('action.roll_desc')}</p><div class="action-buttons"><button class="btn btn-primary" id="btn-roll">${t('action.roll_btn')}</button></div>`;
     $('#btn-roll').addEventListener('click', () => { animateDice(); socket.emit('roll_dice'); });
     appendSocialButtons(state);
@@ -1979,18 +1991,28 @@ function renderActions(state) {
   }
 }
 
-// Boutons Alliance / Échange (uniquement à votre tour, sans action en attente)
+function estimateAllianceTax(player) {
+  return Math.floor((player?.titles || []).reduce((s, t) => s + (t.price || 0), 0) / 2);
+}
+
+function canProposeAlliance(state, me) {
+  if (!me || me.bankrupt || me.team != null) return false;
+  return state.players.filter((p) => !p.bankrupt).length > 2
+    && state.players.some((p) => p.id !== myGameId && !p.bankrupt && p.team == null);
+}
+
+// Boutons Alliance / Échange (à votre tour)
 function appendSocialButtons(state) {
   const area = $('#action-area');
+  const me = state.players.find((p) => p.id === myGameId);
   const others = state.players.filter((p) => p.id !== myGameId && !p.bankrupt);
   if (others.length === 0) return;
-  const canAlly = state.players.filter((p) => !p.bankrupt).length > 2;
 
   const wrap = document.createElement('div');
   wrap.className = 'social-buttons';
   wrap.innerHTML = `
     <button class="btn btn-secondary" id="btn-open-trade">${t('social.trade_btn')}</button>
-    ${canAlly ? `<button class="btn btn-secondary" id="btn-open-ally">${t('social.ally_btn')}</button>` : ''}`;
+    ${canProposeAlliance(state, me) ? `<button class="btn btn-secondary" id="btn-open-ally">${t('social.ally_btn')}</button>` : ''}`;
   area.appendChild(wrap);
 
   $('#btn-open-trade').addEventListener('click', () => openTradeModal(state));
@@ -2001,19 +2023,32 @@ function appendSocialButtons(state) {
 function openAlliancePicker(state) {
   const area = $('#action-area');
   const me = state.players.find((p) => p.id === myGameId);
+  const myTax = estimateAllianceTax(me);
   const targets = state.players.filter(
-    (p) => p.id !== myGameId && !p.bankrupt && !(p.team !== null && p.team === me.team)
+    (p) => p.id !== myGameId && !p.bankrupt && p.team == null
   );
-  area.innerHTML = `<p class="action-desc">${t('social.ally_to')}</p><div class="target-list" id="ally-targets"></div>
+  area.innerHTML = `
+    <p class="action-desc">${t('social.ally_to')}</p>
+    <p class="action-desc muted">${t('alliance.tax_hint', { tax: formatMoney(myTax) })}</p>
+    <p class="action-desc muted alliance-perks">${t('social.alliance_perks')}</p>
+    <div class="target-list" id="ally-targets"></div>
     <div class="action-buttons"><button class="btn btn-secondary" id="ally-cancel">${t('common.back')}</button></div>`;
   const list = $('#ally-targets');
   const proposeLabel = t('social.propose');
+  if (!targets.length) {
+    list.innerHTML = `<p class="muted">${t('social.no_player')}</p>`;
+  }
   targets.forEach((tg) => {
+    const theirTax = estimateAllianceTax(tg);
     const row = document.createElement('div');
-    row.className = 'target-row';
-    row.innerHTML = `<span>${pawnEmojiMap[tg.pawn] || '🔘'} ${escapeHtml(tg.name)}${tg.isBot ? ' 🤖' : ''}</span><button>${proposeLabel}</button>`;
+    row.className = 'target-row alliance-target-row';
+    row.innerHTML = `
+      <span class="alliance-target-name">${pawnEmojiMap[tg.pawn] || '🔘'} ${escapeHtml(tg.name)}${tg.isBot ? ' 🤖' : ''}</span>
+      <span class="alliance-target-tax">${t('alliance.their_tax', { tax: formatMoney(theirTax) })}</span>
+      <button class="btn btn-secondary btn-sm">${proposeLabel}</button>`;
     row.querySelector('button').addEventListener('click', () => {
       socket.emit('propose_alliance', { targetId: tg.id });
+      toast(t('alliance.proposed', { name: tg.name }), 'success');
     });
     list.appendChild(row);
   });
@@ -2029,11 +2064,19 @@ function renderAlliancePanel(state) {
     hide(panel);
     return;
   }
-  const ally = state.players.find((p) => p.team === me.team && p.id !== myGameId && !p.bankrupt);
-  if (!ally) { hide(panel); return; }
+  const allies = state.players.filter((p) => p.team === me.team && p.id !== myGameId && !p.bankrupt);
+  if (!allies.length) { hide(panel); return; }
   show(panel);
+  const allyNames = allies.map((p) => escapeHtml(p.name)).join(', ');
+  const allyRows = allies.map((p) => `
+    <div class="alliance-partner-row">
+      <span class="alliance-partner-pawn">${pawnEmojiMap[p.pawn] || '🔘'}</span>
+      <span>${escapeHtml(p.name)}${p.isBot ? ' 🤖' : ''}</span>
+      <span class="alliance-partner-money">${formatMoney(p.money)}</span>
+    </div>`).join('');
   body.innerHTML = `
-    <p>${t('alliance.status', { names: escapeHtml(ally.name) })}</p>
+    <p class="alliance-status-line">${t('alliance.status', { names: allyNames })}</p>
+    <div class="alliance-partners">${allyRows}</div>
     <p class="muted alliance-perks">${t('social.alliance_perks')}</p>
     <button type="button" class="btn btn-danger btn-sm" id="btn-break-alliance">${t('alliance.break')}</button>`;
   $('#btn-break-alliance')?.addEventListener('click', () => {
@@ -2463,6 +2506,7 @@ function renderSocialOverlay(state) {
       <p class="social-body-line">${t('social.alliance_body', { name: escapeHtml(a.fromName) })}</p>
       <div class="social-detail">
         <span>${t('social.alliance_tax', { tax: formatMoney(a.taxTo) })}</span>
+        <span>${t('alliance.total_tax', { tax: formatMoney((a.taxFrom || 0) + (a.taxTo || 0)) })}</span>
         <span>${t('social.alliance_perks')}</span>
       </div>`;
     $('#social-accept').onclick = () => { socket.emit('respond_alliance', { accept: true }); };

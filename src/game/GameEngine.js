@@ -957,7 +957,9 @@ class GameEngine {
   }
 
   breakAlliance(playerId) {
-    if (!this.canManageTurnAction(playerId)) return { error: 'Action impossible pour le moment' };
+    const current = this.getCurrentPlayer();
+    if (!current || current.id !== playerId) return { error: 'Ce n\'est pas votre tour' };
+    if (this.pendingTrade || this.pendingAlliance) return { error: 'Résolvez la proposition en cours' };
     const player = this.players.find((p) => p.id === playerId);
     if (!player || player.team === null) return { error: 'Vous n\'êtes pas en alliance' };
 

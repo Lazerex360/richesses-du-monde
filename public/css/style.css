@@ -634,9 +634,26 @@ select option { background: var(--bg-card); color: var(--text); }
 .lobby-invite-input { flex: 1; min-width: 0; font-size: 0.8rem; }
 .royalty-due-owners { margin: 0.5rem 0; padding: 0.5rem; background: rgba(255,255,255,0.04); border-radius: 8px; font-size: 0.82rem; }
 .royalty-due-row { padding: 0.15rem 0; }
-.alliance-panel { margin-top: 0.5rem; }
+.alliance-panel {
+  margin-top: 0.5rem;
+  border: 1px solid rgba(46, 204, 113, 0.45);
+  background: rgba(46, 204, 113, 0.08);
+}
+.alliance-panel h3 { color: #2ecc71; }
 .alliance-panel .muted { font-size: 0.78rem; margin: 0.35rem 0; }
 .alliance-perks { line-height: 1.35; }
+.alliance-status-line { font-weight: 600; margin-bottom: 0.4rem; }
+.alliance-partners { margin: 0.35rem 0 0.5rem; }
+.alliance-partner-row {
+  display: flex; align-items: center; gap: 0.4rem; padding: 0.25rem 0;
+  font-size: 0.82rem; border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.alliance-partner-pawn { font-size: 1rem; }
+.alliance-partner-money { margin-left: auto; color: var(--gold-light); font-weight: 600; }
+.alliance-target-row { flex-wrap: wrap; gap: 0.35rem; }
+.alliance-target-name { flex: 1; min-width: 8rem; }
+.alliance-target-tax { font-size: 0.75rem; color: var(--text-muted); width: 100%; }
+.target-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.45rem 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
 .btn-sm { padding: 0.35rem 0.65rem; font-size: 0.78rem; }
 .lobby-countdown { background: rgba(46,204,113,0.15); color: var(--accent); border-radius: 8px; padding: 0.6rem; margin-bottom: 0.75rem; font-weight: 700; animation: pulse 1.5s infinite; }
 .lobby-money { color: var(--gold); font-size: 0.85rem; margin-bottom: 1rem; }

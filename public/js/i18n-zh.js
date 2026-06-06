@@ -40,6 +40,7 @@
     'nav.pass': "🏅 通行证",
     'nav.profile': "👤 个人资料",
     'settings.tooltip': "设置",
+    'play.quick_badge': "Online multiplayer",
     'play.quick_title': "快速匹配",
     'play.quick_desc': "立即加入其他玩家的在线对局。",
     'play.quick_btn': "⚡ 寻找对局",

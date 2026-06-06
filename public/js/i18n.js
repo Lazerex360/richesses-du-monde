@@ -49,6 +49,7 @@ window.TR = {
     'settings.tooltip': 'Paramètres',
 
     // Onglet Jouer
+    'play.quick_badge': 'Multijoueur en ligne',
     'play.quick_title': 'Partie rapide',
     'play.quick_desc': "Rejoignez instantanément une partie en ligne avec d'autres joueurs.",
     'play.quick_btn': '⚡ Recherche de partie',
@@ -424,6 +425,7 @@ window.TR = {
     'nav.profile': '👤 Profile',
     'settings.tooltip': 'Settings',
 
+    'play.quick_badge': 'Online multiplayer',
     'play.quick_title': 'Quick match',
     'play.quick_desc': 'Instantly join an online game with other players.',
     'play.quick_btn': '⚡ Find a match',
@@ -788,6 +790,7 @@ window.TR = {
     'nav.profile': '👤 Perfil',
     'settings.tooltip': 'Ajustes',
 
+    'play.quick_badge': 'Multijugador en línea',
     'play.quick_title': 'Partida rápida',
     'play.quick_desc': 'Únete al instante a una partida en línea con otros jugadores.',
     'play.quick_btn': '⚡ Buscar partida',

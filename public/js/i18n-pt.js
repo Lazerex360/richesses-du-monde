@@ -40,6 +40,7 @@
     'nav.pass': "🏅 Passe",
     'nav.profile': "👤 Perfil",
     'settings.tooltip': "Definições",
+    'play.quick_badge': "Online multiplayer",
     'play.quick_title': "Partida rápida",
     'play.quick_desc': "Junte-se instantaneamente a uma partida online com outros jogadores.",
     'play.quick_btn': "⚡ Procurar partida",

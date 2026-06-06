@@ -13,6 +13,7 @@ function showScreen(id) {
   $$('.screen').forEach((s) => s.classList.remove('active'));
   $(`#${id}`).classList.add('active');
   updateDocumentTitle();
+  applyLanguage();
 }
 
 function formatMoney(amount) {
@@ -630,7 +631,15 @@ function touchPinchDistance(touches) {
 function applyBoardZoom() {
   const stage = $('#board-zoom-stage');
   const label = $('#board-zoom-label');
-  if (stage) stage.style.setProperty('--board-zoom', boardZoom);
+  const frame = stage?.querySelector('.board-frame');
+  if (stage) {
+    stage.style.setProperty('--board-zoom', String(boardZoom));
+    stage.style.transform = `scale(${boardZoom})`;
+    if (frame) {
+      const h = frame.offsetHeight;
+      stage.style.minHeight = `${Math.ceil(h * boardZoom)}px`;
+    }
+  }
   if (label) label.textContent = `${Math.round(boardZoom * 100)}%`;
 }
 
@@ -646,9 +655,7 @@ function initBoardZoom() {
   viewport.dataset.ready = '1';
   boardZoom = parseFloat(localStorage.getItem(BOARD_ZOOM_KEY) || '1') || 1;
   applyBoardZoom();
-  $('#board-zoom-in')?.addEventListener('click', () => setBoardZoom(boardZoom + 0.1));
-  $('#board-zoom-out')?.addEventListener('click', () => setBoardZoom(boardZoom - 0.1));
-  $('#board-zoom-reset')?.addEventListener('click', () => setBoardZoom(1));
+  requestAnimationFrame(() => applyBoardZoom());
   viewport.addEventListener('wheel', (e) => {
     if (!e.ctrlKey && !e.metaKey) return;
     e.preventDefault();
@@ -667,6 +674,13 @@ function initBoardZoom() {
   }, { passive: false });
   viewport.addEventListener('touchend', () => { boardPinchStart = null; });
 }
+
+document.addEventListener('click', (e) => {
+  if (!$('#screen-game')?.classList.contains('active')) return;
+  if (e.target.closest('#board-zoom-in')) { e.preventDefault(); setBoardZoom(boardZoom + 0.1); }
+  else if (e.target.closest('#board-zoom-out')) { e.preventDefault(); setBoardZoom(boardZoom - 0.1); }
+  else if (e.target.closest('#board-zoom-reset')) { e.preventDefault(); setBoardZoom(1); }
+});
 
 // ===================== Tutoriel =====================
 const TUTORIAL_KEY = 'rdm_tutorial_done';
@@ -1157,6 +1171,8 @@ socket.on('room_update', (room) => {
       resetGameAnimationState();
     }
     showScreen('screen-game');
+    initBoardZoom();
+    requestAnimationFrame(() => applyBoardZoom());
     $('#room-label').textContent = room.code;
   } else {
     inActiveGame = false;
@@ -2005,6 +2021,7 @@ function renderBoard(state) {
     board.appendChild(cell);
   });
   renderBoardCenterStatus(state);
+  if ($('#screen-game')?.classList.contains('active')) requestAnimationFrame(() => applyBoardZoom());
 }
 
 const TEAM_COLORS = ['#3aa0ff', '#2ecc71', '#e84393'];

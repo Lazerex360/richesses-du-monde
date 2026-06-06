@@ -40,6 +40,7 @@
     'nav.pass': "🏅 パス",
     'nav.profile': "👤 プロフィール",
     'settings.tooltip': "設定",
+    'play.quick_badge': "Online multiplayer",
     'play.quick_title': "クイックマッチ",
     'play.quick_desc': "他のプレイヤーとすぐにオンライン対戦に参加。",
     'play.quick_btn': "⚡ マッチを探す",

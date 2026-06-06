@@ -153,8 +153,8 @@ const BOARD_INSET = 1;
 
 /** Rectangle extérieur 11×10 → périmètre 38, 37 cases de jeu */
 const OUTER_RECT = { cols: 11, rows: 10 };
-/** Rectangle intérieur 8×8 centré → périmètre 28 (+ 2 jonctions Allemagne / grande boucle) */
-const INNER_RECT = { cols: 8, rows: 8, left: 1, top: 1 };
+/** Rectangle intérieur 8×8 — left=2 pour marges latérales symétriques (1+8+1 dans 11 cols) */
+const INNER_RECT = { cols: 8, rows: 8, left: 2, top: 1 };
 
 const BOARD_LOGIC_GRID = { cols: OUTER_RECT.cols, rows: OUTER_RECT.rows };
 const BOARD_GRID = {

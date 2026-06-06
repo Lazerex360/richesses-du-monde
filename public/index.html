@@ -125,16 +125,19 @@
         <!-- ONGLET JOUER -->
         <div class="tab-panel active" id="tab-play">
           <div class="play-grid">
-            <div class="play-hero card">
+            <div class="play-hero card play-hero-premium">
+              <div class="play-hero-glow" aria-hidden="true"></div>
+              <div class="play-hero-icon" aria-hidden="true">🌍</div>
+              <span class="play-hero-badge" data-i18n="play.quick_badge">Multijoueur en ligne</span>
               <h2 data-i18n="play.quick_title">Partie rapide</h2>
               <p data-i18n="play.quick_desc">Rejoignez instantanément une partie en ligne avec d'autres joueurs.</p>
-              <button id="btn-quick" class="btn btn-primary big" data-i18n="play.quick_btn">⚡ Recherche de partie</button>
+              <button id="btn-quick" class="btn btn-primary big play-cta-btn" data-i18n="play.quick_btn">⚡ Recherche de partie</button>
               <div id="quick-status" class="quick-status hidden"></div>
             </div>
 
             <div class="play-side">
-              <div class="card create-card">
-                <h3 data-i18n="play.create_title">Créer une partie</h3>
+              <div class="card create-card play-sub-card">
+                <div class="play-card-head"><span class="play-card-icon" aria-hidden="true">🏠</span><h3 data-i18n="play.create_title">Créer une partie</h3></div>
                 <input type="text" id="create-name" placeholder="Nom de la partie" data-i18n-ph="play.create_name_ph" maxlength="30">
                 <div class="row">
                   <label class="inline"><span data-i18n="play.max_players">Joueurs max</span>
@@ -153,8 +156,8 @@
                 <button id="btn-create" class="btn btn-secondary" data-i18n="play.create_btn">Créer le salon</button>
               </div>
 
-              <div class="card join-card">
-                <h3 data-i18n="play.join_title">Rejoindre par code</h3>
+              <div class="card join-card play-sub-card">
+                <div class="play-card-head"><span class="play-card-icon" aria-hidden="true">🔑</span><h3 data-i18n="play.join_title">Rejoindre par code</h3></div>
                 <p class="join-hint" data-i18n="play.join_hint">Ouvrez le jeu, connectez-vous, puis entrez le code reçu de l'hôte.</p>
                 <div class="join-row">
                   <input type="text" id="join-code" placeholder="CODE" data-i18n-ph="play.join_code_ph" maxlength="5">
@@ -164,10 +167,10 @@
             </div>
           </div>
 
-          <div class="card games-list-card">
+          <div class="card games-list-card play-games-card">
             <div class="games-list-header">
-              <h3 data-i18n="play.public_games">Parties publiques</h3>
-              <button id="btn-refresh-games" class="btn-mini" data-i18n="play.refresh">↻ Actualiser</button>
+              <div class="games-list-title"><span class="play-card-icon" aria-hidden="true">📋</span><h3 data-i18n="play.public_games">Parties publiques</h3></div>
+              <button id="btn-refresh-games" class="btn-mini btn-refresh-games" data-i18n="play.refresh">↻ Actualiser</button>
             </div>
             <div id="public-games" class="public-games">
               <p class="empty-hint" data-i18n="play.loading">Chargement…</p>
@@ -403,12 +406,12 @@
                   </div>
                 </div>
               </div>
-              <div class="board-zoom-controls" aria-label="Zoom plateau">
-                <button type="button" id="board-zoom-out" class="btn-mini board-zoom-btn" data-i18n-title="board.zoom_out" title="Zoom arrière">−</button>
-                <span id="board-zoom-label" class="board-zoom-label">100%</span>
-                <button type="button" id="board-zoom-in" class="btn-mini board-zoom-btn" data-i18n-title="board.zoom_in" title="Zoom avant">+</button>
-                <button type="button" id="board-zoom-reset" class="btn-mini board-zoom-btn" data-i18n-title="board.zoom_reset" title="Réinitialiser">↺</button>
-              </div>
+            </div>
+            <div class="board-zoom-controls" aria-label="Zoom plateau">
+              <button type="button" id="board-zoom-out" class="board-zoom-btn" data-i18n-title="board.zoom_out" title="Zoom arrière" aria-label="Zoom arrière">−</button>
+              <span id="board-zoom-label" class="board-zoom-label">100%</span>
+              <button type="button" id="board-zoom-in" class="board-zoom-btn" data-i18n-title="board.zoom_in" title="Zoom avant" aria-label="Zoom avant">+</button>
+              <button type="button" id="board-zoom-reset" class="board-zoom-btn board-zoom-reset" data-i18n-title="board.zoom_reset" title="Réinitialiser" aria-label="Réinitialiser le zoom">↺</button>
             </div>
             <div id="cell-tooltip" class="cell-tooltip hidden"></div>
           </div>
@@ -416,8 +419,10 @@
       </div>
 
       <div id="game-quick-bar" class="game-quick-bar">
-        <h3 class="game-quick-bar-title" data-i18n="game.actions">Actions</h3>
-        <div id="action-area" class="action-area-quick"></div>
+        <div class="game-quick-bar-inner">
+          <h3 class="game-quick-bar-title" data-i18n="game.actions">Actions</h3>
+          <div id="action-area" class="action-area-quick"></div>
+        </div>
       </div>
 
       <div class="game-panels">

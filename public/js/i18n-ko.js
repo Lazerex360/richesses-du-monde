@@ -40,6 +40,7 @@
     'nav.pass': "🏅 패스",
     'nav.profile': "👤 프로필",
     'settings.tooltip': "설정",
+    'play.quick_badge': "Online multiplayer",
     'play.quick_title': "빠른 매치",
     'play.quick_desc': "다른 플레이어와 즉시 온라인 게임에 참가하세요.",
     'play.quick_btn': "⚡ 매치 찾기",

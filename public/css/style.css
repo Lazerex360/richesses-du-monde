@@ -1207,21 +1207,23 @@ select option { background: var(--bg-card); color: var(--text); }
   background: linear-gradient(135deg, color-mix(in srgb, var(--res-color, #2980b9) 55%, #1a5276), #154360);
   padding: 0.4rem 0.5rem;
 }
-.tc-pct-block { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 2.2rem; }
-.tc-pct-val { font-size: 1.35rem; font-weight: 800; color: #fff; line-height: 1; }
-.tc-pct-unit { font-size: 0.62rem; color: rgba(255,255,255,0.85); font-weight: 700; }
+.tc-pct-block { display: flex; align-items: baseline; justify-content: center; min-width: 2.8rem; }
+.tc-pct-val { font-size: 1.35rem; font-weight: 800; color: #fff; line-height: 1; white-space: nowrap; }
+.tc-pct-unit { font-size: 0.78rem; color: rgba(255,255,255,0.9); font-weight: 700; margin-left: 0.05rem; }
 .tc-price-block { display: flex; flex-direction: column; gap: 0.1rem; padding-top: 0.15rem; }
 .tc-price-label { font-size: 0.55rem; text-transform: uppercase; color: rgba(255,255,255,0.65); letter-spacing: 0.04em; }
 .tc-price-val { font-size: 0.78rem; font-weight: 700; color: var(--gold-light); }
-.tc-royalties { grid-column: 1 / -1; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 0.35rem; }
-.tc-roy-label { font-size: 0.52rem; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(255,255,255,0.7); margin-bottom: 0.2rem; font-weight: 700; }
-.tc-tier { display: flex; justify-content: space-between; font-size: 0.62rem; padding: 0.08rem 0; color: rgba(255,255,255,0.92); }
-.tc-tier.active { color: #fff; font-weight: 700; }
-.tc-tier.active span:last-child { color: #2ecc71; }
-.tc-tier span:last-child { color: #7bed9f; font-weight: 700; }
-.tc-tier-now { margin-top: 0.15rem; padding-top: 0.15rem; border-top: 1px dashed rgba(255,255,255,0.2); }
-.tc-tier-below { font-size: 0.6rem; color: rgba(255,255,255,0.65); margin-top: 0.15rem; }
-.tc-roy-after { font-size: 0.58rem; color: var(--gold); margin-top: 0.25rem; font-weight: 600; }
+.tc-royalties { grid-column: 1 / -1; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 0.4rem; margin-top: 0.15rem; }
+.tc-roy-label { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gold-light); margin-bottom: 0.25rem; font-weight: 700; }
+.tc-royalties-inline { margin-bottom: 0.25rem; font-size: 0.72rem; }
+.tc-royalties-inline th { text-align: center; padding: 0.25rem 0.2rem; font-size: 0.65rem; }
+.tc-royalties-inline td { padding: 0.3rem 0.2rem; }
+.tc-royalties-inline .roy-tier-amt { font-size: 0.7rem; }
+.tc-royalties-inline td.tc-roy-active { background: rgba(46, 204, 113, 0.18); }
+.tc-royalties-inline td.tc-roy-active .roy-tier-amt { color: #2ecc71; }
+.tc-roy-you { font-size: 0.62rem; color: var(--gold); margin-top: 0.2rem; font-weight: 600; line-height: 1.35; }
+.tc-roy-you strong { color: #2ecc71; }
+.tc-roy-below { color: rgba(255,255,255,0.75); font-weight: 500; }
 .title-royalties-table { width: 100%; font-size: 0.68rem; border-collapse: collapse; }
 .title-royalties-table th, .title-royalties-table td { padding: 0.15rem 0.3rem; border-bottom: 1px solid rgba(255,255,255,0.08); }
 .title-royalties-table th { color: rgba(255,255,255,0.7); font-weight: 600; }

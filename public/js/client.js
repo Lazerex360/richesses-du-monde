@@ -1145,14 +1145,17 @@ $('#btn-back-hub').addEventListener('click', () => {
 
 // ===================== Jeu =====================
 let gameState = null;
-const _reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-const DICE_ROLL_MIN_MS = _reducedMotion ? 200 : 1400;
-const DICE_POST_REVEAL_MS = _reducedMotion ? 0 : 1000;
-const PAWN_STEP_MS = _reducedMotion ? 0 : 320;
-const PAWN_POST_ARRIVE_MS = _reducedMotion ? 0 : 1000;
+const DICE_ROLL_MIN_MS = 1400;
+const DICE_POST_REVEAL_MS = 1200;
+const PAWN_STEP_MS = 380;
+const PAWN_POST_ARRIVE_MS = 1200;
+
+function getSeqDelay(ms) {
+  return settings.reduceMotion ? 0 : ms;
+}
 let diceRollSession = { active: false, start: 0, result: null, timer: null };
 let lastDisplayedRollId = 0;
-let lastAnimatedRollId = 0;
+let lastAnimatedRollId = '';
 let pawnMoveSession = { active: false, waitingDice: false, playerId: null, path: [], pathIndex: -1, displayPos: null, timer: null };
 let landingPauseActive = false;
 let landingPauseTimer = null;
@@ -1266,20 +1269,24 @@ function buildResourceRoyaltiesRowHtml(resourceId) {
 
 function buildTitleRoyaltiesCompactHtml(resourceId, totalPct) {
   const tiers = getRoyaltiesForResource(resourceId);
-  const tierRows = tiers.map((tier) => {
+  const headCells = tiers.map((tier) => `<th>${tier.min}%</th>`).join('');
+  const bodyCells = tiers.map((tier) => {
     const active = totalPct >= tier.min;
-    return `<div class="tc-tier${active ? ' active' : ''}"><span>${tier.min}%</span><span>${formatMoneyPdf(tier.amount)}</span></div>`;
+    return `<td class="${active ? 'tc-roy-active' : ''}"><span class="roy-tier-amt">${formatMoneyPdf(tier.amount)}</span></td>`;
   }).join('');
   const afterBuy = totalPct > 0
     ? (totalPct >= 30
-      ? `<div class="tc-tier active tc-tier-now"><span>${totalPct}% →</span><span>${formatMoneyPdf(royaltyForPercent(totalPct, resourceId))}</span></div>`
-      : `<div class="tc-tier-below">${t('titles.royalty_min', { pct: totalPct })}</div>`)
+      ? `<div class="tc-roy-you">${t('titles.if_buy_royalty', { pct: totalPct })} <strong>${formatMoneyPdf(royaltyForPercent(totalPct, resourceId))}</strong> / passage</div>`
+      : `<div class="tc-roy-you tc-roy-below">${t('titles.if_buy_royalty', { pct: totalPct })} — ${t('titles.royalty_min', { pct: totalPct })}</div>`)
     : '';
   return `
     <div class="tc-royalties">
       <div class="tc-roy-label">${t('board.royalty_tiers')}</div>
-      ${tierRows}
-      ${afterBuy ? `<div class="tc-roy-after">${t('titles.if_buy_royalty', { pct: totalPct })}</div>${afterBuy}` : ''}
+      <table class="resource-royalties-once tc-royalties-inline">
+        <thead><tr>${headCells}</tr></thead>
+        <tbody><tr>${bodyCells}</tr></tbody>
+      </table>
+      ${afterBuy}
     </div>`;
 }
 
@@ -1298,7 +1305,7 @@ function buildTitleCardHtml(title, { selectable = false, showRoyalties = false, 
           <div class="tc-resource">${escapeHtml(title.resourceName)}</div>
         </div>
         <div class="tc-bottom">
-          <div class="tc-pct-block"><span class="tc-pct-val">${title.percent}</span><span class="tc-pct-unit">%</span></div>
+          <div class="tc-pct-block"><span class="tc-pct-val">${title.percent}<span class="tc-pct-unit">%</span></span></div>
           <div class="tc-price-block">
             <span class="tc-price-label">${t('titles.buy_price')}</span>
             <span class="tc-price-val">${formatMoney(title.price)}</span>
@@ -1415,8 +1422,7 @@ function getOwnersForResource(state, resourceId) {
 }
 
 socket.on('game_state', (state) => {
-  const prev = gameState;
-  preparePawnMoveAnimation(prev, state);
+  preparePawnMoveAnimation(state);
   gameState = state;
   renderGame(state);
 });
@@ -1865,6 +1871,7 @@ function renderActions(state) {
   }
 
   if (state.diceResult) {
+    preparePawnMoveAnimation(state);
     const roller = state.players[state.currentPlayerIndex];
     showDiceResult(state.diceResult.d1, state.diceResult.d2, {
       rollId: state.diceResult.rollId,
@@ -1978,7 +1985,7 @@ function isGameSequenceActive() {
 }
 
 function resetGameAnimationState() {
-  lastAnimatedRollId = 0;
+  lastAnimatedRollId = '';
   lastDisplayedRollId = 0;
   clearPawnMoveTimer();
   if (landingPauseTimer) { clearTimeout(landingPauseTimer); landingPauseTimer = null; }
@@ -1993,6 +2000,28 @@ function resetGameAnimationState() {
 
 function clearPawnMoveTimer() {
   if (pawnMoveSession.timer) { clearTimeout(pawnMoveSession.timer); pawnMoveSession.timer = null; }
+}
+
+function simulateAdvance(from, steps, boardLen) {
+  const loopEnd = boardLen - 1;
+  const loopSize = loopEnd;
+  let pos = from === 0 ? steps : from + steps;
+  while (pos > loopEnd) pos -= loopSize;
+  return pos;
+}
+
+function positionBeforeRoll(endPos, steps, boardLen) {
+  for (let from = 0; from < boardLen; from++) {
+    if (simulateAdvance(from, steps, boardLen) === endPos) return from;
+  }
+  return endPos;
+}
+
+function rollAnimationKey(state) {
+  const dr = state.diceResult;
+  const roller = state.players?.[state.currentPlayerIndex];
+  if (!dr || !roller) return '';
+  return `${dr.rollId ?? 0}:${dr.d1}+${dr.d2}:${roller.id}@${roller.position}`;
 }
 
 function buildPawnStepPath(from, steps, state) {
@@ -2011,19 +2040,19 @@ function buildPawnStepPath(from, steps, state) {
   return path;
 }
 
-function preparePawnMoveAnimation(prev, state) {
-  if (!prev || !state?.diceResult?.rollId) return;
-  const rollId = state.diceResult.rollId;
-  if (rollId === lastAnimatedRollId) return;
+function preparePawnMoveAnimation(state) {
+  if (!state?.diceResult) return;
+  const key = rollAnimationKey(state);
+  if (!key || key === lastAnimatedRollId) return;
   const roller = state.players[state.currentPlayerIndex];
   if (!roller || roller.bankrupt) return;
-  const prevRoller = prev.players.find((p) => p.id === roller.id);
-  if (!prevRoller) return;
   const steps = state.diceResult.total;
   if (!steps) return;
-  const path = buildPawnStepPath(prevRoller.position, steps, state);
+  const boardLen = state.board?.length || 1;
+  const fromPos = positionBeforeRoll(roller.position, steps, boardLen);
+  const path = buildPawnStepPath(fromPos, steps, state);
   if (!path.length) return;
-  lastAnimatedRollId = rollId;
+  lastAnimatedRollId = key;
   clearPawnMoveTimer();
   if (landingPauseTimer) { clearTimeout(landingPauseTimer); landingPauseTimer = null; }
   landingPauseActive = false;
@@ -2034,7 +2063,7 @@ function preparePawnMoveAnimation(prev, state) {
     playerId: roller.id,
     path,
     pathIndex: -1,
-    displayPos: prevRoller.position,
+    displayPos: fromPos,
     timer: null,
   };
 }
@@ -2047,15 +2076,21 @@ function beginPawnMovement() {
   if (!pawnMoveSession.waitingDice) return;
   pawnMoveSession.waitingDice = false;
   clearPawnMoveTimer();
+  const delay = getSeqDelay(DICE_POST_REVEAL_MS);
+  if (delay <= 0) {
+    stepPawnForward();
+    return;
+  }
   pawnMoveSession.timer = setTimeout(() => {
     pawnMoveSession.timer = null;
     stepPawnForward();
-  }, DICE_POST_REVEAL_MS);
+  }, delay);
 }
 
 function stepPawnForward() {
   if (!pawnMoveSession.active) return;
-  if (PAWN_STEP_MS === 0 && pawnMoveSession.path.length) {
+  const stepDelay = getSeqDelay(PAWN_STEP_MS);
+  if (stepDelay <= 0 && pawnMoveSession.path.length) {
     pawnMoveSession.displayPos = pawnMoveSession.path[pawnMoveSession.path.length - 1];
     pawnMoveSession.pathIndex = pawnMoveSession.path.length - 1;
     renderBoard(gameState);
@@ -2069,7 +2104,7 @@ function stepPawnForward() {
   }
   pawnMoveSession.displayPos = pawnMoveSession.path[pawnMoveSession.pathIndex];
   renderBoard(gameState);
-  pawnMoveSession.timer = setTimeout(stepPawnForward, PAWN_STEP_MS);
+  pawnMoveSession.timer = setTimeout(stepPawnForward, stepDelay);
 }
 
 function buildLandingPanelHtml(state) {
@@ -2094,10 +2129,10 @@ function buildLandingPanelHtml(state) {
   return html;
 }
 
-function showLandingPanel(state) {
+function showLandingPanel(state, onDone) {
   const roller = state.players[state.currentPlayerIndex];
   const space = state.board[roller?.position];
-  if (!space) { completeGameSequence(); return; }
+  if (!space) { onDone?.(); return; }
   const title = $('#landing-title');
   const resEl = $('#landing-resource');
   const body = $('#landing-body');
@@ -2118,16 +2153,47 @@ function showLandingPanel(state) {
     landingPauseTimer = null;
     hide($('#landing-overlay'));
     landingPauseActive = false;
-    pawnMoveSession.active = false;
-    completeGameSequence();
-  }, PAWN_POST_ARRIVE_MS);
+    onDone?.();
+  }, getSeqDelay(1600));
 }
 
 function finishPawnArrival() {
   clearPawnMoveTimer();
-  pawnMoveSession.displayPos = null;
+  pawnMoveSession.displayPos = pawnMoveSession.path.length
+    ? pawnMoveSession.path[pawnMoveSession.path.length - 1]
+    : null;
   renderBoard(gameState);
-  showLandingPanel(gameState);
+  landingPauseActive = true;
+  if (landingPauseTimer) clearTimeout(landingPauseTimer);
+  const delay = getSeqDelay(PAWN_POST_ARRIVE_MS);
+  const afterLandingPause = () => {
+    landingPauseActive = false;
+    pawnMoveSession.active = false;
+    const state = gameState;
+    const roller = state?.players?.[state.currentPlayerIndex];
+    const isMyTurn = roller?.id === myGameId && !roller?.bankrupt;
+    const wantsBuy = state?.pendingAction?.type === 'buy_titles' && isMyTurn;
+    if (wantsBuy) {
+      pawnMoveSession.displayPos = null;
+      renderBoard(state);
+      completeGameSequence();
+      return;
+    }
+    const space = state?.board?.[roller?.position];
+    if (space?.resource || space?.type === 'bonus') {
+      showLandingPanel(state, () => {
+        pawnMoveSession.displayPos = null;
+        renderBoard(gameState);
+        completeGameSequence();
+      });
+      return;
+    }
+    pawnMoveSession.displayPos = null;
+    renderBoard(state);
+    completeGameSequence();
+  };
+  if (delay <= 0) afterLandingPause();
+  else landingPauseTimer = setTimeout(() => { landingPauseTimer = null; afterLandingPause(); }, delay);
 }
 
 function completeGameSequence() {
@@ -2181,7 +2247,8 @@ function showDiceResult(d1, d2, opts = {}) {
 
   if (diceRollSession.active) {
     diceRollSession.result = { d1, d2, rollId, rollerName };
-    if (Date.now() - diceRollSession.start >= DICE_ROLL_MIN_MS) finishDiceRoll();
+    const minMs = settings.reduceMotion ? 200 : DICE_ROLL_MIN_MS;
+    if (Date.now() - diceRollSession.start >= minMs) finishDiceRoll();
     else scheduleDiceLanding();
     return;
   }
@@ -2190,6 +2257,7 @@ function showDiceResult(d1, d2, opts = {}) {
     Dice3D.setCubeValue($('#die1'), d1, { animate: false });
     Dice3D.setCubeValue($('#die2'), d2, { animate: false });
     updateDiceScores(d1, d2, rollerName);
+    if (pawnMoveSession.waitingDice && !diceRollSession.active) beginPawnMovement();
     return;
   }
 
@@ -2214,7 +2282,8 @@ function showDiceResult(d1, d2, opts = {}) {
 
 function scheduleDiceLanding() {
   if (diceRollSession.timer) clearTimeout(diceRollSession.timer);
-  const remaining = DICE_ROLL_MIN_MS - (Date.now() - diceRollSession.start);
+  const minMs = settings.reduceMotion ? 200 : DICE_ROLL_MIN_MS;
+  const remaining = minMs - (Date.now() - diceRollSession.start);
   if (remaining <= 0) {
     if (diceRollSession.result) finishDiceRoll();
     return;
@@ -2231,12 +2300,17 @@ function finishDiceRoll() {
   diceRollSession.result = null;
   if (diceRollSession.timer) clearTimeout(diceRollSession.timer);
   diceRollSession.timer = null;
-  Dice3D.landBothCubes($('#die1'), $('#die2'), d1, d2, () => {
+  let landed = false;
+  const onLanded = () => {
+    if (landed) return;
+    landed = true;
     updateDiceScores(d1, d2, rollerName);
     const btn = $('#btn-roll');
     if (btn) btn.disabled = false;
     beginPawnMovement();
-  });
+  };
+  Dice3D.landBothCubes($('#die1'), $('#die2'), d1, d2, onLanded);
+  setTimeout(onLanded, 1800);
 }
 
 function animateDice() {

@@ -1,0 +1,228 @@
+{
+  "2bc08bb3-d332-4b77-8b26-323ea340dacc": {
+    "id": "2bc08bb3-d332-4b77-8b26-323ea340dacc",
+    "provider": "google",
+    "externalId": "test123",
+    "displayName": "Quentin",
+    "avatar": "🐬",
+    "coins": 860,
+    "xp": 0,
+    "seasonXp": 0,
+    "ownedPawns": [
+      "classic",
+      "explorer"
+    ],
+    "equippedPawn": "explorer",
+    "battlePass": {
+      "premium": false,
+      "claimedFree": [
+        1
+      ],
+      "claimedPremium": []
+    },
+    "stats": {
+      "wins": 0,
+      "played": 0
+    },
+    "createdAt": 1780647685514
+  },
+  "3414c41d-13c1-456d-9a00-d1b9fda5877e": {
+    "id": "3414c41d-13c1-456d-9a00-d1b9fda5877e",
+    "provider": "google",
+    "externalId": "c6ed446360034f7896d767ffc4a1104e",
+    "displayName": "Lazerex360",
+    "avatar": "🦈",
+    "coins": 860,
+    "xp": 0,
+    "seasonXp": 0,
+    "ownedPawns": [
+      "classic",
+      "explorer"
+    ],
+    "equippedPawn": "classic",
+    "ownedDice": [
+      "classic_dice"
+    ],
+    "equippedDice": "classic_dice",
+    "battlePass": {
+      "premium": false,
+      "claimedFree": [
+        1
+      ],
+      "claimedPremium": []
+    },
+    "stats": {
+      "wins": 0,
+      "played": 0,
+      "streak": 0,
+      "bestStreak": 0
+    },
+    "redeemedCodes": [],
+    "createdAt": 1780663758667
+  },
+  "89eef3ce-e2b5-4fbd-9689-342b02b6001b": {
+    "id": "89eef3ce-e2b5-4fbd-9689-342b02b6001b",
+    "provider": "google",
+    "externalId": "lazerex360@gmail.com",
+    "displayName": "Lazerex360",
+    "avatar": "🦊",
+    "coins": 160,
+    "xp": 52,
+    "seasonXp": 52,
+    "ownedPawns": [
+      "classic"
+    ],
+    "equippedPawn": "classic",
+    "ownedDice": [
+      "classic_dice",
+      "ocean_dice"
+    ],
+    "equippedDice": "ocean_dice",
+    "battlePass": {
+      "premium": false,
+      "claimedFree": [
+        1
+      ],
+      "claimedPremium": []
+    },
+    "stats": {
+      "wins": 0,
+      "played": 4,
+      "streak": 0,
+      "bestStreak": 0
+    },
+    "redeemedCodes": [],
+    "createdAt": 1780665350215,
+    "pseudoChosen": true
+  },
+  "c6b566f9-b2a2-46e3-8d41-2c0a23793ab2": {
+    "id": "c6b566f9-b2a2-46e3-8d41-2c0a23793ab2",
+    "provider": "email",
+    "externalId": "lazerex360@gmail.com",
+    "displayName": "Nash",
+    "pseudoChosen": true,
+    "avatar": "🐬",
+    "coins": 1660,
+    "xp": 0,
+    "seasonXp": 0,
+    "ownedPawns": [
+      "classic"
+    ],
+    "equippedPawn": "classic",
+    "ownedDice": [
+      "classic_dice"
+    ],
+    "equippedDice": "classic_dice",
+    "battlePass": {
+      "premium": false,
+      "claimedFree": [
+        1
+      ],
+      "claimedPremium": []
+    },
+    "stats": {
+      "wins": 0,
+      "played": 0,
+      "streak": 0,
+      "bestStreak": 0
+    },
+    "redeemedCodes": [],
+    "createdAt": 1780669123336
+  },
+  "f8d4b995-0a4f-4add-a50d-39c40693f3d9": {
+    "id": "f8d4b995-0a4f-4add-a50d-39c40693f3d9",
+    "provider": "email",
+    "externalId": "quentin.emorine0510@gmail.com",
+    "displayName": "Nash",
+    "pseudoChosen": true,
+    "avatar": "🐅",
+    "coins": 1500,
+    "xp": 0,
+    "seasonXp": 0,
+    "ownedPawns": [
+      "classic"
+    ],
+    "equippedPawn": "classic",
+    "ownedDice": [
+      "classic_dice"
+    ],
+    "equippedDice": "classic_dice",
+    "battlePass": {
+      "premium": false,
+      "claimedFree": [],
+      "claimedPremium": []
+    },
+    "stats": {
+      "wins": 0,
+      "played": 0,
+      "streak": 0,
+      "bestStreak": 0
+    },
+    "redeemedCodes": [],
+    "createdAt": 1780669664380
+  },
+  "1f66ff3f-5297-4d62-8736-c7e952be8dca": {
+    "id": "1f66ff3f-5297-4d62-8736-c7e952be8dca",
+    "provider": "email",
+    "externalId": ".@gmail.com",
+    "displayName": "Nash",
+    "pseudoChosen": true,
+    "avatar": "🐅",
+    "coins": 1500,
+    "xp": 0,
+    "seasonXp": 0,
+    "ownedPawns": [
+      "classic"
+    ],
+    "equippedPawn": "classic",
+    "ownedDice": [
+      "classic_dice"
+    ],
+    "equippedDice": "classic_dice",
+    "battlePass": {
+      "premium": false,
+      "claimedFree": [],
+      "claimedPremium": []
+    },
+    "stats": {
+      "wins": 0,
+      "played": 0,
+      "streak": 0,
+      "bestStreak": 0
+    },
+    "redeemedCodes": [],
+    "createdAt": 1780669740529
+  },
+  "2c830396-5f3b-4488-8ec3-39f85ba2e8e2": {
+    "id": "2c830396-5f3b-4488-8ec3-39f85ba2e8e2",
+    "provider": "guest",
+    "externalId": "3f559e2872424210bfe8fbbaa47d5b3e",
+    "displayName": "Invité",
+    "pseudoChosen": true,
+    "avatar": "🦈",
+    "coins": 1500,
+    "xp": 0,
+    "seasonXp": 0,
+    "ownedPawns": [
+      "classic"
+    ],
+    "equippedPawn": "classic",
+    "ownedDice": [
+      "classic_dice"
+    ],
+    "equippedDice": "classic_dice",
+    "battlePass": {
+      "premium": false,
+      "claimedFree": [],
+      "claimedPremium": []
+    },
+    "stats": {
+      "wins": 0,
+      "played": 0,
+      "streak": 0,
+      "bestStreak": 0
+    },
+    "redeemedCodes": [],
+    "createdAt": 1780670835549
+  }
+}

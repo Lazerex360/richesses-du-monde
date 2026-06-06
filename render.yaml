@@ -1,0 +1,20 @@
+# Déploiement Render — https://render.com
+# 1. Poussez le projet sur GitHub
+# 2. Render → New → Blueprint → connectez le dépôt
+# 3. L'URL sera du type https://richesses-du-monde.onrender.com
+
+services:
+  - type: web
+    name: richesses-du-monde
+    runtime: node
+    plan: free
+    buildCommand: npm install --omit=dev
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NO_TUNNEL
+        value: "1"
+      # Offre gratuite : pas de disque persistant (invité OK ; comptes peuvent être réinitialisés au redéploiement).
+      # Plan payant Render : ajoutez un disque et RDM_USER_DATA=/var/data

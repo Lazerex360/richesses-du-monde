@@ -1,0 +1,5 @@
+{
+  "googleClientId": "",
+  "googleClientSecret": "",
+  "googleRedirectUri": "https://VOTRE-URL.onrender.com/api/auth/google/callback"
+}

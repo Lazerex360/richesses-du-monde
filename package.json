@@ -1,0 +1,69 @@
+{
+  "name": "richesses-du-monde",
+  "version": "1.0.0",
+  "description": "Richesses du Monde - Jeu multijoueur Lansay (2 à 6 joueurs)",
+  "main": "electron/main.js",
+  "author": "Lansay",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "app": "electron .",
+    "dist": "electron-builder --win",
+    "dist:portable": "electron-builder --win portable"
+  },
+  "dependencies": {
+    "localtunnel": "^2.0.2"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "fr.lansay.richessesdumonde",
+    "productName": "Richesses du Monde",
+    "copyright": "Lansay",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": ".",
+        "to": "app",
+        "filter": [
+          "server.js",
+          "config.json",
+          "package.json",
+          "public/**",
+          "src/**",
+          "data/**",
+          "node_modules/localtunnel/**"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "public/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerLanguages": [
+        "fr",
+        "en"
+      ],
+      "shortcutName": "Richesses du Monde"
+    },
+    "portable": {
+      "artifactName": "Richesses-du-Monde-Portable-${version}.exe"
+    }
+  }
+}

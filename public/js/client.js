@@ -1072,17 +1072,72 @@ socket.on('room_update', (room) => {
 
 const STARTING_MONEY_TABLE = { 2: '100 M€', 3: '66 M€', 4: '50 M€', 5: '40 M€', 6: '33 M€' };
 
-function renderLobby(room) {
-  $('#lobby-title').textContent = room.name;
-  $('#lobby-code').textContent = room.code;
-  $('#lobby-visibility').textContent = room.isPublic ? t('lobby.public') : t('lobby.private');
+async function copyLobbyCode(code) {
+  if (!code) return;
+  try {
+    await navigator.clipboard.writeText(code);
+    toast(t('lobby.code_copied'), 'success');
+  } catch (_) {
+    const tmp = document.createElement('textarea');
+    tmp.value = code;
+    tmp.setAttribute('readonly', '');
+    tmp.style.position = 'fixed';
+    tmp.style.left = '-9999px';
+    document.body.appendChild(tmp);
+    tmp.select();
+    try {
+      document.execCommand('copy');
+      toast(t('lobby.code_copied'), 'success');
+    } catch (__) {
+      toast(t('lobby.invite_copy_fail'), 'error');
+    }
+    document.body.removeChild(tmp);
+  }
+}
 
-  // Montant de départ selon le nombre de joueurs
+function renderLobby(room) {
+  const maxPlayers = room.maxPlayers || 6;
+  $('#lobby-title').textContent = room.name;
+  const codeEl = $('#lobby-code');
+  if (codeEl) {
+    codeEl.textContent = room.code;
+    codeEl.title = t('lobby.copy_code_hint');
+    codeEl.setAttribute('aria-label', `${t('lobby.code')} ${room.code}`);
+    codeEl.onclick = () => copyLobbyCode(room.code);
+  }
+  const visEl = $('#lobby-visibility');
+  if (visEl) {
+    visEl.textContent = room.isPublic ? t('lobby.public') : t('lobby.private');
+    visEl.className = `visibility-badge ${room.isPublic ? 'is-public' : 'is-private'}`;
+  }
+
+  const countEl = $('#lobby-player-count');
+  if (countEl) countEl.textContent = `${room.players.length}/${maxPlayers}`;
+
   const n = Math.min(6, Math.max(2, room.players.length));
   const playersWord = room.players.length > 1 ? t('lobby.players') : t('lobby.player');
   $('#lobby-money').textContent = t('lobby.capital', { n: room.players.length, players: playersWord, money: STARTING_MONEY_TABLE[n] });
 
-  // Compte à rebours d'auto-lancement (parties publiques)
+  const readyCount = room.players.filter((p) => p.ready).length;
+  const readySummary = $('#lobby-ready-summary');
+  const readyText = $('#lobby-ready-text');
+  const readyFill = $('#lobby-ready-fill');
+  if (readySummary && readyText && readyFill) {
+    if (room.players.length > 0) {
+      const pct = Math.round((readyCount / room.players.length) * 100);
+      readyText.textContent = t('lobby.ready_count', { ready: readyCount, total: room.players.length });
+      readyFill.style.width = `${pct}%`;
+      readyFill.classList.toggle('is-complete', readyCount === room.players.length);
+      readySummary.setAttribute('role', 'progressbar');
+      readySummary.setAttribute('aria-valuenow', String(readyCount));
+      readySummary.setAttribute('aria-valuemin', '0');
+      readySummary.setAttribute('aria-valuemax', String(room.players.length));
+      show(readySummary);
+    } else {
+      hide(readySummary);
+    }
+  }
+
   const cd = $('#lobby-countdown');
   if (room.countdownEnd) {
     const remaining = Math.max(0, Math.ceil((room.countdownEnd - Date.now()) / 1000));
@@ -1093,20 +1148,31 @@ function renderLobby(room) {
   }
 
   const list = $('#player-list');
-  list.innerHTML = room.players
+  let listHtml = room.players
     .map(
       (p) => {
-        const removeBtn = isHost && p.isBot ? `<button class="remove-bot" data-bot="${p.id}" title="Retirer">✕</button>` : '';
-        const tag = p.isBot ? '<span class="bot-tag">BOT</span>' : `<span class="${p.ready ? 'ready-badge' : 'waiting-badge'}">${p.ready ? t('lobby.ready') : t('lobby.waiting')}</span>`;
+        const removeBtn = isHost && p.isBot ? `<button type="button" class="remove-bot" data-bot="${p.id}" title="${t('lobby.remove_bot')}">✕</button>` : '';
+        const tag = p.isBot
+          ? '<span class="bot-tag">BOT</span>'
+          : `<span class="${p.ready ? 'ready-badge' : 'waiting-badge'}">${p.ready ? t('lobby.ready') : t('lobby.waiting')}</span>`;
+        const classes = [
+          p.id === myGameId ? 'is-me' : '',
+          p.id === room.hostId ? 'is-host' : '',
+        ].filter(Boolean).join(' ');
         return `
-    <li>
+    <li class="${classes}">
       <span class="pl-pawn">${pawnEmojiMap[p.pawn] || '🔘'}</span>
       <span class="pl-name">${escapeHtml(p.name)}${honorTitleBadge(p.honorTitle)}${p.id === myGameId ? t('lobby.you') : ''}${p.id === room.hostId ? ' 👑' : ''}${p.isBot ? '' : ` · ${t('chip.level', { n: p.level || 1 })}`}</span>
-      ${tag}${removeBtn}
+      <span class="pl-status">${tag}${removeBtn}</span>
     </li>`;
       }
     )
     .join('');
+
+  for (let i = room.players.length; i < maxPlayers; i++) {
+    listHtml += `<li class="lobby-slot-empty"><span class="pl-pawn">○</span><span class="pl-name">${t('lobby.empty_slot')}</span></li>`;
+  }
+  list.innerHTML = listHtml;
 
   list.querySelectorAll('.remove-bot').forEach((b) =>
     b.addEventListener('click', () => socket.emit('remove_bot', { botId: b.dataset.bot }))
@@ -1115,24 +1181,31 @@ function renderLobby(room) {
   const me = room.players.find((p) => p.id === myGameId);
   const btnReady = $('#btn-ready');
   btnReady.textContent = me?.ready ? t('lobby.unready') : t('lobby.ready');
-  btnReady.className = me?.ready ? 'btn btn-danger' : 'btn btn-secondary';
+  btnReady.className = me?.ready ? 'btn btn-danger is-ready' : 'btn btn-secondary';
 
   const botControls = $('#bot-controls');
   const btnStart = $('#btn-start');
   if (isHost) {
     show(botControls);
-    $('#btn-add-bot').disabled = room.players.length >= room.maxPlayers;
+    $('#btn-add-bot').disabled = room.players.length >= maxPlayers;
     $('#btn-remove-bot').disabled = !room.players.some((p) => p.isBot);
     show(btnStart);
-    btnStart.disabled = room.players.length < 2 || !room.players.every((p) => p.ready);
+    const canStart = room.players.length >= 2 && room.players.every((p) => p.ready);
+    btnStart.disabled = !canStart;
+    btnStart.classList.toggle('can-start', canStart);
   } else {
     hide(botControls);
     hide(btnStart);
+    btnStart.classList.remove('can-start');
   }
 
   const inviteUrl = `${location.origin}${location.pathname}?join=${encodeURIComponent(room.code)}`;
   const linkEl = $('#lobby-invite-link');
   if (linkEl) linkEl.value = inviteUrl;
+
+  const copyCodeBtn = $('#btn-copy-code');
+  if (copyCodeBtn) copyCodeBtn.onclick = () => copyLobbyCode(room.code);
+
   const copyBtn = $('#btn-copy-invite');
   if (copyBtn) {
     copyBtn.onclick = async () => {

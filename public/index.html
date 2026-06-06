@@ -278,14 +278,26 @@
     <!-- SALON D'ATTENTE -->
     <section id="screen-lobby" class="screen">
       <div class="lobby card">
-        <button id="btn-leave-lobby" class="btn-mini back" data-i18n="lobby.leave">← Quitter</button>
-        <h2 id="lobby-title">Salon</h2>
-        <div class="lobby-code-row">
-          <span data-i18n="lobby.code_share">Code à donner à vos amis :</span>
-          <span id="lobby-code" class="code-badge code-badge-lg"></span>
-          <span id="lobby-visibility" class="visibility-badge"></span>
+        <button id="btn-leave-lobby" class="btn-mini back lobby-back" data-i18n="lobby.leave">← Quitter</button>
+
+        <header class="lobby-header">
+          <span class="lobby-icon" aria-hidden="true">🌍</span>
+          <div class="lobby-header-text">
+            <h2 id="lobby-title">Salon</h2>
+            <span id="lobby-visibility" class="visibility-badge"></span>
+          </div>
+        </header>
+
+        <div class="lobby-code-block">
+          <p class="lobby-code-label" data-i18n="lobby.code_share">Code à donner à vos amis :</p>
+          <div class="lobby-code-display">
+            <button type="button" id="lobby-code" class="code-badge code-badge-lg lobby-code-value" title="Copier"></button>
+            <button type="button" id="btn-copy-code" class="btn btn-secondary lobby-copy-btn" data-i18n="lobby.invite_copy">Copier</button>
+          </div>
         </div>
+
         <p class="lobby-hint" data-i18n="lobby.invite_hint">Vos amis ouvrent le jeu, se connectent et tapent ce code dans « Rejoindre par code ».</p>
+
         <details class="lobby-invite-details">
           <summary data-i18n="lobby.invite_title">Lien d'invitation (optionnel)</summary>
           <div class="lobby-invite-row">
@@ -293,14 +305,35 @@
             <button type="button" id="btn-copy-invite" class="btn btn-secondary" data-i18n="lobby.invite_copy">Copier</button>
           </div>
         </details>
+
         <div id="lobby-countdown" class="lobby-countdown hidden"></div>
-        <div id="lobby-money" class="lobby-money"></div>
-        <ul id="player-list" class="player-list"></ul>
+
+        <div class="lobby-meta">
+          <div id="lobby-money" class="lobby-money"></div>
+          <div id="lobby-ready-summary" class="lobby-ready-summary hidden">
+            <div class="lobby-ready-label">
+              <span id="lobby-ready-text"></span>
+            </div>
+            <div class="lobby-ready-track" aria-hidden="true">
+              <div id="lobby-ready-fill" class="lobby-ready-fill"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lobby-players-section">
+          <div class="lobby-players-head">
+            <span data-i18n="game.players">Joueurs</span>
+            <span id="lobby-player-count" class="lobby-player-count"></span>
+          </div>
+          <ul id="player-list" class="player-list"></ul>
+        </div>
+
         <div class="bot-controls hidden" id="bot-controls">
           <button id="btn-add-bot" class="btn-mini" data-i18n="lobby.add_bot">🤖 Ajouter un bot</button>
           <button id="btn-remove-bot" class="btn-mini" data-i18n="lobby.remove_bot">− Retirer un bot</button>
           <span class="bot-hint" data-i18n="lobby.bot_hint">Ajoutez des bots pour jouer en solo</span>
         </div>
+
         <div class="lobby-actions">
           <button id="btn-ready" class="btn btn-secondary" data-i18n="lobby.ready">Prêt</button>
           <button id="btn-start" class="btn btn-primary hidden" data-i18n="lobby.start">Lancer la partie</button>

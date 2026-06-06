@@ -330,10 +330,10 @@ function computeBoardUi(positions, outerEnd, grid) {
 
   return {
     center: {
-      rowStart: innerRowMax + 2,
-      rowEnd: grid.rows + 1,
-      colStart: innerColMin + 1,
-      colEnd: innerColMax + 2,
+      rowStart: innerRowMin + 2,
+      rowEnd: innerRowMax + 1,
+      colStart: innerColMin + 2,
+      colEnd: innerColMax,
     },
     trackOuter: {
       rowStart: outerRowMin + 1,

@@ -1024,8 +1024,7 @@ socket.on('auth_failed', () => { /* session invalide gérée par HTTP */ });
 socket.on('profile_update', (d) => { profile = d.profile; renderProfileChip(); });
 socket.on('error_msg', (msg) => toast(msg, 'error'));
 socket.on('left_room', () => {
-  lastNewsRevealId = 0;
-  dismissNewsCard();
+  resetGameAnimationState();
   showScreen('screen-hub');
   switchTab('play');
 });
@@ -1038,7 +1037,7 @@ socket.on('joined', ({ roomCode, playerId, isHost: host }) => {
 
 socket.on('room_update', (room) => {
   if (room.started) {
-    lastNewsRevealId = 0;
+    resetGameAnimationState();
     showScreen('screen-game');
     $('#room-label').textContent = room.code;
   } else {
@@ -1146,6 +1145,18 @@ $('#btn-back-hub').addEventListener('click', () => {
 
 // ===================== Jeu =====================
 let gameState = null;
+const _reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+const DICE_ROLL_MIN_MS = _reducedMotion ? 200 : 1400;
+const DICE_POST_REVEAL_MS = _reducedMotion ? 0 : 1000;
+const PAWN_STEP_MS = _reducedMotion ? 0 : 320;
+const PAWN_POST_ARRIVE_MS = _reducedMotion ? 0 : 1000;
+let diceRollSession = { active: false, start: 0, result: null, timer: null };
+let lastDisplayedRollId = 0;
+let lastAnimatedRollId = 0;
+let pawnMoveSession = { active: false, waitingDice: false, playerId: null, path: [], pathIndex: -1, displayPos: null, timer: null };
+let landingPauseActive = false;
+let landingPauseTimer = null;
+let pendingNewsReveal = null;
 let selectedTitles = new Set();
 let resourcesData = {};
 const DEFAULT_ROYALTY_THRESHOLDS = [30, 50, 70, 90];
@@ -1381,7 +1392,12 @@ function getOwnersForResource(state, resourceId) {
   return Object.values(owners);
 }
 
-socket.on('game_state', (state) => { gameState = state; renderGame(state); });
+socket.on('game_state', (state) => {
+  const prev = gameState;
+  preparePawnMoveAnimation(prev, state);
+  gameState = state;
+  renderGame(state);
+});
 
 $('#btn-surrender')?.addEventListener('click', () => {
   if (!gameState || !confirm(t('game.surrender_confirm'))) return;
@@ -1393,6 +1409,19 @@ function applyBoardGrid(grid) {
   if (!board || !grid) return;
   board.style.setProperty('--board-cols', String(grid.cols));
   board.style.setProperty('--board-rows', String(grid.rows));
+}
+
+function applyBoardUi(ui) {
+  const set = (el, box) => {
+    if (!el || !box) return;
+    el.style.gridRow = `${box.rowStart} / ${box.rowEnd}`;
+    el.style.gridColumn = `${box.colStart} / ${box.colEnd}`;
+  };
+  set($('.board-track-outer'), ui?.trackOuter);
+  set($('.board-track-inner'), ui?.trackInner);
+  set($('.board-center'), ui?.center);
+  const inner = $('.board-track-inner');
+  if (inner) inner.style.clipPath = ui?.trackInner?.clipPath || 'none';
 }
 
 function getBoardPositions(state) {
@@ -1566,12 +1595,20 @@ function showCellTooltip(space, state) {
   show(tip);
 }
 
+function getPlayerBoardPosition(player, state) {
+  if (pawnMoveSession.active && pawnMoveSession.playerId === player.id && pawnMoveSession.displayPos != null) {
+    return pawnMoveSession.displayPos;
+  }
+  return player.position;
+}
+
 function renderBoard(state) {
   const board = $('#board');
   board.querySelectorAll('.board-cell').forEach((el) => el.remove());
-  applyBoardGrid(state.boardGrid || { cols: 22, rows: 15 });
+  applyBoardGrid(state.boardGrid || { cols: 24, rows: 17 });
+  applyBoardUi(state.boardUi);
   const positions = getBoardPositions(state);
-  const showDepart = state.players.some((p) => !p.bankrupt && p.position === 0);
+  const showDepart = state.players.some((p) => !p.bankrupt && getPlayerBoardPosition(p, state) === 0);
   state.board.forEach((space, index) => {
     if (space.type === 'resource') return;
     if (space.type === 'start' && !showDepart) return;
@@ -1591,9 +1628,11 @@ function renderBoard(state) {
     if (zone && ZONE_COLORS[zone]) {
       cell.style.setProperty('--zone-color', ZONE_COLORS[zone]);
     }
-    const playersHere = state.players.filter((p) => !p.bankrupt && p.position === index);
+    const playersHere = state.players.filter((p) => !p.bankrupt && getPlayerBoardPosition(p, state) === index);
     const current = state.players[state.currentPlayerIndex];
-    if (playersHere.some((p) => current?.id === p.id)) cell.classList.add('active-cell');
+    const movingHere = pawnMoveSession.active && pawnMoveSession.displayPos === index;
+    if (playersHere.some((p) => current?.id === p.id) || movingHere) cell.classList.add('active-cell');
+    if (movingHere) cell.classList.add('pawn-landing-cell');
     if (space.resource && getOwnersForResource(state, space.resource).length) cell.classList.add('has-royalties');
     cell.innerHTML = `
       <div class="cell-body">${buildCellContent(space, state, index)}</div>
@@ -1721,6 +1760,16 @@ function renderBuyTitlesOverlay(action) {
   }
 
   updateBuySummary(available, $('#buy-titles-summary'));
+  const ownedEl = $('#buy-titles-owned');
+  if (ownedEl && action.linkedResource) {
+    const me = gameState?.players?.find((p) => p.id === myGameId);
+    const owned = (me?.titles || []).filter((ti) => ti.resourceId === action.linkedResource);
+    if (owned.length) {
+      const pct = owned.reduce((s, ti) => s + ti.percent, 0);
+      ownedEl.innerHTML = `<h4>${t('titles.royalties')} — ${escapeHtml(owned[0].resourceName || '')}</h4>${buildMyTitlesRoyaltiesHtml(action.linkedResource, pct)}`;
+      show(ownedEl);
+    } else hide(ownedEl);
+  } else if (ownedEl) hide(ownedEl);
   show(overlay);
 
   const confirmBtn = $('#btn-confirm-buy-modal');
@@ -1745,9 +1794,10 @@ function renderActions(state) {
   const current = state.players[state.currentPlayerIndex];
   const isMyTurn = current?.id === myGameId && !me?.bankrupt;
   const action = state.pendingAction;
-  const showBuyOverlay = action?.type === 'buy_titles' && isMyTurn;
+  const wantsBuy = action?.type === 'buy_titles' && isMyTurn;
+  const canShowBuy = wantsBuy && !isGameSequenceActive();
   area.innerHTML = '';
-  if (!showBuyOverlay) hideBuyTitlesOverlay();
+  if (!canShowBuy) hideBuyTitlesOverlay();
   if (state.winner) return;
 
   if (me?.bankrupt) { area.innerHTML = `<p class="action-desc">${t('game.bankrupt')}</p>`; return; }
@@ -1781,13 +1831,18 @@ function renderActions(state) {
       rollId: state.diceResult.rollId,
       rollerName: roller?.name || '',
     });
+    if (pawnMoveSession.waitingDice && !diceRollSession.active) beginPawnMovement();
   } else if (state.phase === 'rolling') {
     hide($('#dice-area'));
     hideDiceScores();
     lastDisplayedRollId = 0;
   }
 
-  if (action?.type === 'buy_titles' && isMyTurn) {
+  if (wantsBuy && !canShowBuy) {
+    area.innerHTML = `<p class="action-desc action-wait">${t('action.buy_after_dice')}</p>`;
+    return;
+  }
+  if (canShowBuy) {
     area.innerHTML = `<p class="action-desc">${t('action.buy_modal_hint')}</p>`;
     renderBuyTitlesOverlay(action);
     return;
@@ -1879,9 +1934,175 @@ function updateBuySummary(available, summaryEl) {
     : t('action.total_init');
 }
 
-const DICE_ROLL_MIN_MS = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ? 200 : 1200;
-let diceRollSession = { active: false, start: 0, result: null, timer: null };
-let lastDisplayedRollId = 0;
+function isGameSequenceActive() {
+  return diceRollSession.active || pawnMoveSession.active || pawnMoveSession.waitingDice || landingPauseActive;
+}
+
+function resetGameAnimationState() {
+  lastAnimatedRollId = 0;
+  lastDisplayedRollId = 0;
+  clearPawnMoveTimer();
+  if (landingPauseTimer) { clearTimeout(landingPauseTimer); landingPauseTimer = null; }
+  landingPauseActive = false;
+  pawnMoveSession = { active: false, waitingDice: false, playerId: null, path: [], pathIndex: -1, displayPos: null, timer: null };
+  pendingNewsReveal = null;
+  diceRollSession.active = false;
+  lastNewsRevealId = 0;
+  dismissNewsCard();
+  hide($('#landing-overlay'));
+}
+
+function clearPawnMoveTimer() {
+  if (pawnMoveSession.timer) { clearTimeout(pawnMoveSession.timer); pawnMoveSession.timer = null; }
+}
+
+function buildPawnStepPath(from, steps, state) {
+  const loopEnd = (state.board?.length || 1) - 1;
+  const loopSize = loopEnd;
+  const path = [];
+  let pos = from;
+  for (let i = 0; i < steps; i++) {
+    if (pos === 0) pos = i + 1;
+    else {
+      pos += 1;
+      if (pos > loopEnd) pos -= loopSize;
+    }
+    path.push(pos);
+  }
+  return path;
+}
+
+function preparePawnMoveAnimation(prev, state) {
+  if (!prev || !state?.diceResult?.rollId) return;
+  const rollId = state.diceResult.rollId;
+  if (rollId === lastAnimatedRollId) return;
+  const roller = state.players[state.currentPlayerIndex];
+  if (!roller || roller.bankrupt) return;
+  const prevRoller = prev.players.find((p) => p.id === roller.id);
+  if (!prevRoller) return;
+  const steps = state.diceResult.total;
+  if (!steps) return;
+  const path = buildPawnStepPath(prevRoller.position, steps, state);
+  if (!path.length) return;
+  lastAnimatedRollId = rollId;
+  clearPawnMoveTimer();
+  if (landingPauseTimer) { clearTimeout(landingPauseTimer); landingPauseTimer = null; }
+  landingPauseActive = false;
+  hide($('#landing-overlay'));
+  pawnMoveSession = {
+    active: true,
+    waitingDice: true,
+    playerId: roller.id,
+    path,
+    pathIndex: -1,
+    displayPos: prevRoller.position,
+    timer: null,
+  };
+}
+
+function beginPawnMovement() {
+  if (!pawnMoveSession.active) {
+    completeGameSequence();
+    return;
+  }
+  if (!pawnMoveSession.waitingDice) return;
+  pawnMoveSession.waitingDice = false;
+  clearPawnMoveTimer();
+  pawnMoveSession.timer = setTimeout(() => {
+    pawnMoveSession.timer = null;
+    stepPawnForward();
+  }, DICE_POST_REVEAL_MS);
+}
+
+function stepPawnForward() {
+  if (!pawnMoveSession.active) return;
+  if (PAWN_STEP_MS === 0 && pawnMoveSession.path.length) {
+    pawnMoveSession.displayPos = pawnMoveSession.path[pawnMoveSession.path.length - 1];
+    pawnMoveSession.pathIndex = pawnMoveSession.path.length - 1;
+    renderBoard(gameState);
+    finishPawnArrival();
+    return;
+  }
+  pawnMoveSession.pathIndex += 1;
+  if (pawnMoveSession.pathIndex >= pawnMoveSession.path.length) {
+    finishPawnArrival();
+    return;
+  }
+  pawnMoveSession.displayPos = pawnMoveSession.path[pawnMoveSession.pathIndex];
+  renderBoard(gameState);
+  pawnMoveSession.timer = setTimeout(stepPawnForward, PAWN_STEP_MS);
+}
+
+function buildLandingPanelHtml(state) {
+  const roller = state.players[state.currentPlayerIndex];
+  if (!roller) return '';
+  const space = state.board[roller.position];
+  if (!space) return '';
+  let html = '';
+  const res = getResourceInfo(space.resource);
+  if (space.type === 'bonus' && state.diceResult) {
+    html += `<div class="landing-bonus">🏦 +${formatMoney(500000 * state.diceResult.total)}</div>`;
+  }
+  if (space.resource && res) {
+    html += `<p class="landing-royalties-intro">${t('action.case_royalties_paid', { resource: res.name })}</p>`;
+    html += buildResourceRoyaltiesRowHtml(space.resource);
+    const owners = getOwnersForResource(state, space.resource);
+    html += `<div class="landing-owners-label">${t('board.current_owners')}</div>`;
+    html += owners.length
+      ? owners.map((o) => `<div class="landing-owner">${escapeHtml(o.player.name)} — ${o.pct}% → <strong>${formatMoney(o.royalty)}</strong></div>`).join('')
+      : `<div class="landing-owner muted">${t('board.no_owners')}</div>`;
+  }
+  return html;
+}
+
+function showLandingPanel(state) {
+  const roller = state.players[state.currentPlayerIndex];
+  const space = state.board[roller?.position];
+  if (!space) { completeGameSequence(); return; }
+  const title = $('#landing-title');
+  const resEl = $('#landing-resource');
+  const body = $('#landing-body');
+  if (title) title.textContent = space.label || '';
+  if (resEl) {
+    const res = getResourceInfo(space.resource);
+    if (res?.name) {
+      resEl.textContent = res.name;
+      resEl.style.color = res.color || '';
+      show(resEl);
+    } else hide(resEl);
+  }
+  if (body) body.innerHTML = buildLandingPanelHtml(state);
+  show($('#landing-overlay'));
+  landingPauseActive = true;
+  if (landingPauseTimer) clearTimeout(landingPauseTimer);
+  landingPauseTimer = setTimeout(() => {
+    landingPauseTimer = null;
+    hide($('#landing-overlay'));
+    landingPauseActive = false;
+    pawnMoveSession.active = false;
+    completeGameSequence();
+  }, PAWN_POST_ARRIVE_MS);
+}
+
+function finishPawnArrival() {
+  clearPawnMoveTimer();
+  pawnMoveSession.displayPos = null;
+  renderBoard(gameState);
+  showLandingPanel(gameState);
+}
+
+function completeGameSequence() {
+  if (pendingNewsReveal) {
+    const nr = pendingNewsReveal;
+    pendingNewsReveal = null;
+    showingNewsId = 0;
+    lastNewsRevealId = nr.id - 1;
+    showNewsCardAnimation(nr);
+    lastNewsRevealId = nr.id;
+    showingNewsId = nr.id;
+  }
+  if (gameState) renderActions(gameState);
+}
 
 function ensureDiceCubes() {
   Dice3D.initCube($('#die1'), 1);
@@ -1975,6 +2196,7 @@ function finishDiceRoll() {
     updateDiceScores(d1, d2, rollerName);
     const btn = $('#btn-roll');
     if (btn) btn.disabled = false;
+    beginPawnMovement();
   });
 }
 
@@ -2146,6 +2368,10 @@ function handleNewsReveal(state) {
   const nr = state.newsReveal;
   if (!nr || nr.id <= lastNewsRevealId) return;
   if (showingNewsId === nr.id) return;
+  if (isGameSequenceActive()) {
+    pendingNewsReveal = nr;
+    return;
+  }
   lastNewsRevealId = nr.id;
   showingNewsId = nr.id;
   showNewsCardAnimation(nr);

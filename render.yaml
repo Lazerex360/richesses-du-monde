@@ -16,5 +16,9 @@ services:
         value: production
       - key: NO_TUNNEL
         value: "1"
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
       # Offre gratuite : pas de disque persistant (invité OK ; comptes peuvent être réinitialisés au redéploiement).
       # Plan payant Render : ajoutez un disque et RDM_USER_DATA=/var/data

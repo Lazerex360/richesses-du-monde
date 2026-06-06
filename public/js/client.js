@@ -1714,16 +1714,44 @@ function getBoardPositions(state) {
   return [];
 }
 
+function getCellFlowClass(index, positions) {
+  const loopEnd = positions.length - 1;
+  const nextIdx = index < loopEnd ? index + 1 : 1;
+  const cur = positions[index];
+  const nxt = positions[nextIdx];
+  if (!cur || !nxt) return '';
+  const dr = nxt.row - cur.row;
+  const dc = nxt.col - cur.col;
+  if (dr > 0) return 'flow-down';
+  if (dr < 0) return 'flow-up';
+  if (dc > 0) return 'flow-right';
+  if (dc < 0) return 'flow-left';
+  return '';
+}
+
 function getCellEdgeClass(pos, index, positions, outerEnd, boardUi) {
   if (!pos) return '';
+  const loopEnd = positions.length - 1;
+  if (index === outerEnd + 1) return 'edge-right junction-enter';
+  if (index === loopEnd) return 'edge-bottom junction-exit';
+
   const bounds = index <= outerEnd ? boardUi?.outerBounds : boardUi?.innerBounds;
   if (!bounds) return '';
-  const edges = [];
-  if (pos.row === bounds.rowMax) edges.push('edge-bottom');
-  if (pos.row === bounds.rowMin) edges.push('edge-top');
-  if (pos.col === bounds.colMin) edges.push('edge-left');
-  if (pos.col === bounds.colMax) edges.push('edge-right');
-  return edges.join(' ');
+
+  const atBottom = pos.row === bounds.rowMax;
+  const atTop = pos.row === bounds.rowMin;
+  const atLeft = pos.col === bounds.colMin;
+  const atRight = pos.col === bounds.colMax;
+
+  if (atBottom && atLeft) return 'edge-left';
+  if (atTop && atLeft) return 'edge-top';
+  if (atTop && atRight) return 'edge-top';
+  if (atBottom && atRight) return 'edge-right';
+  if (atBottom) return 'edge-bottom';
+  if (atTop) return 'edge-top';
+  if (atLeft) return 'edge-left';
+  if (atRight) return 'edge-right';
+  return '';
 }
 
 function formatRoyalty(amount) {
@@ -1925,6 +1953,20 @@ function getPlayerBoardPosition(player, state) {
   return player.position;
 }
 
+function renderBoardPathArrows(state) {
+  const layer = $('#board-path-arrows');
+  if (!layer) return;
+  layer.querySelectorAll('.board-path-arrow').forEach((el) => el.remove());
+  const arrows = state.boardPathArrows || [];
+  arrows.forEach((arrow) => {
+    const el = document.createElement('div');
+    el.className = `board-path-arrow dir-${arrow.dir}${arrow.junction ? ' junction' : ''}`;
+    el.style.gridRow = arrow.row + 1;
+    el.style.gridColumn = arrow.col + 1;
+    layer.appendChild(el);
+  });
+}
+
 function renderBoardCenterStatus(state) {
   const el = $('#board-center-status');
   if (!el) return;
@@ -1989,9 +2031,10 @@ function renderBoard(state) {
     const outerEnd = state.outerLoopEnd ?? 36;
     const loopRing = index <= outerEnd ? 'loop-outer' : 'loop-inner';
     const edgeClass = getCellEdgeClass(pos, index, positions, outerEnd, state.boardUi);
+    const flowClass = getCellFlowClass(index, positions);
     const junctionClass = index === outerEnd + 1 || index === state.board.length - 1 ? 'loop-junction' : '';
     const royaltyClass = getRoyaltyCellClasses(state, space);
-    cell.className = `board-cell ${loopRing} type-${space.type}${zone ? ` zone-${zone}` : ''}${edgeClass ? ` ${edgeClass}` : ''}${junctionClass ? ` ${junctionClass}` : ''}${royaltyClass ? ` ${royaltyClass}` : ''}`;
+    cell.className = `board-cell ${loopRing} type-${space.type}${zone ? ` zone-${zone}` : ''}${edgeClass ? ` ${edgeClass}` : ''}${flowClass ? ` ${flowClass}` : ''}${junctionClass ? ` ${junctionClass}` : ''}${royaltyClass ? ` ${royaltyClass}` : ''}`;
     cell.style.gridRow = pos.row + 1;
     cell.style.gridColumn = pos.col + 1;
     if (res?.color && space.type === 'country') {
@@ -2020,6 +2063,7 @@ function renderBoard(state) {
     });
     board.appendChild(cell);
   });
+  renderBoardPathArrows(state);
   renderBoardCenterStatus(state);
   if ($('#screen-game')?.classList.contains('active')) requestAnimationFrame(() => applyBoardZoom());
 }

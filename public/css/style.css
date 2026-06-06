@@ -1120,6 +1120,33 @@ body.reduce-motion .board-zoom-stage { transition: none; }
   );
   opacity: 0.6;
 }
+.board-path-arrows {
+  display: contents;
+  pointer-events: none;
+}
+.board-path-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  pointer-events: none;
+}
+.board-path-arrow::after {
+  font-size: clamp(0.85rem, calc(var(--cell-w) * 0.32), 1.15rem);
+  font-weight: 800;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.82);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+}
+.board-path-arrow.dir-right::after { content: '→'; }
+.board-path-arrow.dir-left::after { content: '←'; }
+.board-path-arrow.dir-up::after { content: '↑'; }
+.board-path-arrow.dir-down::after { content: '↓'; }
+.board-path-arrow.junction::after {
+  color: rgba(241, 196, 15, 0.95);
+  font-size: clamp(1rem, calc(var(--cell-w) * 0.42), 1.4rem);
+}
+
 .board-track {
   pointer-events: none; z-index: 0; border-radius: 8px;
 }
@@ -1243,10 +1270,19 @@ body.reduce-motion .board-zoom-stage { transition: none; }
   border-color: rgba(58, 160, 255, 0.28);
   box-shadow: inset 0 0 0 1px rgba(58, 160, 255, 0.1);
 }
+/* Orientation vers le centre (plateau Lansay) */
+.board-cell.edge-top .cell-body,
+.board-cell.edge-top .pions-container {
+  transform: rotate(180deg);
+}
+.board-cell.edge-top .cell-body {
+  justify-content: center;
+}
 .board-cell.edge-left .cell-body,
 .board-cell.edge-right .cell-body {
   padding-left: 1px;
   padding-right: 1px;
+  justify-content: center;
 }
 .board-cell.edge-left .cell-country-oneline,
 .board-cell.edge-right .cell-country-oneline {
@@ -1266,6 +1302,60 @@ body.reduce-motion .board-zoom-stage { transition: none; }
   font-size: 0.62em;
   max-height: 3.5em;
   overflow: hidden;
+}
+.board-cell.edge-left .cell-special,
+.board-cell.edge-right .cell-special,
+.board-cell.edge-left .cell-start,
+.board-cell.edge-right .cell-start {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  white-space: nowrap;
+  font-size: 0.72em;
+  max-height: calc(var(--cell-h) - 12px);
+  overflow: hidden;
+}
+.board-cell.edge-right .cell-special,
+.board-cell.edge-right .cell-start { transform: rotate(180deg); }
+.board-cell.edge-bottom .cell-body {
+  justify-content: flex-end;
+  padding-bottom: 13px;
+}
+.board-cell.flow-right::before,
+.board-cell.flow-left::before,
+.board-cell.flow-up::before,
+.board-cell.flow-down::before {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 4px solid transparent;
+  opacity: 0.55;
+  z-index: 3;
+  pointer-events: none;
+}
+.board-cell.flow-right::before {
+  right: 2px; top: 50%; transform: translateY(-50%);
+  border-left-color: rgba(255, 255, 255, 0.75);
+  border-right: none;
+}
+.board-cell.flow-left::before {
+  left: 2px; top: 50%; transform: translateY(-50%);
+  border-right-color: rgba(255, 255, 255, 0.75);
+  border-left: none;
+}
+.board-cell.flow-up::before {
+  top: 2px; left: 50%; transform: translateX(-50%);
+  border-bottom-color: rgba(255, 255, 255, 0.75);
+  border-top: none;
+}
+.board-cell.flow-down::before {
+  bottom: 2px; left: 50%; transform: translateX(-50%);
+  border-top-color: rgba(255, 255, 255, 0.75);
+  border-bottom: none;
+}
+.board-cell.junction-enter,
+.board-cell.junction-exit {
+  box-shadow: 0 0 0 2px rgba(241, 196, 15, 0.45);
 }
 .board-cell.loop-junction {
   box-shadow: 0 0 0 2px rgba(241, 196, 15, 0.45);
@@ -1317,14 +1407,36 @@ body.reduce-motion .board-zoom-stage { transition: none; }
 }
 .cell-royalty-hint { font-size: 0.6em; color: #2ecc71; opacity: 0.9; word-break: break-word; line-height: 1; }
 
-/* Zone continent (bandeau couleur Lansay) */
-.board-cell.zone-europe { border-top: 3px solid var(--zone-color, #7dce82); }
-.board-cell.zone-russie { border-top: 3px solid var(--zone-color, #1e6b3a); }
-.board-cell.zone-usa { border-top: 3px solid var(--zone-color, #c0392b); }
-.board-cell.zone-amerique { border-top: 3px solid var(--zone-color, #e67e22); }
-.board-cell.zone-asie { border-top: 3px solid var(--zone-color, #3498db); }
-.board-cell.zone-oceanie { border-top: 3px solid var(--zone-color, #e91e8c); }
-.board-cell.zone-afrique { border-top: 3px solid var(--zone-color, #9b59b6); }
+/* Zone continent (bandeau couleur Lansay — côté face au centre) */
+.board-cell[class*='zone-'] { border-top-width: 1px; }
+.board-cell.edge-bottom.zone-europe { border-bottom: 3px solid var(--zone-color, #7dce82); }
+.board-cell.edge-bottom.zone-russie { border-bottom: 3px solid var(--zone-color, #1e6b3a); }
+.board-cell.edge-bottom.zone-usa { border-bottom: 3px solid var(--zone-color, #c0392b); }
+.board-cell.edge-bottom.zone-amerique { border-bottom: 3px solid var(--zone-color, #e67e22); }
+.board-cell.edge-bottom.zone-asie { border-bottom: 3px solid var(--zone-color, #3498db); }
+.board-cell.edge-bottom.zone-oceanie { border-bottom: 3px solid var(--zone-color, #e91e8c); }
+.board-cell.edge-bottom.zone-afrique { border-bottom: 3px solid var(--zone-color, #9b59b6); }
+.board-cell.edge-top.zone-europe { border-bottom: 3px solid var(--zone-color, #7dce82); }
+.board-cell.edge-top.zone-russie { border-bottom: 3px solid var(--zone-color, #1e6b3a); }
+.board-cell.edge-top.zone-usa { border-bottom: 3px solid var(--zone-color, #c0392b); }
+.board-cell.edge-top.zone-amerique { border-bottom: 3px solid var(--zone-color, #e67e22); }
+.board-cell.edge-top.zone-asie { border-bottom: 3px solid var(--zone-color, #3498db); }
+.board-cell.edge-top.zone-oceanie { border-bottom: 3px solid var(--zone-color, #e91e8c); }
+.board-cell.edge-top.zone-afrique { border-bottom: 3px solid var(--zone-color, #9b59b6); }
+.board-cell.edge-left.zone-europe { border-right: 3px solid var(--zone-color, #7dce82); }
+.board-cell.edge-left.zone-russie { border-right: 3px solid var(--zone-color, #1e6b3a); }
+.board-cell.edge-left.zone-usa { border-right: 3px solid var(--zone-color, #c0392b); }
+.board-cell.edge-left.zone-amerique { border-right: 3px solid var(--zone-color, #e67e22); }
+.board-cell.edge-left.zone-asie { border-right: 3px solid var(--zone-color, #3498db); }
+.board-cell.edge-left.zone-oceanie { border-right: 3px solid var(--zone-color, #e91e8c); }
+.board-cell.edge-left.zone-afrique { border-right: 3px solid var(--zone-color, #9b59b6); }
+.board-cell.edge-right.zone-europe { border-left: 3px solid var(--zone-color, #7dce82); }
+.board-cell.edge-right.zone-russie { border-left: 3px solid var(--zone-color, #1e6b3a); }
+.board-cell.edge-right.zone-usa { border-left: 3px solid var(--zone-color, #c0392b); }
+.board-cell.edge-right.zone-amerique { border-left: 3px solid var(--zone-color, #e67e22); }
+.board-cell.edge-right.zone-asie { border-left: 3px solid var(--zone-color, #3498db); }
+.board-cell.edge-right.zone-oceanie { border-left: 3px solid var(--zone-color, #e91e8c); }
+.board-cell.edge-right.zone-afrique { border-left: 3px solid var(--zone-color, #9b59b6); }
 
 .type-start { background: linear-gradient(135deg, #1e5631, #145a32); }
 .type-country { background: linear-gradient(180deg, color-mix(in srgb, var(--zone-color, #1a2a42) 28%, #1a2a42), #141e30); }

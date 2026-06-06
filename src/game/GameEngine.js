@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const uuidv4 = () => crypto.randomUUID();
 const { RESOURCES, CONTINENTS, STARTING_MONEY, getRoyaltyAmount, buildDeck } = require('../data/resources');
-const { BOARD, BOARD_POSITIONS, BOARD_GRID, BOARD_UI, LOOP_END, LOOP_SIZE, OUTER_LOOP_END, INNER_LOOP_START, NEWS_CARDS, PLAYER_COLORS } = require('../data/board');
+const { BOARD, BOARD_POSITIONS, BOARD_GRID, BOARD_UI, BOARD_PATH_ARROWS, LOOP_END, LOOP_SIZE, OUTER_LOOP_END, INNER_LOOP_START, NEWS_CARDS, PLAYER_COLORS } = require('../data/board');
 const { getDice } = require('../data/shop');
 
 class GameEngine {
@@ -1083,6 +1083,7 @@ class GameEngine {
       boardPositions: BOARD_POSITIONS,
       boardGrid: BOARD_GRID,
       boardUi: BOARD_UI,
+      boardPathArrows: BOARD_PATH_ARROWS,
       outerLoopEnd: OUTER_LOOP_END,
       innerLoopStart: INNER_LOOP_START,
       myAlliance: (() => {

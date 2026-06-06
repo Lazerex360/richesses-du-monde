@@ -153,8 +153,8 @@ const BOARD_INSET = 1;
 
 /** Rectangle extérieur 11×10 → périmètre 38, 37 cases de jeu */
 const OUTER_RECT = { cols: 11, rows: 10 };
-/** Rectangle intérieur 8×8 — left=2 pour marges latérales symétriques (1+8+1 dans 11 cols) */
-const INNER_RECT = { cols: 8, rows: 8, left: 2, top: 1 };
+/** Rectangle intérieur 9×8 — left=1 pour marges latérales symétriques (1+9+1 dans 11 cols) */
+const INNER_RECT = { cols: 9, rows: 8, left: 1, top: 1 };
 
 const BOARD_LOGIC_GRID = { cols: OUTER_RECT.cols, rows: OUTER_RECT.rows };
 const BOARD_GRID = {
@@ -246,7 +246,13 @@ function applyBoardInset(positions, outerEnd, inset, logicalGrid, displayGrid) {
 
 function computeBoardUi(positions, outerEnd) {
   const outer = positions.slice(0, outerEnd + 1);
-  const innerBand = positions.slice(outerEnd + 1, -1);
+  const innerStart = outerEnd + 1;
+  const loopEnd = positions.length - 1;
+  // Bande intérieure sans les 2 cases de jonction sur le bord extérieur
+  const innerBand = positions.slice(innerStart, loopEnd + 1).filter((_, i) => {
+    const idx = innerStart + i;
+    return idx !== innerStart && idx !== loopEnd;
+  });
 
   const outerRowMin = Math.min(...outer.map((p) => p.row));
   const outerRowMax = Math.max(...outer.map((p) => p.row));
@@ -292,6 +298,32 @@ const BOARD_POSITIONS = applyBoardInset(
 
 const BOARD_UI = computeBoardUi(BOARD_POSITIONS, OUTER_LOOP_END);
 
+/** Flèches dans les couloirs entre pistes (plateau Lansay) */
+const BOARD_PATH_ARROWS = [
+  { row: 1, col: 1, dir: 'right' },
+  { row: 1, col: 4, dir: 'right' },
+  { row: 1, col: 7, dir: 'right' },
+  { row: 1, col: 10, dir: 'right' },
+  { row: 1, col: 11, dir: 'down' },
+  { row: 10, col: 1, dir: 'left' },
+  { row: 10, col: 4, dir: 'left' },
+  { row: 10, col: 7, dir: 'left' },
+  { row: 10, col: 9, dir: 'left' },
+  { row: 10, col: 11, dir: 'up' },
+  { row: 11, col: 11, dir: 'left' },
+  { row: 11, col: 1, dir: 'up' },
+  { row: 0, col: 1, dir: 'right' },
+  { row: 0, col: 11, dir: 'down' },
+  { row: 3, col: 1, dir: 'up' },
+  { row: 6, col: 1, dir: 'up' },
+  { row: 3, col: 11, dir: 'down' },
+  { row: 6, col: 11, dir: 'down' },
+  { row: 8, col: 11, dir: 'down', junction: true },
+  { row: 9, col: 11, dir: 'down', junction: true },
+  { row: 2, col: 1, dir: 'right', junction: true },
+  { row: 9, col: 2, dir: 'up', junction: true },
+];
+
 const NEWS_CARDS = [
   { text: 'Crise économique ! Perdez 2 000 000 €', effect: { type: 'pay_bank', amount: 2000000 } },
   { text: 'Subvention gouvernementale : +3 000 000 €', effect: { type: 'receive_bank', amount: 3000000 } },
@@ -318,6 +350,7 @@ module.exports = {
   BOARD_LOGIC_GRID,
   BOARD_INSET,
   BOARD_UI,
+  BOARD_PATH_ARROWS,
   LOOP_START,
   LOOP_END,
   LOOP_SIZE,

@@ -320,6 +320,7 @@
           <button type="button" id="btn-game-rules" class="btn-mini" data-i18n="menu.rules">Règles</button>
           <button type="button" id="btn-game-settings" class="btn-mini" data-i18n="menu.settings">Paramètres</button>
           <button type="button" id="btn-surrender" class="btn-mini btn-surrender" data-i18n="game.surrender">Abandonner</button>
+          <button type="button" id="btn-leave-game" class="btn-mini hidden" data-i18n="game.leave_after_out">Quitter la partie</button>
           <div id="turn-indicator" class="turn-indicator"></div>
         </div>
       </header>
@@ -417,8 +418,10 @@
             <div class="news-card-face news-card-front">
               <div class="news-card-front-inner">
                 <div class="news-card-header">📰 <span data-i18n="news.title">Actualité</span></div>
-                <div id="news-card-player" class="news-card-player"></div>
-                <p id="news-card-text" class="news-card-text"></p>
+                <div class="news-card-body">
+                  <div id="news-card-player" class="news-card-player"></div>
+                  <p id="news-card-text" class="news-card-text"></p>
+                </div>
               </div>
             </div>
           </div>

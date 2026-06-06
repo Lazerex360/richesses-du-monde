@@ -1171,13 +1171,7 @@ socket.on('match_reward', ({ isWinner, reward, profile: newProfile }) => {
   show(box);
 });
 
-$('#btn-back-hub').addEventListener('click', () => {
-  hide($('#winner-overlay'));
-  socket.emit('leave_room');
-  passData = null;
-  showScreen('screen-hub');
-  switchTab('play');
-});
+$('#btn-back-hub').addEventListener('click', leaveGameToHub);
 
 // ===================== Jeu =====================
 let gameState = null;
@@ -1185,12 +1179,15 @@ const DICE_ROLL_MIN_MS = 1400;
 const DICE_POST_REVEAL_MS = 1200;
 const PAWN_STEP_MS = 380;
 const PAWN_POST_ARRIVE_MS = 1200;
+const NEWS_DISPLAY_MS = 5000;
 
 function getSeqDelay(ms) {
   return settings.reduceMotion ? 0 : ms;
 }
 let diceRollSession = { active: false, start: 0, result: null, timer: null };
 let lastDisplayedRollId = 0;
+let diceSettledRollId = 0;
+let diceLandingRollId = 0;
 let lastGameStartTime = 0;
 let inActiveGame = false;
 let lastAnimatedRollId = '';
@@ -1460,8 +1457,11 @@ function getOwnersForResource(state, resourceId) {
 }
 
 function getGameStartTime(state) {
-  const entry = (state.log || []).find((e) => /Partie lancée/i.test(e.message));
-  return entry?.time || 0;
+  const log = state.log || [];
+  for (let i = log.length - 1; i >= 0; i--) {
+    if (/Partie lancée/i.test(log[i].message)) return log[i].time;
+  }
+  return 0;
 }
 
 socket.on('game_state', (state) => {
@@ -1475,10 +1475,28 @@ socket.on('game_state', (state) => {
   renderGame(state);
 });
 
+let localSurrendered = false;
+
+function leaveGameToHub() {
+  dismissNewsCard();
+  resetGameAnimationState();
+  hide($('#winner-overlay'));
+  localSurrendered = false;
+  gameState = null;
+  inActiveGame = false;
+  socket.emit('leave_room');
+  passData = null;
+  showScreen('screen-hub');
+  switchTab('play');
+}
+
 $('#btn-surrender')?.addEventListener('click', () => {
   if (!gameState || !confirm(t('game.surrender_confirm'))) return;
+  localSurrendered = true;
   socket.emit('surrender');
 });
+
+$('#btn-leave-game')?.addEventListener('click', leaveGameToHub);
 
 function applyBoardGrid(grid) {
   const board = $('#board');
@@ -1897,7 +1915,12 @@ function renderActions(state) {
   if (!canShowBuy) hideBuyTitlesOverlay();
   if (state.winner) return;
 
-  if (me?.bankrupt) { area.innerHTML = `<p class="action-desc">${t('game.bankrupt')}</p>`; return; }
+  if (me?.bankrupt) {
+    const outMsg = localSurrendered ? t('game.surrendered') : t('game.bankrupt');
+    area.innerHTML = `<p class="action-desc">${outMsg}</p><div class="action-buttons"><button type="button" class="btn btn-primary" id="btn-leave-game-action">${t('game.leave_after_out')}</button></div>`;
+    $('#btn-leave-game-action')?.addEventListener('click', leaveGameToHub);
+    return;
+  }
 
   const indicator = $('#turn-indicator');
   if (isMyTurn) { indicator.textContent = t('turn.you'); indicator.classList.add('my-turn'); }
@@ -1962,9 +1985,7 @@ function renderActions(state) {
     });
     if (pawnMoveSession.waitingDice && !diceRollSession.active) beginPawnMovement();
   } else if (state.phase === 'rolling') {
-    hide($('#dice-area'));
-    hideDiceScores();
-    lastDisplayedRollId = 0;
+    resetDiceDisplay();
   }
 
   if (wantsBuy && !canShowBuy) {
@@ -2116,7 +2137,25 @@ function updateBuySummary(available, summaryEl) {
 }
 
 function isGameSequenceActive() {
-  return diceRollSession.active || pawnMoveSession.active || pawnMoveSession.waitingDice || landingPauseActive;
+  return diceRollSession.active || diceLandingRollId > 0 || pawnMoveSession.active || pawnMoveSession.waitingDice || landingPauseActive;
+}
+
+function unlockDiceCubes() {
+  [$('#die1'), $('#die2')].forEach((die) => {
+    if (!die) return;
+    die.classList.remove('dice-settled', 'dice-wild', 'dice-landing');
+  });
+}
+
+function settleDiceCubes(d1, d2) {
+  [$('#die1'), $('#die2')].forEach((die) => {
+    if (!die) return;
+    die.classList.remove('dice-wild', 'dice-landing');
+    die.classList.add('dice-settled');
+    die.style.transition = 'none';
+  });
+  Dice3D.setCubeValue($('#die1'), d1, { animate: false });
+  Dice3D.setCubeValue($('#die2'), d2, { animate: false });
 }
 
 function resetDiceDisplay() {
@@ -2124,19 +2163,22 @@ function resetDiceDisplay() {
   hide($('#dice-area'));
   hide($('#cell-tooltip'));
   lastDisplayedRollId = 0;
+  diceSettledRollId = 0;
+  diceLandingRollId = 0;
   if (diceRollSession.timer) { clearTimeout(diceRollSession.timer); diceRollSession.timer = null; }
   diceRollSession.active = false;
   diceRollSession.result = null;
   ensureDiceCubes();
+  unlockDiceCubes();
   [$('#die1'), $('#die2')].forEach((die) => {
     if (!die) return;
-    die.classList.remove('dice-wild', 'dice-landing');
     Dice3D.setCubeValue(die, 1, { animate: false });
   });
 }
 
 function resetGameAnimationState() {
   lastAnimatedRollId = '';
+  localSurrendered = false;
   clearPawnMoveTimer();
   if (landingPauseTimer) { clearTimeout(landingPauseTimer); landingPauseTimer = null; }
   landingPauseActive = false;
@@ -2352,15 +2394,7 @@ function finishPawnArrival() {
 }
 
 function completeGameSequence() {
-  if (pendingNewsReveal) {
-    const nr = pendingNewsReveal;
-    pendingNewsReveal = null;
-    showingNewsId = 0;
-    lastNewsRevealId = nr.id - 1;
-    showNewsCardAnimation(nr);
-    lastNewsRevealId = nr.id;
-    showingNewsId = nr.id;
-  }
+  flushPendingNewsReveal();
   if (gameState) renderActions(gameState);
 }
 
@@ -2400,6 +2434,16 @@ function showDiceResult(d1, d2, opts = {}) {
   ensureDiceCubes();
   show($('#dice-area'));
 
+  if (rollId && diceSettledRollId === rollId) {
+    updateDiceScores(d1, d2, rollerName);
+    if (pawnMoveSession.waitingDice && !diceRollSession.active) beginPawnMovement();
+    return;
+  }
+
+  if (rollId && diceLandingRollId === rollId) {
+    return;
+  }
+
   if (diceRollSession.active) {
     diceRollSession.result = { d1, d2, rollId, rollerName };
     const minMs = settings.reduceMotion ? 200 : DICE_ROLL_MIN_MS;
@@ -2408,17 +2452,12 @@ function showDiceResult(d1, d2, opts = {}) {
     return;
   }
 
-  if (rollId && rollId === lastDisplayedRollId) {
-    Dice3D.setCubeValue($('#die1'), d1, { animate: false });
-    Dice3D.setCubeValue($('#die2'), d2, { animate: false });
-    updateDiceScores(d1, d2, rollerName);
-    if (pawnMoveSession.waitingDice && !diceRollSession.active) beginPawnMovement();
-    return;
-  }
-
   if (rollId && rollId !== lastDisplayedRollId) {
     lastDisplayedRollId = rollId;
+    diceSettledRollId = 0;
+    diceLandingRollId = 0;
     hideDiceScores();
+    unlockDiceCubes();
     diceRollSession.active = true;
     diceRollSession.start = Date.now();
     diceRollSession.result = { d1, d2, rollId, rollerName };
@@ -2430,8 +2469,16 @@ function showDiceResult(d1, d2, opts = {}) {
     return;
   }
 
-  Dice3D.setCubeValue($('#die1'), d1, { animate: false });
-  Dice3D.setCubeValue($('#die2'), d2, { animate: false });
+  if (rollId) {
+    settleDiceCubes(d1, d2);
+    diceSettledRollId = rollId;
+    lastDisplayedRollId = rollId;
+    updateDiceScores(d1, d2, rollerName);
+    if (pawnMoveSession.waitingDice) beginPawnMovement();
+    return;
+  }
+
+  settleDiceCubes(d1, d2);
   updateDiceScores(d1, d2, rollerName);
 }
 
@@ -2450,28 +2497,37 @@ function scheduleDiceLanding() {
 
 function finishDiceRoll() {
   if (!diceRollSession.active || !diceRollSession.result) return;
-  const { d1, d2, rollerName } = diceRollSession.result;
+  const { d1, d2, rollId, rollerName } = diceRollSession.result;
+  const settlingRollId = rollId || lastDisplayedRollId;
+  if (rollId) lastDisplayedRollId = rollId;
   diceRollSession.active = false;
   diceRollSession.result = null;
   if (diceRollSession.timer) clearTimeout(diceRollSession.timer);
   diceRollSession.timer = null;
+  diceLandingRollId = settlingRollId;
   let landed = false;
   const onLanded = () => {
     if (landed) return;
     landed = true;
+    diceLandingRollId = 0;
+    if (settlingRollId) diceSettledRollId = settlingRollId;
+    settleDiceCubes(d1, d2);
     updateDiceScores(d1, d2, rollerName);
     const btn = $('#btn-roll');
     if (btn) btn.disabled = false;
     beginPawnMovement();
   };
   Dice3D.landBothCubes($('#die1'), $('#die2'), d1, d2, onLanded);
-  setTimeout(onLanded, 1800);
+  setTimeout(onLanded, settings.reduceMotion ? 300 : 1800);
 }
 
 function animateDice() {
   applyDiceSkin();
   ensureDiceCubes();
   hideDiceScores();
+  diceSettledRollId = 0;
+  diceLandingRollId = 0;
+  unlockDiceCubes();
   sfx('dice');
   show($('#dice-area'));
   diceRollSession.active = true;
@@ -2602,11 +2658,17 @@ function dismissNewsCard() {
   $('#news-card-flipper')?.classList.remove('flipped');
 }
 
+function playerLandedOnNews(state) {
+  const roller = state?.players?.[state.currentPlayerIndex];
+  const space = roller != null ? state?.board?.[roller.position] : null;
+  return space?.type === 'news';
+}
+
 function showNewsCardAnimation(nr) {
   const overlay = $('#news-overlay');
   const flipper = $('#news-card-flipper');
   const dismiss = $('#news-card-dismiss');
-  if (!overlay || !flipper) return;
+  if (!overlay || !flipper || !nr) return;
 
   clearNewsTimers();
   $('#news-card-player').textContent = t('news.drawn_by', { name: nr.playerName });
@@ -2617,41 +2679,77 @@ function showNewsCardAnimation(nr) {
   show(overlay);
 
   const reduced = prefersReducedMotion();
-  const flipDelay = reduced ? 50 : 550;
-  const flipDuration = reduced ? 50 : 900;
+  const flipDelay = reduced ? 0 : 400;
+  const flipDuration = reduced ? 0 : 700;
+
+  const scheduleDismiss = () => {
+    newsDismissTimer = setTimeout(dismissNewsCard, NEWS_DISPLAY_MS);
+  };
+
+  if (reduced) {
+    flipper.classList.add('flipped');
+    scheduleDismiss();
+    return;
+  }
 
   newsFlipStartTimer = setTimeout(() => {
     newsFlipStartTimer = null;
-    if (!reduced) sfx('card');
+    sfx('card');
     void flipper.offsetWidth;
     flipper.classList.add('flipped');
     newsFlipEndTimer = setTimeout(() => {
       newsFlipEndTimer = null;
-      show(dismiss);
-      newsDismissTimer = setTimeout(dismissNewsCard, 7000);
+      scheduleDismiss();
     }, flipDuration);
   }, flipDelay);
 }
 
-function handleNewsReveal(state) {
-  const nr = state.newsReveal;
+function revealNewsCard(nr) {
   if (!nr || nr.id <= lastNewsRevealId) return;
   if (showingNewsId === nr.id) return;
-  if (isGameSequenceActive()) {
-    pendingNewsReveal = nr;
-    return;
-  }
   lastNewsRevealId = nr.id;
   showingNewsId = nr.id;
   showNewsCardAnimation(nr);
 }
 
+function shouldDeferNewsReveal(state, nr) {
+  if (!nr || nr.id <= lastNewsRevealId) return false;
+  if (showingNewsId === nr.id) return false;
+  if (isGameSequenceActive()) return true;
+  return !playerLandedOnNews(state);
+}
+
+function flushPendingNewsReveal() {
+  if (!pendingNewsReveal || isGameSequenceActive()) return;
+  if (gameState && shouldDeferNewsReveal(gameState, pendingNewsReveal)) return;
+  const nr = pendingNewsReveal;
+  pendingNewsReveal = null;
+  revealNewsCard(nr);
+}
+
+function handleNewsReveal(state) {
+  const nr = state.newsReveal;
+  if (!nr) return;
+  if (shouldDeferNewsReveal(state, nr)) {
+    pendingNewsReveal = nr;
+    return;
+  }
+  pendingNewsReveal = null;
+  revealNewsCard(nr);
+}
+
 function updateSurrenderButton(state) {
-  const btn = $('#btn-surrender');
-  if (!btn) return;
+  const surrenderBtn = $('#btn-surrender');
+  const leaveBtn = $('#btn-leave-game');
   const me = state.players.find((p) => p.id === myGameId);
-  if (!me || me.bankrupt || state.winner) hide(btn);
-  else show(btn);
+  if (surrenderBtn) {
+    if (!me || me.bankrupt || state.winner) hide(surrenderBtn);
+    else show(surrenderBtn);
+  }
+  if (leaveBtn) {
+    if (me?.bankrupt && !state.winner) show(leaveBtn);
+    else hide(leaveBtn);
+  }
 }
 
 function renderGame(state) {
@@ -2667,6 +2765,7 @@ function renderGame(state) {
   renderSocialOverlay(state);
   updateSurrenderButton(state);
   handleNewsReveal(state);
+  flushPendingNewsReveal();
   if (state.winner) {
     const wasHidden = $('#winner-overlay').classList.contains('hidden');
     show($('#winner-overlay'));

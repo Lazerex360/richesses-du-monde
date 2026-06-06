@@ -1775,7 +1775,17 @@ function renderActions(state) {
     return;
   }
 
-  if (state.diceResult) showDiceResult(state.diceResult.d1, state.diceResult.d2);
+  if (state.diceResult) {
+    const roller = state.players[state.currentPlayerIndex];
+    showDiceResult(state.diceResult.d1, state.diceResult.d2, {
+      rollId: state.diceResult.rollId,
+      rollerName: roller?.name || '',
+    });
+  } else if (state.phase === 'rolling') {
+    hide($('#dice-area'));
+    hideDiceScores();
+    lastDisplayedRollId = 0;
+  }
 
   if (action?.type === 'buy_titles' && isMyTurn) {
     area.innerHTML = `<p class="action-desc">${t('action.buy_modal_hint')}</p>`;
@@ -1871,6 +1881,7 @@ function updateBuySummary(available, summaryEl) {
 
 const DICE_ROLL_MIN_MS = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ? 200 : 1200;
 let diceRollSession = { active: false, start: 0, result: null, timer: null };
+let lastDisplayedRollId = 0;
 
 function ensureDiceCubes() {
   Dice3D.initCube($('#die1'), 1);
@@ -1878,22 +1889,67 @@ function ensureDiceCubes() {
 }
 
 function applyDiceSkin() {
-  const s = profile?.equippedDiceStyle || { bg: '#ffffff', color: '#1a1a2e', border: 'transparent' };
+  const roller = gameState?.players?.[gameState.currentPlayerIndex];
+  const s = roller?.diceStyle || profile?.equippedDiceStyle || { bg: '#ffffff', color: '#1a1a2e', border: 'transparent' };
   [$('#die1-scene'), $('#die2-scene')].forEach((scene) => Dice3D.applySkinToScene(scene, s));
 }
 
-function showDiceResult(d1, d2) {
+function hideDiceScores() {
+  hide($('#die1-score'));
+  hide($('#die2-score'));
+  hide($('#dice-total-score'));
+  hide($('#dice-roller-label'));
+}
+
+function updateDiceScores(d1, d2, rollerName) {
+  const s1 = $('#die1-score');
+  const s2 = $('#die2-score');
+  const total = $('#dice-total-score');
+  const label = $('#dice-roller-label');
+  if (s1) { s1.textContent = String(d1); s1.removeAttribute('aria-hidden'); show(s1); }
+  if (s2) { s2.textContent = String(d2); s2.removeAttribute('aria-hidden'); show(s2); }
+  if (total) { total.textContent = t('dice.total', { d1, d2, sum: d1 + d2 }); show(total); }
+  if (label && rollerName) { label.textContent = t('dice.roller', { name: rollerName }); show(label); }
+}
+
+function showDiceResult(d1, d2, opts = {}) {
+  const rollId = opts.rollId || 0;
+  const rollerName = opts.rollerName || '';
   applyDiceSkin();
   ensureDiceCubes();
   show($('#dice-area'));
+
   if (diceRollSession.active) {
-    diceRollSession.result = { d1, d2 };
+    diceRollSession.result = { d1, d2, rollId, rollerName };
     if (Date.now() - diceRollSession.start >= DICE_ROLL_MIN_MS) finishDiceRoll();
     else scheduleDiceLanding();
     return;
   }
+
+  if (rollId && rollId === lastDisplayedRollId) {
+    Dice3D.setCubeValue($('#die1'), d1, { animate: false });
+    Dice3D.setCubeValue($('#die2'), d2, { animate: false });
+    updateDiceScores(d1, d2, rollerName);
+    return;
+  }
+
+  if (rollId && rollId !== lastDisplayedRollId) {
+    lastDisplayedRollId = rollId;
+    hideDiceScores();
+    diceRollSession.active = true;
+    diceRollSession.start = Date.now();
+    diceRollSession.result = { d1, d2, rollId, rollerName };
+    if (diceRollSession.timer) clearTimeout(diceRollSession.timer);
+    sfx('dice');
+    Dice3D.startWildRoll($('#die1'));
+    Dice3D.startWildRoll($('#die2'));
+    scheduleDiceLanding();
+    return;
+  }
+
   Dice3D.setCubeValue($('#die1'), d1, { animate: false });
   Dice3D.setCubeValue($('#die2'), d2, { animate: false });
+  updateDiceScores(d1, d2, rollerName);
 }
 
 function scheduleDiceLanding() {
@@ -1910,19 +1966,22 @@ function scheduleDiceLanding() {
 
 function finishDiceRoll() {
   if (!diceRollSession.active || !diceRollSession.result) return;
-  const { d1, d2 } = diceRollSession.result;
-  Dice3D.landCube($('#die1'), d1);
-  Dice3D.landCube($('#die2'), d2);
+  const { d1, d2, rollerName } = diceRollSession.result;
   diceRollSession.active = false;
   diceRollSession.result = null;
+  if (diceRollSession.timer) clearTimeout(diceRollSession.timer);
   diceRollSession.timer = null;
-  const btn = $('#btn-roll');
-  if (btn) btn.disabled = false;
+  Dice3D.landBothCubes($('#die1'), $('#die2'), d1, d2, () => {
+    updateDiceScores(d1, d2, rollerName);
+    const btn = $('#btn-roll');
+    if (btn) btn.disabled = false;
+  });
 }
 
 function animateDice() {
   applyDiceSkin();
   ensureDiceCubes();
+  hideDiceScores();
   sfx('dice');
   show($('#dice-area'));
   diceRollSession.active = true;

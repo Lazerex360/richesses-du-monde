@@ -90,6 +90,8 @@ function syncLanguageSelectors() {
   const html = languageOptionsHtml(settings.lang);
   const setSel = $('#set-language');
   if (setSel) setSel.innerHTML = html;
+  const authSel = $('#auth-language');
+  if (authSel) authSel.innerHTML = html;
   renderAuthLanguageButtons();
 }
 
@@ -98,6 +100,8 @@ function setLanguage(code) {
   saveSettings();
   applyLanguage();
   $('#set-language') && ($('#set-language').value = code);
+  const authSel = $('#auth-language');
+  if (authSel) authSel.value = code;
   renderAuthLanguageButtons();
 }
 
@@ -276,6 +280,7 @@ $('#set-volume').addEventListener('input', (e) => {
 });
 $('#set-volume').addEventListener('change', () => sfx('dice'));
 $('#set-language').addEventListener('change', (e) => setLanguage(e.target.value));
+$('#auth-language')?.addEventListener('change', (e) => setLanguage(e.target.value));
 $('#auth-language-btns')?.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-lang]');
   if (btn) setLanguage(btn.dataset.lang);
@@ -481,21 +486,29 @@ function googleErrorMessage(code) {
 async function setupGoogleAuth() {
   const container = $('#google-signin-container');
   const fallback = $('#btn-google-fallback');
+  const googleRow = $('.auth-google-row');
+  const orSep = $('.auth-or');
   try {
     const cfg = await api('/api/config', 'GET');
     googleEnabled = !!cfg.googleEnabled;
     if (!googleEnabled || !cfg.googleClientId) {
       hide(container);
       hide(fallback);
+      hide(googleRow);
+      hide(orSep);
       return;
     }
     hide(container);
     show(fallback);
     fallback.classList.remove('hidden');
+    show(googleRow);
+    show(orSep);
   } catch (_) {
     googleEnabled = false;
     hide(container);
     hide(fallback);
+    hide(googleRow);
+    hide(orSep);
   }
 }
 

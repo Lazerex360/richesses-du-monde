@@ -1033,6 +1033,8 @@ socket.on('profile_update', (d) => { profile = d.profile; renderProfileChip(); }
 socket.on('error_msg', (msg) => toast(msg, 'error'));
 socket.on('left_room', () => {
   clearActiveRoom();
+  inActiveGame = false;
+  lastGameStartTime = 0;
   resetGameAnimationState();
   showScreen('screen-hub');
   switchTab('play');
@@ -1047,10 +1049,17 @@ socket.on('joined', ({ roomCode, playerId, isHost: host }) => {
 
 socket.on('room_update', (room) => {
   if (room.started) {
-    resetGameAnimationState();
+    if (!inActiveGame) {
+      inActiveGame = true;
+      lastGameStartTime = 0;
+      resetGameAnimationState();
+    }
     showScreen('screen-game');
     $('#room-label').textContent = room.code;
   } else {
+    inActiveGame = false;
+    lastGameStartTime = 0;
+    resetGameAnimationState();
     showScreen('screen-lobby');
     renderLobby(room);
   }
@@ -1182,6 +1191,8 @@ function getSeqDelay(ms) {
 }
 let diceRollSession = { active: false, start: 0, result: null, timer: null };
 let lastDisplayedRollId = 0;
+let lastGameStartTime = 0;
+let inActiveGame = false;
 let lastAnimatedRollId = '';
 let pawnMoveSession = { active: false, waitingDice: false, playerId: null, path: [], pathIndex: -1, displayPos: null, timer: null };
 let landingPauseActive = false;
@@ -1448,7 +1459,17 @@ function getOwnersForResource(state, resourceId) {
   return Object.values(owners);
 }
 
+function getGameStartTime(state) {
+  const entry = (state.log || []).find((e) => /Partie lancée/i.test(e.message));
+  return entry?.time || 0;
+}
+
 socket.on('game_state', (state) => {
+  const startTime = getGameStartTime(state);
+  if (startTime && startTime !== lastGameStartTime) {
+    lastGameStartTime = startTime;
+    resetGameAnimationState();
+  }
   preparePawnMoveAnimation(state);
   gameState = state;
   renderGame(state);
@@ -2098,18 +2119,34 @@ function isGameSequenceActive() {
   return diceRollSession.active || pawnMoveSession.active || pawnMoveSession.waitingDice || landingPauseActive;
 }
 
+function resetDiceDisplay() {
+  hideDiceScores();
+  hide($('#dice-area'));
+  hide($('#cell-tooltip'));
+  lastDisplayedRollId = 0;
+  if (diceRollSession.timer) { clearTimeout(diceRollSession.timer); diceRollSession.timer = null; }
+  diceRollSession.active = false;
+  diceRollSession.result = null;
+  ensureDiceCubes();
+  [$('#die1'), $('#die2')].forEach((die) => {
+    if (!die) return;
+    die.classList.remove('dice-wild', 'dice-landing');
+    Dice3D.setCubeValue(die, 1, { animate: false });
+  });
+}
+
 function resetGameAnimationState() {
   lastAnimatedRollId = '';
-  lastDisplayedRollId = 0;
   clearPawnMoveTimer();
   if (landingPauseTimer) { clearTimeout(landingPauseTimer); landingPauseTimer = null; }
   landingPauseActive = false;
   pawnMoveSession = { active: false, waitingDice: false, playerId: null, path: [], pathIndex: -1, displayPos: null, timer: null };
   pendingNewsReveal = null;
-  diceRollSession.active = false;
   lastNewsRevealId = 0;
   dismissNewsCard();
   hide($('#landing-overlay'));
+  hideBuyTitlesOverlay();
+  resetDiceDisplay();
 }
 
 function clearPawnMoveTimer() {
@@ -2618,6 +2655,9 @@ function updateSurrenderButton(state) {
 }
 
 function renderGame(state) {
+  if (state.phase === 'rolling' && !state.diceResult && !isGameSequenceActive()) {
+    resetDiceDisplay();
+  }
   renderBoard(state);
   renderPlayersPanel(state);
   renderAlliancePanel(state);

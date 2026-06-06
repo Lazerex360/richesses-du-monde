@@ -241,6 +241,19 @@ function applyBoardInset(positions, outerEnd, inset, logicalGrid, displayGrid) {
   // Retour petite boucle → Allemagne
   mapped[loopEnd] = { row: mapped[1].row - 1, col: mapped[1].col };
 
+  // Colonne gauche intérieure : compacter vers le haut (évite le trou sous l'Australie)
+  const innerLeftCol = INNER_RECT.left + inset;
+  const innerTopRow = INNER_RECT.top + inset;
+  const leftStack = [];
+  for (let i = innerStart + 1; i < loopEnd; i++) {
+    if (mapped[i].col === innerLeftCol && mapped[i].row > innerTopRow) leftStack.push(i);
+  }
+  leftStack.sort((a, b) => mapped[a].row - mapped[b].row);
+  const leftStartRow = innerTopRow + 1;
+  leftStack.forEach((idx, n) => {
+    mapped[idx] = { row: leftStartRow + n, col: innerLeftCol };
+  });
+
   return mapped;
 }
 
@@ -269,7 +282,7 @@ function computeBoardUi(positions, outerEnd) {
       rowStart: innerRowMin + 1,
       rowEnd: innerRowMax,
       colStart: innerColMin + 1,
-      colEnd: innerColMax,
+      colEnd: innerColMax + 1,
     },
     trackOuter: {
       rowStart: outerRowMin,
@@ -321,7 +334,7 @@ const BOARD_PATH_ARROWS = [
   { row: 8, col: 11, dir: 'down', junction: true },
   { row: 9, col: 11, dir: 'down', junction: true },
   { row: 2, col: 1, dir: 'right', junction: true },
-  { row: 9, col: 2, dir: 'up', junction: true },
+  { row: 4, col: 2, dir: 'up', junction: true },
 ];
 
 const NEWS_CARDS = [

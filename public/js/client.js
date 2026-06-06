@@ -2035,19 +2035,28 @@ function renderLog(state) {
   $('#game-log').innerHTML = (state.log || []).map((e) => `<div class="log-entry">${escapeHtml(e.message)}</div>`).join('');
 }
 
+function groupTitlesByResource(titles) {
+  const groups = {};
+  for (const ti of titles) {
+    if (!groups[ti.resourceId]) groups[ti.resourceId] = { name: ti.resourceName, titles: [] };
+    groups[ti.resourceId].titles.push(ti);
+  }
+  return Object.entries(groups)
+    .map(([id, g]) => {
+      g.titles.sort((a, b) => b.percent - a.percent);
+      const pct = g.titles.reduce((s, ti) => s + ti.percent, 0);
+      return { id, g, pct };
+    })
+    .sort((a, b) => b.pct - a.pct || a.g.name.localeCompare(b.g.name));
+}
+
 function buildPlayerTitlesHtml(player) {
   if (!player?.titles?.length) {
     return `<p style="color:var(--text-muted);font-size:0.85rem">${t('titles.none')}</p>`;
   }
-  const groups = {};
-  for (const ti of player.titles) {
-    if (!groups[ti.resourceId]) groups[ti.resourceId] = { name: ti.resourceName, titles: [] };
-    groups[ti.resourceId].titles.push(ti);
-  }
   const resInfo = (id) => getResourceInfo(id);
-  return Object.entries(groups)
-    .map(([id, g]) => {
-      const pct = g.titles.reduce((s, ti) => s + ti.percent, 0);
+  return groupTitlesByResource(player.titles)
+    .map(({ id, g, pct }) => {
       const monopoly = pct >= 50 ? `<span class="monopoly-badge">${t('titles.monopoly')}</span>` : '';
       const color = resInfo(id)?.color || '#3498db';
       return `
@@ -2091,18 +2100,9 @@ function buildBuyPortfolioHtml(me, action) {
   const highlightRes = new Set();
   if (action?.linkedResource) highlightRes.add(action.linkedResource);
   (action?.available || []).forEach((ti) => highlightRes.add(ti.resourceId));
-  const groups = {};
-  for (const ti of me.titles) {
-    if (!groups[ti.resourceId]) {
-      groups[ti.resourceId] = { name: ti.resourceName, titles: [] };
-    }
-    groups[ti.resourceId].titles.push(ti);
-  }
   const purchaseCountries = new Set((action?.available || []).map((ti) => ti.country).filter(Boolean));
-  return Object.entries(groups)
-    .sort((a, b) => a[1].name.localeCompare(b[1].name))
-    .map(([id, g]) => {
-      const pct = g.titles.reduce((s, ti) => s + ti.percent, 0);
+  return groupTitlesByResource(me.titles)
+    .map(({ id, g, pct }) => {
       const color = getResourceInfo(id)?.color || '#3498db';
       const relevant = highlightRes.has(id);
       const localTitles = purchaseCountries.size

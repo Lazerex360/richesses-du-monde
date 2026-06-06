@@ -1179,7 +1179,10 @@ select option { background: var(--bg-card); color: var(--text); }
 /* Cartes titre Lansay (pays + richesse + % + prix + royalties) */
 .title-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.6rem; }
 #title-list.title-cards-grid { grid-template-columns: 1fr; max-height: 55vh; overflow-y: auto; padding-right: 0.25rem; }
-.buy-titles-card { max-width: 520px; width: 100%; max-height: 90vh; overflow-y: auto; }
+.buy-titles-card { max-width: 580px; width: 100%; max-height: 90vh; overflow-y: auto; }
+.buy-royalties-intro { margin-bottom: 0.65rem; padding: 0.55rem; background: rgba(255,255,255,0.04); border-radius: 8px; border: 1px solid var(--border); }
+.buy-royalties-title { margin: 0 0 0.4rem; font-size: 0.82rem; color: var(--gold-light); }
+.buy-royalties-intro .resource-royalties-once { font-size: 0.78rem; }
 .buy-titles-card h2 { color: var(--gold-light); margin-bottom: 0.5rem; }
 #buy-titles-list.title-cards-grid { grid-template-columns: 1fr; max-height: min(52vh, 420px); overflow-y: auto; margin: 0.5rem 0; }
 .buy-titles-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
@@ -1213,7 +1216,12 @@ select option { background: var(--bg-card); color: var(--text); }
 .tc-royalties { grid-column: 1 / -1; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 0.35rem; }
 .tc-roy-label { font-size: 0.52rem; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(255,255,255,0.7); margin-bottom: 0.2rem; font-weight: 700; }
 .tc-tier { display: flex; justify-content: space-between; font-size: 0.62rem; padding: 0.08rem 0; color: rgba(255,255,255,0.92); }
+.tc-tier.active { color: #fff; font-weight: 700; }
+.tc-tier.active span:last-child { color: #2ecc71; }
 .tc-tier span:last-child { color: #7bed9f; font-weight: 700; }
+.tc-tier-now { margin-top: 0.15rem; padding-top: 0.15rem; border-top: 1px dashed rgba(255,255,255,0.2); }
+.tc-tier-below { font-size: 0.6rem; color: rgba(255,255,255,0.65); margin-top: 0.15rem; }
+.tc-roy-after { font-size: 0.58rem; color: var(--gold); margin-top: 0.25rem; font-weight: 600; }
 .title-royalties-table { width: 100%; font-size: 0.68rem; border-collapse: collapse; }
 .title-royalties-table th, .title-royalties-table td { padding: 0.15rem 0.3rem; border-bottom: 1px solid rgba(255,255,255,0.08); }
 .title-royalties-table th { color: rgba(255,255,255,0.7); font-weight: 600; }

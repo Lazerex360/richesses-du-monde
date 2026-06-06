@@ -1264,10 +1264,31 @@ function buildResourceRoyaltiesRowHtml(resourceId) {
     </table>`;
 }
 
-function buildTitleCardHtml(title, { selectable = false } = {}) {
+function buildTitleRoyaltiesCompactHtml(resourceId, totalPct) {
+  const tiers = getRoyaltiesForResource(resourceId);
+  const tierRows = tiers.map((tier) => {
+    const active = totalPct >= tier.min;
+    return `<div class="tc-tier${active ? ' active' : ''}"><span>${tier.min}%</span><span>${formatMoneyPdf(tier.amount)}</span></div>`;
+  }).join('');
+  const afterBuy = totalPct > 0
+    ? (totalPct >= 30
+      ? `<div class="tc-tier active tc-tier-now"><span>${totalPct}% →</span><span>${formatMoneyPdf(royaltyForPercent(totalPct, resourceId))}</span></div>`
+      : `<div class="tc-tier-below">${t('titles.royalty_min', { pct: totalPct })}</div>`)
+    : '';
+  return `
+    <div class="tc-royalties">
+      <div class="tc-roy-label">${t('board.royalty_tiers')}</div>
+      ${tierRows}
+      ${afterBuy ? `<div class="tc-roy-after">${t('titles.if_buy_royalty', { pct: totalPct })}</div>${afterBuy}` : ''}
+    </div>`;
+}
+
+function buildTitleCardHtml(title, { selectable = false, showRoyalties = false, ownedPctBase = 0 } = {}) {
   const res = getResourceInfo(title.resourceId);
   const color = res?.color || '#3498db';
   const check = selectable ? `<input type="checkbox" class="tc-check" value="${title.id}">` : '';
+  const totalPct = ownedPctBase + (title.percent || 0);
+  const royaltiesHtml = showRoyalties ? buildTitleRoyaltiesCompactHtml(title.resourceId, totalPct) : '';
   return `
     <div class="title-card" style="--res-color:${color}" data-title-id="${title.id}">
       ${check}
@@ -1282,6 +1303,7 @@ function buildTitleCardHtml(title, { selectable = false } = {}) {
             <span class="tc-price-label">${t('titles.buy_price')}</span>
             <span class="tc-price-val">${formatMoney(title.price)}</span>
           </div>
+          ${royaltiesHtml}
         </div>
       </div>
     </div>`;
@@ -1734,14 +1756,32 @@ function renderBuyTitlesOverlay(action) {
   list.className = 'title-cards-grid';
   selectedTitles = new Set();
 
+  const me = gameState?.players?.find((p) => p.id === myGameId);
+  const pctOwnedFor = (resourceId) => (me?.titles || [])
+    .filter((t) => t.resourceId === resourceId)
+    .reduce((s, t) => s + t.percent, 0);
+
   const available = Array.isArray(action.available) ? action.available : [];
   if (!available.length) {
     list.innerHTML = `<p class="action-desc muted">${t('action.no_titles')}</p>`;
   } else {
+    if (action.linkedResource) {
+      const res = getResourceInfo(action.linkedResource);
+      const intro = document.createElement('div');
+      intro.className = 'buy-royalties-intro';
+      intro.innerHTML = `
+        <p class="buy-royalties-title">${t('action.case_royalties_paid', { resource: res?.name || action.linkedResource })}</p>
+        ${buildResourceRoyaltiesRowHtml(action.linkedResource)}`;
+      list.appendChild(intro);
+    }
     available.forEach((ti) => {
       const wrap = document.createElement('label');
       wrap.className = 'title-card-select';
-      wrap.innerHTML = buildTitleCardHtml(ti, { selectable: true });
+      wrap.innerHTML = buildTitleCardHtml(ti, {
+        selectable: true,
+        showRoyalties: true,
+        ownedPctBase: pctOwnedFor(ti.resourceId),
+      });
       const card = wrap.querySelector('.title-card');
       const input = wrap.querySelector('.tc-check');
       input.addEventListener('change', (e) => {
@@ -1762,7 +1802,6 @@ function renderBuyTitlesOverlay(action) {
   updateBuySummary(available, $('#buy-titles-summary'));
   const ownedEl = $('#buy-titles-owned');
   if (ownedEl && action.linkedResource) {
-    const me = gameState?.players?.find((p) => p.id === myGameId);
     const owned = (me?.titles || []).filter((ti) => ti.resourceId === action.linkedResource);
     if (owned.length) {
       const pct = owned.reduce((s, ti) => s + ti.percent, 0);

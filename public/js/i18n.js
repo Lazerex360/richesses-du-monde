@@ -292,6 +292,7 @@ window.TR = {
     'titles.royalties_hint': 'Survoler ou cliquer pour voir les royalties',
     'titles.current_royalty': 'Vous détenez {pct}% → {amount} / passage',
     'titles.royalty_min': '{pct}% détenu — minimum 30% pour encaisser',
+    'titles.if_buy_royalty': 'Si vous achetez ce titre : {pct}% au total',
     'common.back': 'Retour',
 
     // Social / échange
@@ -620,6 +621,7 @@ window.TR = {
     'titles.royalties_hint': 'Hover or click to see royalties',
     'titles.current_royalty': 'You own {pct}% → {amount} / landing',
     'titles.royalty_min': '{pct}% owned — need at least 30% to collect',
+    'titles.if_buy_royalty': 'If you buy this title: {pct}% total',
     'common.back': 'Back',
 
     'social.trade_btn': '🔁 Trade / Sell',

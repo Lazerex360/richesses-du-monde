@@ -30,6 +30,25 @@ function formatMoneyPdf(amount) {
   return `${n.toLocaleString('fr-FR')} €`;
 }
 
+const COIN_RING_CIRC = 213.6;
+
+function coinHtml(size = 'md') {
+  return `<span class="rdm-coin rdm-coin--${size}" role="img" aria-label="${t('currency.coin')}"></span>`;
+}
+
+function formatCoinAmount(amount) {
+  return Number(amount).toLocaleString('fr-FR');
+}
+
+function renderCoinAmount(el, amount, size = 'md') {
+  if (!el) return;
+  el.innerHTML = `${coinHtml(size)}<span class="rdm-coin-value">${formatCoinAmount(amount)}</span>`;
+}
+
+function renderCoinPriceHtml(amount, size = 'sm') {
+  return `<span class="rdm-coin-wrap shop-price-coins">${coinHtml(size)}<span class="rdm-coin-value">${formatCoinAmount(amount)}</span></span>`;
+}
+
 let toastTimer = null;
 function toast(msg, type = '') {
   const el = $('#toast');
@@ -700,7 +719,10 @@ function renderTutorialStep() {
   const progressLabel = $('#tutorial-progress-label');
   if (titleEl) titleEl.textContent = t(`tutorial.step${n}_title`);
   if (bodyEl) bodyEl.textContent = t(`tutorial.step${n}_body`);
-  if (iconEl) iconEl.textContent = TUTORIAL_ICONS[tutorialStep] || '🎮';
+  if (iconEl) {
+    if (tutorialStep === 4) iconEl.innerHTML = coinHtml('lg');
+    else iconEl.textContent = TUTORIAL_ICONS[tutorialStep] || '🎮';
+  }
   if (nextBtn) nextBtn.textContent = tutorialStep >= TUTORIAL_STEPS - 1 ? t('tutorial.done') : t('tutorial.next');
   if (prevBtn) {
     if (tutorialStep > 0) show(prevBtn);
@@ -744,7 +766,9 @@ function renderProfileChip() {
   $('#pc-avatar').textContent = profile.avatar;
   $('#pc-name').textContent = profile.displayName;
   $('#pc-level').textContent = t('chip.level', { n: profile.level });
-  $('#pc-coins').textContent = `💰 ${profile.coins.toLocaleString('fr-FR')}`;
+  const pcCoinsVal = $('#pc-coins .rdm-coin-value');
+  if (pcCoinsVal) pcCoinsVal.textContent = formatCoinAmount(profile.coins);
+  else renderCoinAmount($('#pc-coins'), profile.coins, 'sm');
   $('#pc-xp-fill').style.width = `${Math.min(100, (profile.xpIntoLevel / profile.xpForNext) * 100)}%`;
 }
 
@@ -850,6 +874,7 @@ function cosmeticVisual(item) {
 }
 
 function renderShop() {
+  if (profile) renderCoinAmount($('#shop-balance-coins'), profile.coins, 'lg');
   const grid = $('#shop-grid');
   const items = shopCategory === 'dice' ? diceList : shopCategory === 'title' ? titleList : pawnList;
   const owned = shopCategory === 'dice'
@@ -867,23 +892,31 @@ function renderShop() {
     .map((it) => {
       const isOwned = owned.includes(it.id);
       const equipped = equippedId === it.id;
-      const passTag = it.source === 'pass' ? '<span class="pawn-tag">Passe</span>' : '';
+      const passTag = it.source === 'pass' ? `<span class="shop-item-tag">${t('shop.via_pass')}</span>` : '';
+      const equippedTag = equipped ? `<span class="shop-item-tag shop-item-tag-equipped">${t('shop.equipped')}</span>` : '';
       let actionBtn;
-      if (equipped) actionBtn = `<button class="btn btn-success" disabled>${t('shop.equipped')}</button>`;
-      else if (isOwned) actionBtn = `<button class="btn btn-secondary" data-equip="${it.id}">${t('shop.equip')}</button>`;
-      else if (it.source === 'pass') actionBtn = `<button class="btn btn-secondary" disabled>${t('shop.via_pass')}</button>`;
+      if (equipped) actionBtn = `<button class="btn btn-success shop-item-btn" disabled>${t('shop.equipped')}</button>`;
+      else if (isOwned) actionBtn = `<button class="btn btn-secondary shop-item-btn" data-equip="${it.id}">${t('shop.equip')}</button>`;
+      else if (it.source === 'pass') actionBtn = `<button class="btn btn-secondary shop-item-btn" disabled>${t('shop.via_pass')}</button>`;
       else {
         const can = profile.coins >= it.price;
-        actionBtn = `<button class="btn ${can ? 'btn-primary' : 'btn-secondary'}" data-buy="${it.id}" ${can ? '' : 'disabled'}>💰 ${it.price.toLocaleString('fr-FR')}</button>`;
+        actionBtn = `<button class="btn ${can ? 'btn-primary' : 'btn-secondary'} shop-item-btn shop-buy-btn" data-buy="${it.id}" ${can ? '' : 'disabled'}>${t('shop.buy')}</button>`;
       }
+      const priceRow = !isOwned && it.source !== 'pass' && it.price
+        ? `<div class="shop-item-price">${renderCoinPriceHtml(it.price, 'md')}</div>`
+        : '';
       return `
-      <div class="pawn-card r-${it.rarity} ${equipped ? 'equipped' : ''}">
-        ${passTag}
-        ${cosmeticVisual(it)}
-        <div class="pawn-name">${it.name}</div>
-        <div class="pawn-rarity rarity-${it.rarity}">${it.rarity}</div>
-        ${actionBtn}
-      </div>`;
+      <article class="shop-card r-${it.rarity} ${equipped ? 'equipped' : ''} ${isOwned && !equipped ? 'owned' : ''}">
+        <div class="shop-card-glow" aria-hidden="true"></div>
+        <div class="shop-card-visual">${cosmeticVisual(it)}</div>
+        ${passTag}${equippedTag}
+        <div class="shop-card-body">
+          <div class="shop-card-name">${escapeHtml(it.name)}</div>
+          <div class="shop-card-rarity rarity-${it.rarity}">${it.rarity}</div>
+          ${priceRow}
+          ${actionBtn}
+        </div>
+      </article>`;
     })
     .join('');
 
@@ -935,7 +968,7 @@ function renderPass() {
   status.innerHTML = bp.premium
     ? `<span class="pass-badge premium">${t('pass.premium_active')}</span>`
     : `<span class="pass-badge free">${t('pass.free')}</span>
-       <button class="btn btn-primary" id="btn-buy-premium">${t('pass.unlock_premium', { eur: passData.premiumEur.toFixed(2).replace('.', ','), coins: passData.premiumPrice.toLocaleString('fr-FR') })}</button>`;
+       <button class="btn btn-primary pass-premium-btn" id="btn-buy-premium">${coinHtml('sm')} ${t('pass.unlock_premium', { eur: passData.premiumEur.toFixed(2).replace('.', ','), coins: formatCoinAmount(passData.premiumPrice) })}</button>`;
 
   if (!bp.premium) {
     $('#btn-buy-premium')?.addEventListener('click', buyPremium);
@@ -966,7 +999,7 @@ function renderPass() {
 }
 
 function rewardCell(reward, track, tier, unlocked, claimed, trackActive) {
-  let emoji = '💰';
+  let emoji = coinHtml('md');
   let label = '';
   if (reward.type === 'pawn') {
     emoji = pawnEmojiMap[reward.pawnId] || '🎁';
@@ -1080,12 +1113,23 @@ function renderProfileTab() {
   $('#profile-level-label').textContent = t('profile.level', { n: profile.level });
   $('#profile-xp-fill').style.width = `${Math.min(100, (profile.xpIntoLevel / profile.xpForNext) * 100)}%`;
   $('#profile-xp-label').textContent = `${profile.xpIntoLevel} / ${profile.xpForNext} XP`;
-  $('#stat-played').textContent = profile.stats.played;
-  $('#stat-wins').textContent = profile.stats.wins;
-  $('#stat-rate').textContent = profile.stats.played ? `${Math.round((profile.stats.wins / profile.stats.played) * 100)}%` : '0%';
-  $('#stat-streak').textContent = `${profile.stats.streak || 0}${(profile.stats.streak || 0) >= 5 ? ' 🔥' : ''}`;
+  const played = profile.stats.played || 0;
+  const wins = profile.stats.wins || 0;
+  const winPct = played ? Math.round((wins / played) * 100) : 0;
+  $('#stat-played').textContent = played;
+  $('#stat-wins').textContent = wins;
+  $('#stat-rate').textContent = `${winPct}%`;
+  const winFill = $('#profile-winring-fill');
+  if (winFill) {
+    winFill.style.strokeDasharray = String(COIN_RING_CIRC);
+    winFill.style.strokeDashoffset = String(COIN_RING_CIRC * (1 - winPct / 100));
+  }
+  const winDetail = $('#profile-win-detail');
+  if (winDetail) winDetail.textContent = t('profile.win_detail', { wins, played });
+  $('#stat-streak').textContent = String(profile.stats.streak || 0);
   $('#stat-beststreak').textContent = profile.stats.bestStreak || 0;
-  $('#stat-coins').textContent = profile.coins.toLocaleString('fr-FR');
+  renderCoinAmount($('#profile-wallet-coins'), profile.coins, 'lg');
+  renderCoinAmount($('#stat-coins'), profile.coins, 'sm');
   $('#stat-pawns').textContent = profile.ownedPawns.length;
   const remaining = profile.renamesRemaining ?? 2;
   const limit = profile.renamesLimit ?? 2;
@@ -1244,7 +1288,7 @@ function renderLobby(room) {
 
   const n = Math.min(6, Math.max(2, room.players.length));
   const playersWord = room.players.length > 1 ? t('lobby.players') : t('lobby.player');
-  $('#lobby-money').textContent = t('lobby.capital', { n: room.players.length, players: playersWord, money: STARTING_MONEY_TABLE[n] });
+  $('#lobby-money').innerHTML = `<span class="rdm-coin-wrap lobby-capital">${coinHtml('sm')}<span>${t('lobby.capital', { n: room.players.length, players: playersWord, money: STARTING_MONEY_TABLE[n] })}</span></span>`;
 
   const readyCount = room.players.filter((p) => p.ready).length;
   const readySummary = $('#lobby-ready-summary');
@@ -1363,7 +1407,7 @@ socket.on('match_reward', ({ isWinner, reward, profile: newProfile }) => {
   let lines = `
     <div class="rw-line"><span>${isWinner ? t('reward.win') : t('reward.participation')}</span></div>`;
   if (reward.coins > 0) {
-    lines += `<div class="rw-line"><span>${t('reward.coins')}</span><span class="rw-amount">+${reward.coins.toLocaleString('fr-FR')} 💰</span></div>`;
+    lines += `<div class="rw-line"><span>${t('reward.coins')}</span><span class="rw-amount rdm-coin-wrap">+${coinHtml('sm')}<span class="rdm-coin-value">${formatCoinAmount(reward.coins)}</span></span></div>`;
   }
   lines += `<div class="rw-line"><span>${t('reward.xp')}</span><span class="rw-amount">+${reward.xp} XP</span></div>`;
   if (reward.streakBonus > 0) {
@@ -2765,17 +2809,69 @@ function hideDiceScores() {
   hide($('#die2-score'));
   hide($('#dice-total-score'));
   hide($('#dice-roller-label'));
+  $('#dice-area')?.classList.remove('dice-area-settled', 'dice-area-rolling');
+  $('.dice-roll-arena')?.classList.remove('dice-arena-rolling', 'dice-arena-landed');
+  ['#die1-score', '#die2-score', '#dice-total-score'].forEach((sel) => {
+    $(sel)?.classList.remove('dice-score-reveal', 'dice-total-reveal');
+  });
+}
+
+function revealDiceScoreBadge(el, value) {
+  if (!el) return;
+  el.textContent = String(value);
+  el.classList.remove('dice-score-reveal');
+  show(el);
+  if (!settings.reduceMotion) {
+    void el.offsetWidth;
+    el.classList.add('dice-score-reveal');
+  }
 }
 
 function updateDiceScores(d1, d2, rollerName) {
+  const sum = d1 + d2;
   const s1 = $('#die1-score');
   const s2 = $('#die2-score');
   const total = $('#dice-total-score');
   const label = $('#dice-roller-label');
-  if (s1) { s1.textContent = String(d1); s1.removeAttribute('aria-hidden'); show(s1); }
-  if (s2) { s2.textContent = String(d2); s2.removeAttribute('aria-hidden'); show(s2); }
-  if (total) { total.textContent = t('dice.total', { d1, d2, sum: d1 + d2 }); show(total); }
-  if (label && rollerName) { label.textContent = t('dice.roller', { name: rollerName }); show(label); }
+  const diceArea = $('#dice-area');
+  const arena = $('.dice-roll-arena');
+
+  diceArea?.classList.remove('dice-area-rolling');
+  diceArea?.classList.add('dice-area-settled');
+  arena?.classList.remove('dice-arena-rolling');
+  arena?.classList.add('dice-arena-landed');
+  if (arena && !settings.reduceMotion) {
+    setTimeout(() => arena.classList.remove('dice-arena-landed'), 650);
+  }
+
+  revealDiceScoreBadge(s1, d1);
+  const revealS2 = () => revealDiceScoreBadge(s2, d2);
+  if (settings.reduceMotion) revealS2();
+  else setTimeout(revealS2, 140);
+
+  const sumD1 = $('#dice-sum-d1');
+  const sumD2 = $('#dice-sum-d2');
+  const sumTotal = $('#dice-sum-total');
+  if (sumD1) sumD1.textContent = String(d1);
+  if (sumD2) sumD2.textContent = String(d2);
+  if (sumTotal) sumTotal.textContent = String(sum);
+  if (total) {
+    total.setAttribute('aria-label', t('dice.total', { d1, d2, sum }));
+    total.classList.remove('dice-total-reveal');
+    const showTotal = () => {
+      show(total);
+      if (!settings.reduceMotion) {
+        void total.offsetWidth;
+        total.classList.add('dice-total-reveal');
+      }
+    };
+    if (settings.reduceMotion) showTotal();
+    else setTimeout(showTotal, 280);
+  }
+  if (label && rollerName) {
+    label.textContent = t('dice.roller', { name: rollerName });
+    show(label);
+  }
 }
 
 function showDiceResult(d1, d2, opts = {}) {
@@ -2814,6 +2910,8 @@ function showDiceResult(d1, d2, opts = {}) {
     diceRollSession.result = { d1, d2, rollId, rollerName };
     if (diceRollSession.timer) clearTimeout(diceRollSession.timer);
     sfx('dice');
+    $('#dice-area')?.classList.add('dice-area-rolling');
+    $('.dice-roll-arena')?.classList.add('dice-arena-rolling');
     Dice3D.startWildRoll($('#die1'));
     Dice3D.startWildRoll($('#die2'), 140);
     scheduleDiceLanding();
@@ -2881,6 +2979,8 @@ function animateDice() {
   unlockDiceCubes();
   sfx('dice');
   show($('#dice-area'));
+  $('#dice-area')?.classList.add('dice-area-rolling');
+  $('.dice-roll-arena')?.classList.add('dice-arena-rolling');
   diceRollSession.active = true;
   diceRollSession.start = Date.now();
   diceRollSession.result = null;

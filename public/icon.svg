@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Richesses du Monde">
+  <rect width="512" height="512" rx="96" fill="#1b4332"/>
+  <circle cx="256" cy="256" r="148" fill="none" stroke="#d4a853" stroke-width="18"/>
+  <ellipse cx="256" cy="256" rx="148" ry="56" fill="none" stroke="#7dce82" stroke-width="10" transform="rotate(-24 256 256)"/>
+  <ellipse cx="256" cy="256" rx="148" ry="56" fill="none" stroke="#7dce82" stroke-width="10" transform="rotate(24 256 256)"/>
+  <text x="256" y="290" text-anchor="middle" font-size="200" font-family="Segoe UI Emoji, Apple Color Emoji, sans-serif"><</text>
+</svg>

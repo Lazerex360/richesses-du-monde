@@ -36,7 +36,7 @@ function zoneForSpace(space) {
 
 const EUROPE_SANS_RUSSIE = ['france', 'allemagne', 'europe_med', 'royaume_uni', 'norvege', 'europe_est'];
 const AMERIQUE_SANS_USA = ['canada', 'bresil', 'amerique_centrale', 'cuba', 'pays_andins', 'argentine', 'mexique'];
-const ASIE_SANS_CHINE_INDE = ['japon', 'indonesie', 'asie_sud', 'peninsule_indienne', 'moyen_orient', 'oceanie'];
+const ASIE_SANS_CHINE_INDE = ['japon', 'indonesie', 'asie_sud', 'peninsule_indienne', 'moyen_orient'];
 
 const LOOP_START = 1;
 

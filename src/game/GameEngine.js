@@ -44,6 +44,7 @@ class GameEngine {
       joker: false,
       laps: 0,
       bankrupt: false,
+      skipNextTurn: false,
       socketId: null,
     };
     });
@@ -239,7 +240,8 @@ class GameEngine {
         }
         break;
       case 'customs':
-        this.addLog(`${player.name} est bloqué en douane — tour suivant`);
+        player.skipNextTurn = true;
+        this.addLog(`${player.name} est bloqué en douane — passe le prochain tour`);
         break;
       case 'joker':
         this.pendingAction = {
@@ -565,6 +567,9 @@ class GameEngine {
     if (!this.pendingAction || this.pendingAction.type !== 'joker_buy') {
       return { error: 'Action joker non disponible' };
     }
+    if (this.pendingAction.playerId !== playerId) {
+      return { error: 'Ce n\'est pas votre tour' };
+    }
     const player = this.players.find((p) => p.id === playerId);
     if (player.money < 3000000) return { error: 'Fonds insuffisants' };
     player.money -= 3000000;
@@ -808,7 +813,7 @@ class GameEngine {
       return;
     }
     const sides = this.getSides();
-    if (sides.length === 1 || sides.size === 1) {
+    if (sides.size === 1) {
       const members = [...sides.values()][0];
       this.winner = members[0];
       this.winningTeam = members.map((m) => m.id);
@@ -836,9 +841,17 @@ class GameEngine {
 
     if (this.winner) return { success: true, gameOver: true };
 
+    let guard = 0;
     do {
       this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
-    } while (this.getCurrentPlayer().bankrupt && this.getActivePlayers().length > 1);
+      while (this.getCurrentPlayer().bankrupt && this.getActivePlayers().length > 1) {
+        this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
+      }
+      const next = this.getCurrentPlayer();
+      if (!next.skipNextTurn || guard++ >= this.players.length) break;
+      next.skipNextTurn = false;
+      this.addLog(`${next.name} passe un tour (douane)`);
+    } while (guard < this.players.length);
 
     this.phase = 'rolling';
     this.diceResult = null;
@@ -877,12 +890,15 @@ class GameEngine {
 
   // ---------------- Alliances ----------------
   canManageTurnAction(playerId) {
-    // Actions sociales (alliance/échange) : seulement au tour du joueur, hors action/enchère en attente
     const current = this.getCurrentPlayer();
     if (!current || current.id !== playerId) return false;
-    if (this.pendingAction || this.auction) return false;
+    if (this.auction) return false;
     if (this.pendingTrade || this.pendingAlliance) return false;
     if (this.winner) return false;
+    if (this.pendingAction?.type === 'royalty_due' && this.pendingAction.playerId === playerId) {
+      return true;
+    }
+    if (this.pendingAction) return false;
     return this.phase === 'rolling' || this.phase === 'end_turn' || this.phase === 'action';
   }
 

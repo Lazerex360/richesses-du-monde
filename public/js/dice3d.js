@@ -2,8 +2,16 @@
  * Dés 3D CSS — faces avec points, rotation et animation de lancer.
  */
 (function (global) {
-  const SIZE = 56;
-  const HALF = SIZE / 2;
+  function getDiceSize() {
+    return window.matchMedia('(max-width: 600px)').matches ? 46 : 56;
+  }
+
+  function applyDiceSize(cubeEl) {
+    if (!cubeEl) return;
+    const size = getDiceSize();
+    cubeEl.style.setProperty('--dice-size', `${size}px`);
+    cubeEl.style.setProperty('--dice-half', `${size / 2}px`);
+  }
 
   const PIP_LAYOUTS = {
     1: ['c'],
@@ -36,8 +44,7 @@
     if (!cubeEl || cubeEl.dataset.dice3dInit === '1') return cubeEl;
     cubeEl.innerHTML = buildCubeHtml();
     cubeEl.dataset.dice3dInit = '1';
-    cubeEl.style.setProperty('--dice-size', `${SIZE}px`);
-    cubeEl.style.setProperty('--dice-half', `${HALF}px`);
+    applyDiceSize(cubeEl);
     setCubeValue(cubeEl, value, { animate: false });
     return cubeEl;
   }
@@ -163,4 +170,10 @@
   };
 
   global.Dice3D = Dice3D;
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('resize', () => {
+      document.querySelectorAll('.dice-cube[data-dice3d-init="1"]').forEach(applyDiceSize);
+    });
+  }
 })(typeof window !== 'undefined' ? window : globalThis);

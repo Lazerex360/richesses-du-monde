@@ -75,24 +75,12 @@ function languageOptionsHtml(selected) {
   }).join('');
 }
 
-function renderAuthLanguageButtons() {
-  const box = $('#auth-language-btns');
-  if (!box) return;
-  box.innerHTML = (window.TR_LANGS || ['fr']).map((code) => {
-    const short = code.toUpperCase();
-    const name = (window.TR[code] && window.TR[code]['lang.name']) || short;
-    const active = code === settings.lang;
-    return `<button type="button" class="auth-lang-btn${active ? ' active' : ''}" data-lang="${code}" title="${name}" aria-pressed="${active}">${short}</button>`;
-  }).join('');
-}
-
 function syncLanguageSelectors() {
   const html = languageOptionsHtml(settings.lang);
   const setSel = $('#set-language');
   if (setSel) setSel.innerHTML = html;
   const authSel = $('#auth-language');
   if (authSel) authSel.innerHTML = html;
-  renderAuthLanguageButtons();
 }
 
 function setLanguage(code) {
@@ -281,10 +269,6 @@ $('#set-volume').addEventListener('input', (e) => {
 $('#set-volume').addEventListener('change', () => sfx('dice'));
 $('#set-language').addEventListener('change', (e) => setLanguage(e.target.value));
 $('#auth-language')?.addEventListener('change', (e) => setLanguage(e.target.value));
-$('#auth-language-btns')?.addEventListener('click', (e) => {
-  const btn = e.target.closest('[data-lang]');
-  if (btn) setLanguage(btn.dataset.lang);
-});
 $('#set-sfx').addEventListener('change', (e) => { settings.sfx = e.target.checked; saveSettings(); if (settings.sfx) sfx('success'); });
 $('#set-textsize').addEventListener('input', (e) => {
   settings.textSize = +e.target.value;
@@ -754,9 +738,9 @@ function renderShop() {
       const equipped = equippedId === it.id;
       const passTag = it.source === 'pass' ? '<span class="pawn-tag">Passe</span>' : '';
       let actionBtn;
-      if (equipped) actionBtn = '<button class="btn btn-success" disabled>Équipé</button>';
-      else if (isOwned) actionBtn = `<button class="btn btn-secondary" data-equip="${it.id}">Équiper</button>`;
-      else if (it.source === 'pass') actionBtn = '<button class="btn btn-secondary" disabled>Via le passe</button>';
+      if (equipped) actionBtn = `<button class="btn btn-success" disabled>${t('shop.equipped')}</button>`;
+      else if (isOwned) actionBtn = `<button class="btn btn-secondary" data-equip="${it.id}">${t('shop.equip')}</button>`;
+      else if (it.source === 'pass') actionBtn = `<button class="btn btn-secondary" disabled>${t('shop.via_pass')}</button>`;
       else {
         const can = profile.coins >= it.price;
         actionBtn = `<button class="btn ${can ? 'btn-primary' : 'btn-secondary'}" data-buy="${it.id}" ${can ? '' : 'disabled'}>💰 ${it.price.toLocaleString('fr-FR')}</button>`;
@@ -946,7 +930,11 @@ function renderProfileTab() {
   }
   $('#profile-level-badge').textContent = profile.level;
   $('#profile-rank').textContent = rankForLevel(profile.level);
-  $('#profile-tag').textContent = profile.provider === 'google' ? t('profile.account_google') : t('profile.account_guest');
+  $('#profile-tag').textContent = profile.provider === 'google'
+    ? t('profile.account_google')
+    : profile.provider === 'email'
+      ? t('profile.account_email')
+      : t('profile.account_guest');
   const pawnEl = $('#profile-pawn');
   if (pawnEl) pawnEl.textContent = profile.equippedPawnEmoji || '🔘';
   const ds = profile.equippedDiceStyle;
@@ -1018,12 +1006,33 @@ $('#btn-rename').addEventListener('click', async () => {
 // ===================== Salon =====================
 let myGameId = null;
 let isHost = false;
+const ACTIVE_ROOM_KEY = 'rdm_active_room';
 
-socket.on('auth_ok', (d) => { socket.authed = true; if (d.profile) { profile = d.profile; renderProfileChip(); } });
+function saveActiveRoom(code, playerId) {
+  if (code && playerId) localStorage.setItem(ACTIVE_ROOM_KEY, JSON.stringify({ code, playerId }));
+}
+function clearActiveRoom() {
+  localStorage.removeItem(ACTIVE_ROOM_KEY);
+}
+function tryRejoinRoom() {
+  const raw = localStorage.getItem(ACTIVE_ROOM_KEY);
+  if (!raw || !socket.authed) return;
+  try {
+    const { code, playerId } = JSON.parse(raw);
+    if (code && playerId) socket.emit('rejoin_room', { roomCode: code, playerId });
+  } catch (_) {}
+}
+
+socket.on('auth_ok', (d) => {
+  socket.authed = true;
+  if (d.profile) { profile = d.profile; renderProfileChip(); }
+  tryRejoinRoom();
+});
 socket.on('auth_failed', () => { /* session invalide gérée par HTTP */ });
 socket.on('profile_update', (d) => { profile = d.profile; renderProfileChip(); });
 socket.on('error_msg', (msg) => toast(msg, 'error'));
 socket.on('left_room', () => {
+  clearActiveRoom();
   resetGameAnimationState();
   showScreen('screen-hub');
   switchTab('play');
@@ -1032,6 +1041,7 @@ socket.on('left_room', () => {
 socket.on('joined', ({ roomCode, playerId, isHost: host }) => {
   myGameId = playerId;
   isHost = host;
+  saveActiveRoom(roomCode, playerId);
   hide($('#quick-status'));
 });
 
@@ -1104,6 +1114,23 @@ function renderLobby(room) {
   } else {
     hide(botControls);
     hide(btnStart);
+  }
+
+  const inviteUrl = `${location.origin}${location.pathname}?join=${encodeURIComponent(room.code)}`;
+  const linkEl = $('#lobby-invite-link');
+  if (linkEl) linkEl.value = inviteUrl;
+  const copyBtn = $('#btn-copy-invite');
+  if (copyBtn) {
+    copyBtn.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(inviteUrl);
+        toast(t('lobby.invite_copied'), 'success');
+      } catch (_) {
+        linkEl?.select();
+        document.execCommand('copy');
+        toast(t('lobby.invite_copied'), 'success');
+      }
+    };
   }
 }
 
@@ -1669,6 +1696,10 @@ function renderBoard(state) {
       </div>`;
     cell.addEventListener('mouseenter', () => showCellTooltip(space, state));
     cell.addEventListener('mouseleave', () => hide($('#cell-tooltip')));
+    cell.addEventListener('click', () => {
+      if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+      showCellTooltip(space, state);
+    });
     board.appendChild(cell);
   });
 }
@@ -1679,7 +1710,7 @@ function teamBadge(state, p) {
   const teams = [...new Set(state.players.filter((x) => x.team !== null).map((x) => x.team))];
   const idx = teams.indexOf(p.team);
   const color = TEAM_COLORS[idx % TEAM_COLORS.length];
-  return `<span class="team-badge" style="background:${color}33;color:${color}">🤝 Éq.${idx + 1}</span>`;
+  return `<span class="team-badge" style="background:${color}33;color:${color}">🤝 ${t('team.badge', { n: idx + 1 })}</span>`;
 }
 
 function renderPlayersPanel(state) {
@@ -1863,6 +1894,25 @@ function renderActions(state) {
     return;
   }
 
+  if (action?.type === 'royalty_due' && action.playerId === myGameId) {
+    const ownersHtml = (action.owners || []).length
+      ? `<div class="royalty-due-owners">${(action.owners || []).map((o) =>
+          `<div class="royalty-due-row">${escapeHtml(o.ownerName)} — ${o.percent}% → <strong>${formatMoney(o.royalty)}</strong></div>`
+        ).join('')}</div>`
+      : '';
+    area.innerHTML = `
+      <p class="action-desc">${t('action.royalty_due', { amount: formatMoney(action.totalDue), resource: escapeHtml(action.resourceName) })}</p>
+      ${ownersHtml}
+      <p class="action-desc muted">${t('action.royalty_trade_hint')}</p>
+      <div class="action-buttons">
+        <button class="btn btn-primary" id="btn-pay-royalties">${t('action.pay_royalties')}</button>
+        <button class="btn btn-secondary" id="btn-open-trade-royalty">${t('social.trade_btn')}</button>
+      </div>`;
+    $('#btn-pay-royalties').addEventListener('click', () => socket.emit('pay_royalties'));
+    $('#btn-open-trade-royalty').addEventListener('click', () => openTradeModal(state));
+    return;
+  }
+
   if (state.phase === 'rolling' && isMyTurn) {
     area.innerHTML = `<p class="action-desc">${t('action.roll_desc')}</p><div class="action-buttons"><button class="btn btn-primary" id="btn-roll">${t('action.roll_btn')}</button></div>`;
     $('#btn-roll').addEventListener('click', () => { animateDice(); socket.emit('roll_dice'); });
@@ -1970,8 +2020,29 @@ function openAlliancePicker(state) {
   $('#ally-cancel').addEventListener('click', () => renderActions(gameState));
 }
 
+function renderAlliancePanel(state) {
+  const panel = $('#alliance-panel');
+  const body = $('#alliance-panel-body');
+  if (!panel || !body) return;
+  const me = state.players.find((p) => p.id === myGameId);
+  if (!me || me.team === null || me.team === undefined || me.bankrupt) {
+    hide(panel);
+    return;
+  }
+  const ally = state.players.find((p) => p.team === me.team && p.id !== myGameId && !p.bankrupt);
+  if (!ally) { hide(panel); return; }
+  show(panel);
+  body.innerHTML = `
+    <p>${t('alliance.status', { names: escapeHtml(ally.name) })}</p>
+    <p class="muted alliance-perks">${t('social.alliance_perks')}</p>
+    <button type="button" class="btn btn-danger btn-sm" id="btn-break-alliance">${t('alliance.break')}</button>`;
+  $('#btn-break-alliance')?.addEventListener('click', () => {
+    if (confirm(t('alliance.break_confirm'))) socket.emit('break_alliance');
+  });
+}
+
 function updateBuySummary(available, summaryEl) {
-  const el = summaryEl || $('#buy-summary');
+  const el = summaryEl || $('#buy-titles-summary');
   if (!el) return;
   let total = 0;
   for (const id of selectedTitles) { const it = available.find((x) => x.id === id); if (it) total += it.price; }
@@ -2118,7 +2189,11 @@ function buildLandingPanelHtml(state) {
     html += `<div class="landing-bonus">🏦 +${formatMoney(500000 * state.diceResult.total)}</div>`;
   }
   if (space.resource && res) {
-    html += `<p class="landing-royalties-intro">${t('action.case_royalties_paid', { resource: res.name })}</p>`;
+    const royaltyDue = state.pendingAction?.type === 'royalty_due'
+      && state.pendingAction.resourceId === space.resource;
+    html += royaltyDue
+      ? `<p class="landing-royalties-intro action-wait">${t('action.royalty_due', { amount: formatMoney(state.pendingAction.totalDue), resource: res.name })}</p>`
+      : `<p class="landing-royalties-intro">${t('action.case_royalties_paid', { resource: res.name })}</p>`;
     html += buildResourceRoyaltiesRowHtml(space.resource);
     const owners = getOwnersForResource(state, space.resource);
     html += `<div class="landing-owners-label">${t('board.current_owners')}</div>`;
@@ -2501,6 +2576,7 @@ function updateSurrenderButton(state) {
 function renderGame(state) {
   renderBoard(state);
   renderPlayersPanel(state);
+  renderAlliancePanel(state);
   renderLog(state);
   renderMyTitles(state);
   renderActions(state);
@@ -2527,6 +2603,11 @@ function renderGame(state) {
   $$('.screen').forEach((s) => s.classList.remove('active'));
   syncLanguageSelectors();
   applyLanguage();
+  const joinParam = new URLSearchParams(location.search).get('join');
+  if (joinParam) {
+    const joinInput = $('#join-code');
+    if (joinInput) joinInput.value = joinParam.toUpperCase();
+  }
   socket.connect();
   loadResourcesData();
   const { gerr } = await handleGoogleRedirect();

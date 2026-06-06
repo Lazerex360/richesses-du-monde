@@ -132,7 +132,7 @@ h1, h2, h3 { font-family: 'Playfair Display', serif; }
 .btn-mini:hover { border-color: var(--gold); }
 .btn-mini.back { position: absolute; top: 1rem; left: 1rem; }
 
-input[type="text"], select {
+input[type="text"], input[type="number"], select {
   width: 100%;
   padding: 0.7rem 1rem;
   background: var(--bg-panel);
@@ -629,6 +629,15 @@ select option { background: var(--bg-card); color: var(--text); }
 .code-badge.small { font-size: 0.85rem; }
 .visibility-badge { font-size: 0.72rem; padding: 0.2rem 0.6rem; border-radius: 999px; background: var(--bg-panel); color: var(--text-muted); margin-left: 0.5rem; }
 .lobby-hint { color: var(--text-muted); margin-bottom: 0.75rem; font-size: 0.9rem; }
+.lobby-invite-details { margin-bottom: 0.75rem; font-size: 0.85rem; color: var(--text-muted); }
+.lobby-invite-row { display: flex; gap: 0.5rem; margin-top: 0.4rem; flex-wrap: wrap; }
+.lobby-invite-input { flex: 1; min-width: 0; font-size: 0.8rem; }
+.royalty-due-owners { margin: 0.5rem 0; padding: 0.5rem; background: rgba(255,255,255,0.04); border-radius: 8px; font-size: 0.82rem; }
+.royalty-due-row { padding: 0.15rem 0; }
+.alliance-panel { margin-top: 0.5rem; }
+.alliance-panel .muted { font-size: 0.78rem; margin: 0.35rem 0; }
+.alliance-perks { line-height: 1.35; }
+.btn-sm { padding: 0.35rem 0.65rem; font-size: 0.78rem; }
 .lobby-countdown { background: rgba(46,204,113,0.15); color: var(--accent); border-radius: 8px; padding: 0.6rem; margin-bottom: 0.75rem; font-weight: 700; animation: pulse 1.5s infinite; }
 .lobby-money { color: var(--gold); font-size: 0.85rem; margin-bottom: 1rem; }
 .player-list { list-style: none; margin-bottom: 1.5rem; text-align: left; }
@@ -1023,7 +1032,7 @@ select option { background: var(--bg-card); color: var(--text); }
   padding: 0.65rem 1.1rem 0.75rem;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
 }
-.landing-overlay { align-items: flex-start; padding-top: max(2rem, env(safe-area-inset-top)); z-index: 45; }
+.landing-overlay { align-items: flex-start; padding-top: max(2rem, env(safe-area-inset-top)); z-index: 105; }
 .landing-card { max-width: 480px; width: 100%; text-align: center; }
 .landing-title { color: var(--gold-light); margin-bottom: 0.35rem; font-size: 1.35rem; }
 .landing-resource { font-weight: 700; margin: 0 0 0.75rem; font-size: 1rem; }
@@ -1230,6 +1239,8 @@ select option { background: var(--bg-card); color: var(--text); }
 .title-royalties-table td:last-child { text-align: right; color: #7bed9f; font-weight: 700; }
 
 .my-titles { max-height: 300px; overflow-y: auto; position: relative; }
+.resource-group-interactive.is-royalties-open { overflow: visible; z-index: 2; }
+.tc-royalties-inline { overflow-x: auto; display: block; max-width: 100%; }
 .resource-group { margin-bottom: 0.75rem; position: relative; }
 .resource-group-interactive .resource-group-header {
   width: 100%;
@@ -1319,6 +1330,7 @@ select option { background: var(--bg-card); color: var(--text); }
   overflow-y: auto;
 }
 .overlay > .card { width: min(100%, 640px); }
+#winner-overlay { z-index: 115; }
 
 /* Carte Actualité — retournement 3D */
 .news-overlay { z-index: 110; background: rgba(0,0,0,0.82); }

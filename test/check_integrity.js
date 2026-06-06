@@ -46,6 +46,8 @@ const dynamicIds = new Set([
   'btn-confirm-buy', 'btn-skip-buy', 'btn-bid', 'btn-bid-big', 'title-list', 'buy-summary',
   'btn-buy-joker', 'btn-skip-joker', 'btn-use-joker', 'btn-auction-me',
   'btn-open-trade', 'btn-open-ally', 'ally-targets', 'ally-cancel',
+  'btn-pay-royalties', 'btn-open-trade-royalty', 'btn-break-alliance',
+  'btn-confirm-buy-modal', 'btn-skip-buy-modal',
 ]);
 const htmlIds = new Set([...htmlSrc.matchAll(/id="([^"]+)"/g)].map((m) => m[1]));
 const idUsage = [...clientSrc.matchAll(/\$\(\s*['"]#([a-zA-Z0-9_-]+)['"]\s*\)/g)].map((m) => m[1]);

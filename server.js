@@ -313,12 +313,13 @@ function syncAllRoomPlayersFromAccounts(room) {
   }
 }
 
-function applyCosmeticsToGamePlayer(gamePlayer, equippedDice, pawn) {
+function applyCosmeticsToGamePlayer(gamePlayer, equippedDice, pawn, honorTitle) {
   if (!gamePlayer) return;
   const diceId = equippedDice || 'classic_dice';
   gamePlayer.equippedDice = diceId;
   gamePlayer.diceStyle = getDice(diceId).style;
   if (pawn) gamePlayer.pawn = pawn;
+  if (honorTitle !== undefined) gamePlayer.honorTitle = honorTitle || '';
 }
 
 function syncRoomPlayerCosmetics(room, playerId, ws) {
@@ -331,7 +332,7 @@ function syncRoomPlayerCosmetics(room, playerId, ws) {
   rp.honorTitle = ws._ctx?.honorTitle || '';
   if (room.game) {
     const gp = room.game.players.find((p) => p.id === playerId);
-    applyCosmeticsToGamePlayer(gp, rp.equippedDice, rp.pawn);
+    applyCosmeticsToGamePlayer(gp, rp.equippedDice, rp.pawn, rp.honorTitle);
   }
 }
 
@@ -812,6 +813,36 @@ function handleMessage(ws, msg) {
       broadcastRoom(room);
       broadcastLobbyList();
       maybeStartCountdown(room);
+      break;
+    }
+
+    case 'rejoin_room': {
+      if (!ctx.userId) return send(ws, 'error_msg', 'Connexion requise');
+      const code = (data.roomCode || '').toUpperCase().trim();
+      const playerId = data.playerId;
+      const room = rooms.get(code);
+      if (!room || !room.started) return;
+      const player = room.players.find((p) => p.id === playerId);
+      if (!player) return;
+      if (player.userId && player.userId !== ctx.userId) return send(ws, 'error_msg', 'Reprise impossible');
+      leaveCurrentRoom(ws);
+      refreshCtxFromAccount(ws);
+      player.socketId = ws._id;
+      player.name = ctx.profileName || player.name;
+      player.pawn = ctx.pawn || player.pawn;
+      player.equippedDice = ctx.equippedDice || player.equippedDice;
+      player.honorTitle = ctx.honorTitle || player.honorTitle;
+      ctx.roomCode = code;
+      ctx.playerId = player.id;
+      ctx.browsing = false;
+      ws._ctx = ctx;
+      if (room.game) {
+        const gp = room.game.players.find((p) => p.id === player.id);
+        applyCosmeticsToGamePlayer(gp, player.equippedDice, player.pawn, player.honorTitle);
+      }
+      send(ws, 'joined', { roomCode: code, playerId: player.id, isHost: room.hostId === player.id, rejoined: true });
+      send(ws, 'room_update', getRoomPublic(room));
+      if (room.game) send(ws, 'game_state', room.game.getPublicState(player.id));
       break;
     }
 

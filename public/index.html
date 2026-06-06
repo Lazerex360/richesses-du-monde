@@ -361,39 +361,63 @@
       <div class="game-board-zone">
         <main class="board-area">
           <div class="board-wrapper">
-            <div class="board-frame">
-              <div id="board" class="board">
-                <div class="board-track board-track-outer" aria-hidden="true"></div>
-                <div class="board-track board-track-inner" aria-hidden="true"></div>
-                <div class="board-center">
-                  <div class="board-center-title" data-i18n="game.board_title">🌍 Richesses du Monde</div>
-                  <p class="board-center-hint" data-i18n="board.hint">Consultez « Voir toutes les richesses » pour les prix et royalties.</p>
-                  <p class="board-loop-legend"><span class="legend-outer">●</span> Grande boucle <span class="legend-inner">●</span> Petite boucle</p>
-                  <button type="button" id="btn-board-resources" class="btn-board-resources" data-i18n="resources.open">Voir toutes les richesses</button>
+            <div id="board-zoom-viewport" class="board-zoom-viewport">
+              <div id="board-zoom-stage" class="board-zoom-stage">
+                <div class="board-frame">
+                  <div id="board" class="board">
+                    <div class="board-track board-track-outer" aria-hidden="true"></div>
+                    <div class="board-track board-track-inner" aria-hidden="true"></div>
+                    <div class="board-center">
+                      <div id="board-center-status" class="board-center-status" aria-live="polite"></div>
+                      <div id="board-center-dice" class="board-center-dice">
+                        <div id="dice-area" class="dice-area hidden">
+                          <p id="dice-roller-label" class="dice-roller-label hidden" aria-live="polite"></p>
+                          <div class="dice-roll-arena">
+                          <div class="dice-pair">
+                            <div class="dice-unit">
+                              <div class="dice-scene" id="die1-scene" aria-label="Dé 1">
+                                <div class="dice-cube" id="die1"></div>
+                              </div>
+                              <span id="die1-score" class="dice-score hidden" aria-hidden="true"></span>
+                            </div>
+                            <div class="dice-unit">
+                              <div class="dice-scene" id="die2-scene" aria-label="Dé 2">
+                                <div class="dice-cube" id="die2"></div>
+                              </div>
+                              <span id="die2-score" class="dice-score hidden" aria-hidden="true"></span>
+                            </div>
+                          </div>
+                          <div class="dice-arena-glow" aria-hidden="true"></div>
+                          </div>
+                          <p id="dice-total-score" class="dice-total-score hidden" aria-live="polite"></p>
+                        </div>
+                      </div>
+                      <div class="board-center-title" data-i18n="game.board_title">🌍 Richesses du Monde</div>
+                      <p class="board-center-hint" data-i18n="board.hint">Consultez « Voir toutes les richesses » pour les prix et royalties.</p>
+                      <p class="board-loop-legend">
+                        <span class="legend-outer">●</span> <span data-i18n="board.loop_outer">Grande boucle</span>
+                        <span class="legend-inner">●</span> <span data-i18n="board.loop_inner">Petite boucle</span>
+                      </p>
+                      <button type="button" id="btn-board-resources" class="btn-board-resources" data-i18n="resources.open">Voir toutes les richesses</button>
+                    </div>
+                  </div>
                 </div>
+              </div>
+              <div class="board-zoom-controls" aria-label="Zoom plateau">
+                <button type="button" id="board-zoom-out" class="btn-mini board-zoom-btn" data-i18n-title="board.zoom_out" title="Zoom arrière">−</button>
+                <span id="board-zoom-label" class="board-zoom-label">100%</span>
+                <button type="button" id="board-zoom-in" class="btn-mini board-zoom-btn" data-i18n-title="board.zoom_in" title="Zoom avant">+</button>
+                <button type="button" id="board-zoom-reset" class="btn-mini board-zoom-btn" data-i18n-title="board.zoom_reset" title="Réinitialiser">↺</button>
               </div>
             </div>
             <div id="cell-tooltip" class="cell-tooltip hidden"></div>
           </div>
-          <div id="dice-area" class="dice-area hidden">
-            <p id="dice-roller-label" class="dice-roller-label hidden" aria-live="polite"></p>
-            <div class="dice-pair">
-              <div class="dice-unit">
-                <div class="dice-scene" id="die1-scene" aria-label="Dé 1">
-                  <div class="dice-cube" id="die1"></div>
-                </div>
-                <span id="die1-score" class="dice-score hidden" aria-hidden="true"></span>
-              </div>
-              <div class="dice-unit">
-                <div class="dice-scene" id="die2-scene" aria-label="Dé 2">
-                  <div class="dice-cube" id="die2"></div>
-                </div>
-                <span id="die2-score" class="dice-score hidden" aria-hidden="true"></span>
-              </div>
-            </div>
-            <p id="dice-total-score" class="dice-total-score hidden" aria-live="polite"></p>
-          </div>
         </main>
+      </div>
+
+      <div id="game-quick-bar" class="game-quick-bar">
+        <h3 class="game-quick-bar-title" data-i18n="game.actions">Actions</h3>
+        <div id="action-area" class="action-area-quick"></div>
       </div>
 
       <div class="game-panels">
@@ -409,13 +433,6 @@
           <div class="panel">
             <h3 data-i18n="game.log">Journal</h3>
             <div id="game-log" class="game-log"></div>
-          </div>
-        </aside>
-
-        <aside class="sidebar center">
-          <div class="panel actions-panel">
-            <h3 data-i18n="game.actions">Actions</h3>
-            <div id="action-area"></div>
           </div>
         </aside>
 
@@ -538,8 +555,13 @@
       <div class="card buy-titles-card">
         <h2 data-i18n="action.buy_title">Acheter des titres</h2>
         <p id="buy-titles-desc" class="action-desc"></p>
-        <div id="buy-titles-owned" class="buy-owned-titles hidden"></div>
-        <div id="buy-titles-list" class="title-cards-grid"></div>
+        <div class="buy-titles-layout">
+          <aside id="buy-titles-portfolio" class="buy-portfolio-panel hidden" aria-label="Portfolio"></aside>
+          <div class="buy-titles-main">
+            <div id="buy-titles-owned" class="buy-owned-titles hidden"></div>
+            <div id="buy-titles-list" class="title-cards-grid"></div>
+          </div>
+        </div>
         <div id="buy-titles-summary" class="buy-summary"></div>
         <div class="buy-titles-actions">
           <button type="button" id="btn-confirm-buy-modal" class="btn btn-success" data-i18n="action.buy">Acheter</button>
@@ -602,6 +624,20 @@
         </div>
 
         <button id="settings-reset" class="btn-mini" data-i18n="settings.reset">Réinitialiser les paramètres</button>
+      </div>
+    </div>
+
+    <!-- TUTORIEL -->
+    <div id="tutorial-overlay" class="overlay tutorial-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="tutorial-step-title">
+      <div class="tutorial-card card">
+        <h2 id="tutorial-title" class="tutorial-title" data-i18n="tutorial.title">Bienvenue !</h2>
+        <h3 id="tutorial-step-title" class="tutorial-step-title"></h3>
+        <p id="tutorial-step-body" class="tutorial-step-body"></p>
+        <div class="tutorial-dots" id="tutorial-dots" aria-hidden="true"></div>
+        <div class="tutorial-nav">
+          <button type="button" id="tutorial-skip" class="btn btn-secondary" data-i18n="tutorial.skip">Passer</button>
+          <button type="button" id="tutorial-next" class="btn btn-primary" data-i18n="tutorial.next">Suivant</button>
+        </div>
       </div>
     </div>
 

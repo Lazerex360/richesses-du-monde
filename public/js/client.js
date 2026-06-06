@@ -611,7 +611,104 @@ async function enterHub() {
   renderProfileChip();
   renderProfileTab();
   switchTab('play');
+  maybeShowTutorial();
 }
+
+// ===================== Zoom plateau =====================
+const BOARD_ZOOM_KEY = 'rdm_board_zoom';
+const BOARD_ZOOM_MIN = 0.65;
+const BOARD_ZOOM_MAX = 1.55;
+let boardZoom = 1;
+let boardPinchStart = null;
+
+function touchPinchDistance(touches) {
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.hypot(dx, dy);
+}
+
+function applyBoardZoom() {
+  const stage = $('#board-zoom-stage');
+  const label = $('#board-zoom-label');
+  if (stage) stage.style.setProperty('--board-zoom', boardZoom);
+  if (label) label.textContent = `${Math.round(boardZoom * 100)}%`;
+}
+
+function setBoardZoom(next) {
+  boardZoom = Math.min(BOARD_ZOOM_MAX, Math.max(BOARD_ZOOM_MIN, next));
+  localStorage.setItem(BOARD_ZOOM_KEY, String(boardZoom));
+  applyBoardZoom();
+}
+
+function initBoardZoom() {
+  const viewport = $('#board-zoom-viewport');
+  if (!viewport || viewport.dataset.ready) return;
+  viewport.dataset.ready = '1';
+  boardZoom = parseFloat(localStorage.getItem(BOARD_ZOOM_KEY) || '1') || 1;
+  applyBoardZoom();
+  $('#board-zoom-in')?.addEventListener('click', () => setBoardZoom(boardZoom + 0.1));
+  $('#board-zoom-out')?.addEventListener('click', () => setBoardZoom(boardZoom - 0.1));
+  $('#board-zoom-reset')?.addEventListener('click', () => setBoardZoom(1));
+  viewport.addEventListener('wheel', (e) => {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    setBoardZoom(boardZoom + (e.deltaY < 0 ? 0.08 : -0.08));
+  }, { passive: false });
+  viewport.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) {
+      boardPinchStart = { dist: touchPinchDistance(e.touches), zoom: boardZoom };
+    }
+  }, { passive: true });
+  viewport.addEventListener('touchmove', (e) => {
+    if (!boardPinchStart || e.touches.length !== 2) return;
+    e.preventDefault();
+    const ratio = touchPinchDistance(e.touches) / boardPinchStart.dist;
+    setBoardZoom(boardPinchStart.zoom * ratio);
+  }, { passive: false });
+  viewport.addEventListener('touchend', () => { boardPinchStart = null; });
+}
+
+// ===================== Tutoriel =====================
+const TUTORIAL_KEY = 'rdm_tutorial_done';
+const TUTORIAL_STEPS = 4;
+let tutorialStep = 0;
+
+function renderTutorialStep() {
+  const n = tutorialStep + 1;
+  const titleEl = $('#tutorial-step-title');
+  const bodyEl = $('#tutorial-step-body');
+  const nextBtn = $('#tutorial-next');
+  const dotsEl = $('#tutorial-dots');
+  if (titleEl) titleEl.textContent = t(`tutorial.step${n}_title`);
+  if (bodyEl) bodyEl.textContent = t(`tutorial.step${n}_body`);
+  if (nextBtn) nextBtn.textContent = tutorialStep >= TUTORIAL_STEPS - 1 ? t('tutorial.done') : t('tutorial.next');
+  if (dotsEl) {
+    dotsEl.innerHTML = Array.from({ length: TUTORIAL_STEPS }, (_, i) =>
+      `<span class="tutorial-dot${i === tutorialStep ? ' active' : ''}"></span>`
+    ).join('');
+  }
+}
+
+function closeTutorial() {
+  hide($('#tutorial-overlay'));
+  localStorage.setItem(TUTORIAL_KEY, '1');
+}
+
+function maybeShowTutorial() {
+  if (localStorage.getItem(TUTORIAL_KEY)) return;
+  tutorialStep = 0;
+  renderTutorialStep();
+  show($('#tutorial-overlay'));
+}
+
+$('#tutorial-skip')?.addEventListener('click', closeTutorial);
+$('#tutorial-next')?.addEventListener('click', () => {
+  if (tutorialStep >= TUTORIAL_STEPS - 1) closeTutorial();
+  else { tutorialStep += 1; renderTutorialStep(); }
+});
+$('#tutorial-overlay')?.addEventListener('click', (e) => {
+  if (e.target.id === 'tutorial-overlay') closeTutorial();
+});
 
 function renderProfileChip() {
   if (!profile) return;
@@ -1253,7 +1350,7 @@ $('#btn-back-hub').addEventListener('click', leaveGameToHub);
 
 // ===================== Jeu =====================
 let gameState = null;
-const DICE_ROLL_MIN_MS = 1400;
+const DICE_ROLL_MIN_MS = 1850;
 const DICE_POST_REVEAL_MS = 1200;
 const PAWN_STEP_MS = 380;
 const PAWN_POST_ARRIVE_MS = 1200;
@@ -1657,6 +1754,16 @@ function getPurchasableTitlesForSpace(space) {
   return [];
 }
 
+const COUNTRY_BOARD_ABBR = {
+  allemagne: 'ALL', europe_est: 'E. Est', europe_med: 'E. Méd', france: 'FRA',
+  royaume_uni: 'R.-U.', norvege: 'NOR', russie: 'RUS', usa: 'USA', cuba: 'CUB',
+  argentine: 'ARG', bresil: 'BRA', amerique_centrale: 'Am. C.', mexique: 'MEX',
+  pays_andins: 'Andes', canada: 'CAN', chine: 'CHN', australie: 'AUS', asie_sud: 'As. Sud',
+  indonesie: 'IDN', japon: 'JPN', moyen_orient: 'M.-O.', peninsule_indienne: 'Pén. Ind.',
+  inde: 'IND', afrique_centrale: 'Af. C.', afrique_est: 'Af. Est',
+  afrique_australe: 'Af. Aust.', afrique_ouest: 'Af. O.',
+};
+
 function isMultilineCountryLabel(label) {
   const t = label.trim();
   if (t.startsWith('Choix ') || t.includes(' sauf ')) return true;
@@ -1666,26 +1773,70 @@ function isMultilineCountryLabel(label) {
   return false;
 }
 
-function countryLabelHtml(label) {
-  const multi = isMultilineCountryLabel(label);
+function abbreviateBoardLabel(label, space) {
+  const full = (label || '').trim();
+  if (!full) return '';
+  if (space?.countryId && COUNTRY_BOARD_ABBR[space.countryId]) return COUNTRY_BOARD_ABBR[space.countryId];
+  if (space?.type === 'continental') {
+    if (full.startsWith('Choix ')) return 'Choix';
+    if (full.includes(' sauf ')) return full.replace('Choix ', 'Ch. ').slice(0, 12);
+    return full.length > 12 ? `${full.slice(0, 10)}…` : full;
+  }
+  if (space?.type === 'world') return full.startsWith('Choix ') ? 'Choix' : (full.length > 12 ? `${full.slice(0, 10)}…` : full);
+  if (full.length <= 11) return full;
+  const words = full.split(/\s+/);
+  if (words.length === 2 && full.length <= 14) return full;
+  if (words.length === 2) return `${words[0].slice(0, 6)}…`;
+  return `${words[0].slice(0, 8)}${words[0].length > 8 ? '…' : ''}`;
+}
+
+function countryLabelHtml(label, space) {
+  const short = abbreviateBoardLabel(label, space);
+  const multi = isMultilineCountryLabel(short);
   const cls = multi ? 'cell-country cell-country-multiline' : 'cell-country cell-country-oneline';
-  return `<span class="${cls}">${escapeHtml(label)}</span>`;
+  const titleAttr = short !== label ? ` title="${escapeHtml(label)}"` : '';
+  return `<span class="${cls}"${titleAttr}>${escapeHtml(short)}</span>`;
 }
 
 function bonusLabelHtml() {
   return '<span class="cell-country cell-bonus-top cell-country-oneline">500&nbsp;000&nbsp;€</span>';
 }
 
+function cellAccentBarHtml(space, resColor) {
+  if (!resColor || !['country', 'continental'].includes(space.type)) return '';
+  return `<span class="cell-accent-bar" style="background:${resColor}" aria-hidden="true"></span>`;
+}
+
+function getMyResourcePct(state, resourceId) {
+  const me = state.players.find((p) => p.id === myGameId);
+  if (!me || !resourceId) return 0;
+  return (me.titles || []).filter((ti) => ti.resourceId === resourceId).reduce((s, ti) => s + ti.percent, 0);
+}
+
+function getRoyaltyCellClasses(state, space) {
+  if (!space?.resource) return '';
+  const classes = [];
+  if (getOwnersForResource(state, space.resource).length) classes.push('has-royalties');
+  if (getMyResourcePct(state, space.resource) >= 30) classes.push('royalty-mine');
+  const pa = state.pendingAction;
+  if (pa?.type === 'royalty_due' && pa.resourceId === space.resource) {
+    if (pa.playerId === myGameId) classes.push('royalty-owe');
+    else if ((pa.owners || []).some((o) => o.ownerId === myGameId)) classes.push('royalty-receive');
+  }
+  return classes.join(' ');
+}
+
 function buildCellContent(space, state, index) {
   const res = getResourceInfo(space.resource);
   const resName = res?.name || (space.resource ? space.label : '');
   const resColor = res?.color || '#888';
-  const owners = space.resource ? getOwnersForResource(state, space.resource) : [];
+  const accent = cellAccentBarHtml(space, resColor);
 
   if (space.type === 'country') {
     return `
-      ${countryLabelHtml(space.label)}
-      ${resName ? `<span class="cell-resource" style="--res-color:${resColor}"><span class="res-dot"></span>${escapeHtml(resName)}</span>` : ''}`;
+      ${accent}
+      ${countryLabelHtml(space.label, space)}
+      ${resName ? `<span class="cell-resource" style="--res-color:${resColor}" title="${escapeHtml(resName)}"><span class="res-dot"></span>${escapeHtml(resName)}</span>` : ''}`;
   }
   if (space.type === 'bonus') {
     return `
@@ -1694,10 +1845,11 @@ function buildCellContent(space, state, index) {
   }
   if (space.type === 'continental') {
     return `
-      ${countryLabelHtml(space.label)}
+      ${accent}
+      ${countryLabelHtml(space.label, space)}
       ${resName ? `<span class="cell-resource" style="--res-color:${resColor}"><span class="res-dot"></span>${escapeHtml(resName)}</span>` : ''}`;
   }
-  if (space.type === 'world') return countryLabelHtml(space.label);
+  if (space.type === 'world') return `${accent}${countryLabelHtml(space.label, space)}`;
   if (space.type === 'start') return `<span class="cell-start">▶ ${t('board.start')}</span>`;
   if (space.type === 'news') return `<span class="cell-special">📰 ${t('board.news')}</span>`;
   if (space.type === 'auction') return `<span class="cell-special">🔨 ${t('board.auction')}</span>`;
@@ -1757,6 +1909,49 @@ function getPlayerBoardPosition(player, state) {
   return player.position;
 }
 
+function renderBoardCenterStatus(state) {
+  const el = $('#board-center-status');
+  if (!el) return;
+  if (!state?.players?.length || state.winner) {
+    el.innerHTML = '';
+    return;
+  }
+  const current = state.players[state.currentPlayerIndex];
+  const me = state.players.find((p) => p.id === myGameId);
+  const isMyTurn = current?.id === myGameId && !me?.bankrupt;
+  let phaseText = '';
+  if (pawnMoveSession.active) phaseText = t('action.pawn_moving');
+  else if (state.phase === 'rolling' && isMyTurn && !state.diceResult) phaseText = t('game.phase_rolling');
+  else if (state.auction) phaseText = t('game.phase_auction');
+  else if (state.pendingAction) phaseText = t('game.phase_action');
+  else if (state.phase === 'rolling' && state.diceResult) phaseText = t('dice.roller', { name: current?.name || '…' });
+  else phaseText = t('game.phase_end_turn');
+
+  el.innerHTML = `
+    <div class="center-turn ${isMyTurn ? 'my-turn' : ''}" style="--player-color:${current?.color || '#888'}">
+      <span class="center-turn-pawn">${pawnEmojiMap[current?.pawn] || '🔘'}</span>
+      <span class="center-turn-dot" aria-hidden="true"></span>
+      <span class="center-turn-name">${escapeHtml(current?.name || '…')}</span>
+    </div>
+    <p class="center-phase">${escapeHtml(phaseText)}</p>`;
+}
+
+function renderTurnIndicator(state) {
+  const indicator = $('#turn-indicator');
+  if (!indicator || !state?.players?.length) return;
+  if (state.winner) { indicator.innerHTML = ''; indicator.classList.remove('my-turn'); return; }
+  const current = state.players[state.currentPlayerIndex];
+  const me = state.players.find((p) => p.id === myGameId);
+  const isMyTurn = current?.id === myGameId && !me?.bankrupt;
+  const pawn = pawnEmojiMap[current?.pawn] || '🔘';
+  const label = isMyTurn ? t('turn.banner_you') : t('turn.banner_other', { name: current?.name || '…' });
+  indicator.innerHTML = `
+    <span class="turn-pawn">${pawn}</span>
+    <span class="turn-dot" style="background:${current?.color || '#888'}" aria-hidden="true"></span>
+    <span class="turn-label">${escapeHtml(label)}</span>`;
+  indicator.classList.toggle('my-turn', isMyTurn);
+}
+
 function renderBoard(state) {
   const board = $('#board');
   board.querySelectorAll('.board-cell').forEach((el) => el.remove());
@@ -1764,6 +1959,9 @@ function renderBoard(state) {
   applyBoardUi(state.boardUi);
   const positions = getBoardPositions(state);
   const showDepart = state.players.some((p) => !p.bankrupt && getPlayerBoardPosition(p, state) === 0);
+  const pathTrail = pawnMoveSession.active && pawnMoveSession.path.length
+    ? new Set(pawnMoveSession.path.slice(0, pawnMoveSession.pathIndex + 1))
+    : null;
   state.board.forEach((space, index) => {
     if (space.type === 'resource') return;
     if (space.type === 'start' && !showDepart) return;
@@ -1776,7 +1974,8 @@ function renderBoard(state) {
     const loopRing = index <= outerEnd ? 'loop-outer' : 'loop-inner';
     const edgeClass = getCellEdgeClass(pos, index, positions, outerEnd, state.boardUi);
     const junctionClass = index === outerEnd + 1 || index === state.board.length - 1 ? 'loop-junction' : '';
-    cell.className = `board-cell ${loopRing} type-${space.type}${zone ? ` zone-${zone}` : ''}${edgeClass ? ` ${edgeClass}` : ''}${junctionClass ? ` ${junctionClass}` : ''}`;
+    const royaltyClass = getRoyaltyCellClasses(state, space);
+    cell.className = `board-cell ${loopRing} type-${space.type}${zone ? ` zone-${zone}` : ''}${edgeClass ? ` ${edgeClass}` : ''}${junctionClass ? ` ${junctionClass}` : ''}${royaltyClass ? ` ${royaltyClass}` : ''}`;
     cell.style.gridRow = pos.row + 1;
     cell.style.gridColumn = pos.col + 1;
     if (res?.color && space.type === 'country') {
@@ -1790,7 +1989,8 @@ function renderBoard(state) {
     const movingHere = pawnMoveSession.active && pawnMoveSession.displayPos === index;
     if (playersHere.some((p) => current?.id === p.id) || movingHere) cell.classList.add('active-cell');
     if (movingHere) cell.classList.add('pawn-landing-cell');
-    if (space.resource && getOwnersForResource(state, space.resource).length) cell.classList.add('has-royalties');
+    if (pathTrail?.has(index)) cell.classList.add('path-trail');
+    if (movingHere) cell.classList.add('path-trail-current');
     cell.innerHTML = `
       <div class="cell-body">${buildCellContent(space, state, index)}</div>
       <div class="pions-container">
@@ -1804,6 +2004,7 @@ function renderBoard(state) {
     });
     board.appendChild(cell);
   });
+  renderBoardCenterStatus(state);
 }
 
 const TEAM_COLORS = ['#3aa0ff', '#2ecc71', '#e84393'];
@@ -1880,6 +2081,48 @@ function renderMyTitles(state) {
 
 function hideBuyTitlesOverlay() {
   hide($('#buy-titles-overlay'));
+  hide($('#buy-titles-portfolio'));
+}
+
+function buildBuyPortfolioHtml(me, action) {
+  if (!me?.titles?.length) {
+    return `<p class="buy-portfolio-empty">${t('action.buy_portfolio_empty')}</p>`;
+  }
+  const highlightRes = new Set();
+  if (action?.linkedResource) highlightRes.add(action.linkedResource);
+  (action?.available || []).forEach((ti) => highlightRes.add(ti.resourceId));
+  const groups = {};
+  for (const ti of me.titles) {
+    if (!groups[ti.resourceId]) {
+      groups[ti.resourceId] = { name: ti.resourceName, titles: [] };
+    }
+    groups[ti.resourceId].titles.push(ti);
+  }
+  const purchaseCountries = new Set((action?.available || []).map((ti) => ti.country).filter(Boolean));
+  return Object.entries(groups)
+    .sort((a, b) => a[1].name.localeCompare(b[1].name))
+    .map(([id, g]) => {
+      const pct = g.titles.reduce((s, ti) => s + ti.percent, 0);
+      const color = getResourceInfo(id)?.color || '#3498db';
+      const relevant = highlightRes.has(id);
+      const localTitles = purchaseCountries.size
+        ? g.titles.filter((ti) => purchaseCountries.has(ti.country))
+        : g.titles;
+      const chipHtml = (localTitles.length ? localTitles : g.titles)
+        .map((ti) => `<span class="buy-portfolio-chip">${escapeHtml(ti.country || '')} ${ti.percent}%</span>`)
+        .join('');
+      const monopoly = pct >= 50 ? `<span class="buy-portfolio-mono">${t('titles.monopoly')}</span>` : '';
+      return `
+        <div class="buy-portfolio-row${relevant ? ' relevant' : ''}" style="--res-color:${color}">
+          <div class="buy-portfolio-head">
+            <span class="res-dot-sm" style="background:${color}"></span>
+            <span class="buy-portfolio-name">${escapeHtml(g.name)}${monopoly}</span>
+            <span class="buy-portfolio-pct">${pct}%</span>
+          </div>
+          <div class="buy-portfolio-chips">${chipHtml}</div>
+        </div>`;
+    })
+    .join('');
 }
 
 function renderBuyTitlesOverlay(action) {
@@ -1939,6 +2182,13 @@ function renderBuyTitlesOverlay(action) {
   }
 
   updateBuySummary(available, $('#buy-titles-summary'));
+  const portfolioEl = $('#buy-titles-portfolio');
+  if (portfolioEl) {
+    portfolioEl.innerHTML = `
+      <h4 class="buy-portfolio-title">${t('action.buy_portfolio_title')}</h4>
+      ${buildBuyPortfolioHtml(me, action)}`;
+    show(portfolioEl);
+  }
   const ownedEl = $('#buy-titles-owned');
   if (ownedEl && action.linkedResource) {
     const owned = (me?.titles || []).filter((ti) => ti.resourceId === action.linkedResource);
@@ -1984,10 +2234,6 @@ function renderActions(state) {
     $('#btn-leave-game-action')?.addEventListener('click', leaveGameToHub);
     return;
   }
-
-  const indicator = $('#turn-indicator');
-  if (isMyTurn) { indicator.textContent = t('turn.you'); indicator.classList.add('my-turn'); }
-  else { indicator.textContent = t('turn.other', { name: current?.name || '...' }); indicator.classList.remove('my-turn'); }
 
   // Proposition sortante en attente (échange / alliance)
   if (state.outgoingTrade) {
@@ -2530,7 +2776,7 @@ function showDiceResult(d1, d2, opts = {}) {
     if (diceRollSession.timer) clearTimeout(diceRollSession.timer);
     sfx('dice');
     Dice3D.startWildRoll($('#die1'));
-    Dice3D.startWildRoll($('#die2'));
+    Dice3D.startWildRoll($('#die2'), 140);
     scheduleDiceLanding();
     return;
   }
@@ -2603,7 +2849,7 @@ function animateDice() {
   const btn = $('#btn-roll');
   if (btn) btn.disabled = true;
   Dice3D.startWildRoll($('#die1'));
-  Dice3D.startWildRoll($('#die2'));
+  Dice3D.startWildRoll($('#die2'), 140);
   scheduleDiceLanding();
 }
 
@@ -2822,6 +3068,7 @@ function renderGame(state) {
   if (state.phase === 'rolling' && !state.diceResult && !isGameSequenceActive()) {
     resetDiceDisplay();
   }
+  renderTurnIndicator(state);
   renderBoard(state);
   renderPlayersPanel(state);
   renderAlliancePanel(state);
@@ -2859,6 +3106,7 @@ function renderGame(state) {
   }
   socket.connect();
   loadResourcesData();
+  initBoardZoom();
   const { gerr } = await handleGoogleRedirect();
   const restored = await tryRestoreSession();
   if (restored) {

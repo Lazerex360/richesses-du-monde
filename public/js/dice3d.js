@@ -63,7 +63,9 @@
   }
 
   function setCubeTransform(cubeEl, x, y, animate) {
-    cubeEl.style.transition = animate ? 'transform 1.2s cubic-bezier(0.12, 0.9, 0.22, 1)' : 'none';
+    cubeEl.style.transition = animate
+      ? 'transform 1.35s cubic-bezier(0.22, 1.05, 0.32, 1)'
+      : 'none';
     cubeEl.style.transform = `rotateX(${x}deg) rotateY(${y}deg)`;
     cubeEl.dataset.rotX = String(x);
     cubeEl.dataset.rotY = String(y);
@@ -88,12 +90,18 @@
     setCubeTransform(cubeEl, rot.x, rot.y, animate);
   }
 
-  function startWildRoll(cubeEl) {
+  function startWildRoll(cubeEl, delayMs = 0) {
     if (!cubeEl) return;
-    if (cubeEl.dataset.dice3dInit !== '1') initCube(cubeEl, 1);
-    cubeEl.classList.remove('dice-landing');
-    cubeEl.classList.add('dice-wild');
-    cubeEl.style.transition = 'none';
+    const run = () => {
+      if (cubeEl.dataset.dice3dInit !== '1') initCube(cubeEl, 1);
+      cubeEl.classList.remove('dice-landing', 'dice-settled');
+      cubeEl.classList.add('dice-wild');
+      cubeEl.style.transition = 'none';
+      const scene = cubeEl.closest('.dice-scene');
+      if (scene) scene.classList.remove('dice-scene-landed');
+    };
+    if (delayMs > 0) setTimeout(run, delayMs);
+    else run();
   }
 
   function landCube(cubeEl, value, onDone) {
@@ -103,6 +111,8 @@
     }
     cubeEl.classList.remove('dice-wild');
     cubeEl.classList.add('dice-landing');
+    const scene = cubeEl.closest('.dice-scene');
+    if (scene) scene.classList.add('dice-scene-rolling');
 
     const target = rotationForValue(value);
     const baseX = Number(cubeEl.dataset.rotX || 0);
@@ -120,9 +130,15 @@
       if (e.propertyName !== 'transform') return;
       cubeEl.removeEventListener('transitionend', onEnd);
       cubeEl.classList.remove('dice-landing');
+      cubeEl.classList.add('dice-settled');
       const snap = rotationForValue(value);
       setCubeTransform(cubeEl, snap.x, snap.y, false);
       cubeEl.dataset.value = String(value);
+      if (scene) {
+        scene.classList.remove('dice-scene-rolling');
+        scene.classList.add('dice-scene-landed');
+        setTimeout(() => scene.classList.remove('dice-scene-landed'), 520);
+      }
       if (onDone) onDone();
     };
     cubeEl.addEventListener('transitionend', onEnd);

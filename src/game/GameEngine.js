@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const uuidv4 = () => crypto.randomUUID();
-const { RESOURCES, CONTINENTS, STARTING_MONEY, getRoyaltyAmount, buildDeck } = require('../data/resources');
+const { RESOURCES, CONTINENTS, STARTING_MONEY, getRoyaltyAmount, hasResourceMonopoly, buildDeck } = require('../data/resources');
 const { BOARD, BOARD_POSITIONS, BOARD_GRID, BOARD_UI, LOOP_END, LOOP_SIZE, OUTER_LOOP_END, INNER_LOOP_START, NEWS_CARDS, PLAYER_COLORS } = require('../data/board');
 const { getDice } = require('../data/shop');
 
@@ -645,11 +645,16 @@ class GameEngine {
       if (!byResource[title.resourceId]) byResource[title.resourceId] = [];
       byResource[title.resourceId].push(title);
     }
-    return Object.values(byResource).map((titles) => ({
-      resourceId: titles[0].resourceId,
-      titles,
-      totalPrice: titles.reduce((s, t) => s + t.price, 0),
-    }));
+    return Object.values(byResource).map((titles) => {
+      const percent = titles.reduce((s, t) => s + t.percent, 0);
+      return {
+        resourceId: titles[0].resourceId,
+        titles,
+        percent,
+        isMonopoly: hasResourceMonopoly(percent),
+        totalPrice: titles.reduce((s, t) => s + t.price, 0),
+      };
+    });
   }
 
   placeBid(playerId, amount) {

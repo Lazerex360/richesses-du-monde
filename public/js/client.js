@@ -1437,6 +1437,11 @@ let pendingNewsReveal = null;
 let selectedTitles = new Set();
 let resourcesData = {};
 const DEFAULT_ROYALTY_THRESHOLDS = [30, 50, 70, 90];
+const MONOPOLY_THRESHOLD = 90;
+
+function hasResourceMonopoly(pct) {
+  return pct >= MONOPOLY_THRESHOLD;
+}
 const ROYALTY_MAX_90 = {
   or: 8000000, cobalt: 8000000,
   plomb: 10000000, the: 10000000, laine: 10000000, cafe: 10000000,
@@ -2128,7 +2133,7 @@ function buildPlayerTitlesHtml(player) {
   const resInfo = (id) => getResourceInfo(id);
   return groupTitlesByResource(player.titles)
     .map(({ id, g, pct }) => {
-      const monopoly = pct >= 50 ? `<span class="monopoly-badge">${t('titles.monopoly')}</span>` : '';
+      const monopoly = hasResourceMonopoly(pct) ? `<span class="monopoly-badge">${t('titles.monopoly_90')}</span>` : '';
       const color = resInfo(id)?.color || '#3498db';
       return `
       <div class="resource-group resource-group-interactive" data-resource-id="${id}" style="--res-color:${color}">
@@ -2182,7 +2187,7 @@ function buildBuyPortfolioHtml(me, action) {
       const chipHtml = (localTitles.length ? localTitles : g.titles)
         .map((ti) => `<span class="buy-portfolio-chip">${escapeHtml(ti.country || '')} ${ti.percent}%</span>`)
         .join('');
-      const monopoly = pct >= 50 ? `<span class="buy-portfolio-mono">${t('titles.monopoly')}</span>` : '';
+      const monopoly = hasResourceMonopoly(pct) ? `<span class="buy-portfolio-mono">${t('titles.monopoly_90')}</span>` : '';
       return `
         <div class="buy-portfolio-row${relevant ? ' relevant' : ''}" style="--res-color:${color}">
           <div class="buy-portfolio-head">

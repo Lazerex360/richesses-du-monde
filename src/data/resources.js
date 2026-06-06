@@ -308,6 +308,12 @@ const STARTING_MONEY = {
 
 // Royalties officielles Lansay — gain max au palier 90 % (barème imprimé sur les cartes)
 const ROYALTY_THRESHOLDS = [30, 50, 70, 90];
+/** Seuil de détention (%) pour activer le monopole sur une richesse */
+const MONOPOLY_THRESHOLD = 90;
+
+function hasResourceMonopoly(totalPercent) {
+  return totalPercent >= MONOPOLY_THRESHOLD;
+}
 const ROYALTY_MAX_90 = {
   or: 8000000, cobalt: 8000000,
   plomb: 10000000, the: 10000000, laine: 10000000, cafe: 10000000,
@@ -394,6 +400,8 @@ module.exports = {
   CONTINENTS,
   STARTING_MONEY,
   ROYALTY_THRESHOLDS,
+  MONOPOLY_THRESHOLD,
+  hasResourceMonopoly,
   ROYALTY_MAX_90,
   ROYALTY_DEFAULT_MAX,
   buildRoyaltiesForResource,

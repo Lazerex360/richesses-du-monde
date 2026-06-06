@@ -4,12 +4,12 @@ window.RULES_CONTENT = {
     <p class="rules-pdf-link"><a href="/docs/regles.pdf" target="_blank" rel="noopener">📄 Ouvrir la notice PDF complète</a></p>
 
     <h3>But du jeu</h3>
-    <p>2 à 6 joueurs. Acheter des titres d'exploitation, constituer des monopoles (50 %+ d'une richesse), encaisser des royalties, éliminer les adversaires.</p>
+    <p>2 à 6 joueurs. Acheter des titres d'exploitation, constituer des monopoles (90 %+ d'une richesse), encaisser des royalties, éliminer les adversaires.</p>
 
     <h3>Lexique</h3>
     <ul>
       <li><strong>Titre d'exploitation</strong> : % de production mondiale d'une richesse, détenu par un pays.</li>
-      <li><strong>Monopole</strong> : 6 titres d'une même richesse ; situation de monopole dès 50 %.</li>
+      <li><strong>Monopole</strong> : 6 titres d'une même richesse ; situation de monopole dès 90 %.</li>
       <li><strong>Royalties</strong> : redevance due au propriétaire quand un joueur passe sur la case.</li>
       <li><strong>Tour du monde</strong> : tour complet du plateau (retour sur l'Allemagne).</li>
     </ul>
@@ -90,7 +90,7 @@ window.RULES_CONTENT = {
   en: `
     <p class="rules-pdf-link"><a href="/docs/regles.pdf" target="_blank" rel="noopener">📄 Open full rulebook PDF (French)</a></p>
     <h3>Goal</h3>
-    <p>2–6 players. Buy titles, build monopolies (50%+ of a resource), collect royalties, eliminate opponents.</p>
+    <p>2–6 players. Buy titles, build monopolies (90%+ of a resource), collect royalties, eliminate opponents.</p>
     <h3>Country tile</h3>
     <p>Country/sub-region and resource on the <strong>same tile</strong>. Buy up to 6 titles (each with its own price), then pay royalties for the linked resource.</p>
     <h3>Continental choice (×4)</h3>

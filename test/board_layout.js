@@ -25,7 +25,7 @@ const p1 = BOARD_POSITIONS[1];
 assert(Math.abs(p66.row - p1.row) + Math.abs(p66.col - p1.col) === 1, 'last→Allemagne adjacent');
 
 const rebuilt = applyBoardInset(
-  buildBoardPositions(BOARD.length, BOARD_LOGIC_GRID.cols, BOARD_LOGIC_GRID.rows, OUTER_LOOP_END, BOARD_GRID),
+  buildBoardPositions(BOARD.length, BOARD_LOGIC_GRID.cols, BOARD_LOGIC_GRID.rows, OUTER_LOOP_END),
   OUTER_LOOP_END,
   BOARD_INSET,
   BOARD_LOGIC_GRID,

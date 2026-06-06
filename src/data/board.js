@@ -1,4 +1,4 @@
-// Plateau Lansay — double boucle en spirale (coquille d'escargot)
+// Plateau Lansay — double boucle imbriquée (2 rectangles concentriques)
 // Grande boucle (extérieur) : Départ → … → 2e « 500 000 € » sans ressource
 // Petite boucle (intérieur) : Enchères → Australie → … → dernière Enchère → retour Allemagne
 
@@ -150,85 +150,69 @@ const OUTER_LOOP_END = findOuterLoopEnd(BOARD);
 const INNER_LOOP_START = OUTER_LOOP_END + 1;
 
 const BOARD_INSET = 1;
-const BOARD_LOGIC_GRID = { cols: 22, rows: 15 };
+
+/** Rectangle extérieur 11×10 → périmètre 38, 37 cases de jeu */
+const OUTER_RECT = { cols: 11, rows: 10 };
+/** Rectangle intérieur 8×8 centré → périmètre 28 (+ 2 jonctions Allemagne / grande boucle) */
+const INNER_RECT = { cols: 8, rows: 8, left: 1, top: 1 };
+
+const BOARD_LOGIC_GRID = { cols: OUTER_RECT.cols, rows: OUTER_RECT.rows };
 const BOARD_GRID = {
   cols: BOARD_LOGIC_GRID.cols + 2 * BOARD_INSET,
   rows: BOARD_LOGIC_GRID.rows + 2 * BOARD_INSET,
 };
 
-// Grande boucle : périmètre continu (bas → gauche → haut)
-function buildOuterPositions(outerLen, maxR, maxC) {
-  const path = [{ row: maxR, col: maxC }];
-  for (let c = maxC - 1; c >= 0 && path.length < outerLen; c--) {
-    path.push({ row: maxR, col: c });
-  }
-  for (let r = maxR - 1; r >= 0 && path.length < outerLen; r--) {
-    path.push({ row: r, col: 0 });
-  }
-  for (let c = 1; c <= maxC && path.length < outerLen; c++) {
-    path.push({ row: 0, col: c });
-  }
-  return path.slice(0, outerLen);
-}
-
-function traceRectPerimeter(t, l, r, b, limit) {
-  const path = [];
-  for (let c = l; c <= r && path.length < limit; c++) path.push({ row: t, col: c });
-  for (let row = t + 1; row <= b && path.length < limit; row++) path.push({ row, col: r });
-  for (let c = r - 1; c >= l && path.length < limit; c--) path.push({ row: b, col: c });
-  for (let row = b - 1; row > t && path.length < limit; row--) path.push({ row, col: l });
-  return path;
-}
-
-function innerPerimeterCount(t, l, r, b) {
-  const w = r - l + 1;
-  const h = b - t + 1;
-  if (w < 2 || h < 2) return w * h;
+function rectPerimeterLen(w, h) {
   return 2 * w + 2 * h - 4;
 }
 
-// Petite boucle : périmètre fermé (haut → droite ↓ → bas → gauche ↑), sans case vide
-function buildInnerPositions(innerLen, maxR, maxC) {
-  if (innerLen <= 0) return [];
-
-  const top = 0;
-  const left = 3;
-  let best = null;
-
-  for (let h = 4; h <= maxR - top + 1; h++) {
-    for (let w = 4; w <= maxC - left + 1; w++) {
-      if (2 * w + 2 * h - 4 !== innerLen) continue;
-      const right = left + w - 1;
-      const bottom = top + h - 1;
-      if (right > maxC || bottom > maxR) continue;
-      const path = traceRectPerimeter(top, left, right, bottom, innerLen);
-      if (path.length < innerLen) continue;
-      const area = w * h;
-      if (!best || area > best.area || (area === best.area && h > best.height)) {
-        best = { path, area, height: h };
-      }
-    }
-  }
-
-  if (best) return best.path;
-  return traceRectPerimeter(top, left, left + 11, top + 5, innerLen);
+// Grande boucle : bas (→ gauche) → gauche (↑) → haut (→ droite) → droite (↓ partiel)
+function traceOuterPerimeter(bottom, left, top, right, limit) {
+  const path = [];
+  for (let c = right; c >= left && path.length < limit; c--) path.push({ row: bottom, col: c });
+  for (let r = bottom - 1; r >= top && path.length < limit; r--) path.push({ row: r, col: left });
+  for (let c = left + 1; c <= right && path.length < limit; c++) path.push({ row: top, col: c });
+  for (let r = top + 1; r <= bottom - 1 && path.length < limit; r++) path.push({ row: r, col: right });
+  return path;
 }
 
-// Double spirale : extérieur puis intérieur (ordre de jeu inchangé)
-function buildBoardPositions(count, cols, rows, outerEnd = OUTER_LOOP_END, innerGrid = null) {
-  const maxR = rows - 1;
-  const maxC = cols - 1;
-  const innerMaxR = innerGrid ? innerGrid.rows - 1 : maxR;
-  const innerMaxC = innerGrid ? innerGrid.cols - 1 : maxC;
-  const outerLen = outerEnd + 1;
-  const innerLen = count - outerLen;
+function traceInnerPerimeter(top, left, right, bottom, limit) {
+  const path = [];
+  for (let c = left; c <= right && path.length < limit; c++) path.push({ row: top, col: c });
+  for (let r = top + 1; r <= bottom && path.length < limit; r++) path.push({ row: r, col: right });
+  for (let c = right - 1; c >= left && path.length < limit; c--) path.push({ row: bottom, col: c });
+  for (let r = bottom - 1; r > top && path.length < limit; r--) path.push({ row: r, col: left });
+  return path;
+}
+
+function buildOuterPositions(outerLen, maxR, maxC) {
+  return traceOuterPerimeter(maxR, 0, 0, maxC, outerLen);
+}
+
+// Petite boucle : anneau intérieur (28 cases) + 2 emplacements de jonction écrasés par applyBoardInset
+function buildInnerPositions(innerLen, innerBox) {
+  if (innerLen <= 0) return [];
+  const right = innerBox.left + innerBox.cols - 1;
+  const bottom = innerBox.top + innerBox.rows - 1;
+  const midLen = Math.max(0, innerLen - 2);
+  const mid = traceInnerPerimeter(innerBox.top, innerBox.left, right, bottom, midLen);
   return [
-    ...buildOuterPositions(outerLen, maxR, maxC),
-    ...buildInnerPositions(innerLen, innerMaxR, innerMaxC),
+    { row: innerBox.top, col: innerBox.left },
+    ...mid,
+    { row: bottom, col: right },
   ];
 }
 
-// Décale les cases vers la grille d'affichage élargie
+function buildBoardPositions(count, cols, rows, outerEnd = OUTER_LOOP_END) {
+  const outerLen = outerEnd + 1;
+  const innerLen = count - outerLen;
+  return [
+    ...buildOuterPositions(outerLen, rows - 1, cols - 1),
+    ...buildInnerPositions(innerLen, INNER_RECT),
+  ];
+}
+
+// Décale toutes les cases vers la grille d'affichage (marge pour les bandeaux de piste)
 function applyBoardInset(positions, outerEnd, inset, logicalGrid, displayGrid) {
   const logMaxR = logicalGrid.rows - 1;
   const logMaxC = logicalGrid.cols - 1;
@@ -237,85 +221,31 @@ function applyBoardInset(positions, outerEnd, inset, logicalGrid, displayGrid) {
   const innerStart = outerEnd + 1;
   const loopEnd = positions.length - 1;
 
-  const mapped = positions.map((p, i) => {
-    if (i <= outerEnd) {
-      let row = p.row + inset;
-      let col = p.col + inset;
-      if (p.row === 0) row = 0;
-      if (p.col === 0) col = 0;
-      if (p.row === logMaxR) row = maxR;
-      if (p.col === logMaxC) col = maxC;
-      return { row, col };
-    }
-    // Petite boucle : coordonnées d'affichage directes (périmètre continu sans trou)
-    return { row: p.row, col: p.col };
+  const mapped = positions.map((p) => {
+    let row = p.row + inset;
+    let col = p.col + inset;
+    if (p.row === 0) row = 0;
+    if (p.col === 0) col = 0;
+    if (p.row === logMaxR) row = maxR;
+    if (p.col === logMaxC) col = maxC;
+    return { row, col };
   });
 
-  mapped[innerStart] = { row: mapped[outerEnd].row, col: mapped[outerEnd].col + 1 };
+  // Jonction grande → petite boucle (Enchères adjacente à la fin de la grande boucle)
+  const outerEndPos = mapped[outerEnd];
+  if (outerEndPos.col >= maxC) {
+    mapped[innerStart] = { row: Math.min(outerEndPos.row + 1, maxR), col: outerEndPos.col };
+  } else {
+    mapped[innerStart] = { row: outerEndPos.row, col: outerEndPos.col + 1 };
+  }
+  // Retour petite boucle → Allemagne
   mapped[loopEnd] = { row: mapped[1].row - 1, col: mapped[1].col };
 
   return mapped;
 }
 
-function computeInnerTrackClipPath(innerBand) {
-  if (!innerBand.length) return 'none';
-
-  const rowMin = Math.min(...innerBand.map((p) => p.row));
-  const rowMax = Math.max(...innerBand.map((p) => p.row));
-  const colMin = Math.min(...innerBand.map((p) => p.col));
-  const colMax = Math.max(...innerBand.map((p) => p.col));
-  const rowH = rowMax - rowMin + 1;
-  const colW = colMax - colMin + 1;
-  const pct = (n) => `${Math.round(n * 1000) / 10}%`;
-  const X = (c) => pct((c - colMin) / colW);
-  const XR = (c) => pct((c - colMin + 1) / colW);
-  const Y = (r) => pct((r - rowMin) / rowH);
-  const YB = (r) => pct((r - rowMin + 1) / rowH);
-
-  const segs = [];
-  for (let r = rowMin; r <= rowMax; r++) {
-    const cols = innerBand.filter((p) => p.row === r).map((p) => p.col);
-    segs.push({ r, lo: Math.min(...cols), hi: Math.max(...cols) });
-  }
-
-  const pts = [];
-  const push = (x, y) => {
-    const pt = `${x} ${y}`;
-    if (pts[pts.length - 1] !== pt) pts.push(pt);
-  };
-
-  push(X(segs[0].lo), Y(segs[0].r));
-  push(XR(segs[0].hi), Y(segs[0].r));
-
-  for (let i = 0; i < segs.length; i++) {
-    const s = segs[i];
-    const n = segs[i + 1];
-    push(XR(s.hi), YB(s.r));
-    if (!n) break;
-    if (n.hi < s.hi) push(XR(n.hi), YB(s.r));
-    push(XR(n.hi), Y(n.r));
-  }
-
-  const tail = segs[segs.length - 1];
-  push(X(tail.lo), YB(tail.r));
-
-  for (let i = segs.length - 1; i > 0; i--) {
-    const s = segs[i];
-    const prev = segs[i - 1];
-    push(X(s.lo), Y(s.r));
-    if (prev.lo < s.lo) {
-      push(X(prev.lo), Y(s.r));
-      push(X(prev.lo), YB(prev.r));
-    }
-  }
-
-  push(X(segs[0].lo), YB(segs[0].r));
-  return `polygon(${pts.join(', ')})`;
-}
-
-function computeBoardUi(positions, outerEnd, grid) {
+function computeBoardUi(positions, outerEnd) {
   const outer = positions.slice(0, outerEnd + 1);
-  // Petite boucle sans la dernière case (reliée à l'Allemagne, hors bandeau)
   const innerBand = positions.slice(outerEnd + 1, -1);
 
   const outerRowMin = Math.min(...outer.map((p) => p.row));
@@ -330,36 +260,37 @@ function computeBoardUi(positions, outerEnd, grid) {
 
   return {
     center: {
-      rowStart: innerRowMin + 2,
-      rowEnd: innerRowMax + 1,
-      colStart: innerColMin + 2,
+      rowStart: innerRowMin + 1,
+      rowEnd: innerRowMax,
+      colStart: innerColMin + 1,
       colEnd: innerColMax,
     },
     trackOuter: {
-      rowStart: outerRowMin + 1,
-      rowEnd: outerRowMax + 2,
-      colStart: outerColMin + 1,
-      colEnd: outerColMax + 2,
+      rowStart: outerRowMin,
+      rowEnd: outerRowMax + 1,
+      colStart: outerColMin,
+      colEnd: outerColMax + 1,
     },
     trackInner: {
-      rowStart: innerRowMin + 1,
-      rowEnd: innerRowMax + 2,
-      colStart: innerColMin + 1,
-      colEnd: innerColMax + 2,
-      clipPath: computeInnerTrackClipPath(innerBand),
+      rowStart: innerRowMin,
+      rowEnd: innerRowMax + 1,
+      colStart: innerColMin,
+      colEnd: innerColMax + 1,
     },
+    outerBounds: { rowMin: outerRowMin, rowMax: outerRowMax, colMin: outerColMin, colMax: outerColMax },
+    innerBounds: { rowMin: innerRowMin, rowMax: innerRowMax, colMin: innerColMin, colMax: innerColMax },
   };
 }
 
 const BOARD_POSITIONS = applyBoardInset(
-  buildBoardPositions(BOARD.length, BOARD_LOGIC_GRID.cols, BOARD_LOGIC_GRID.rows, OUTER_LOOP_END, BOARD_GRID),
+  buildBoardPositions(BOARD.length, BOARD_LOGIC_GRID.cols, BOARD_LOGIC_GRID.rows, OUTER_LOOP_END),
   OUTER_LOOP_END,
   BOARD_INSET,
   BOARD_LOGIC_GRID,
   BOARD_GRID,
 );
 
-const BOARD_UI = computeBoardUi(BOARD_POSITIONS, OUTER_LOOP_END, BOARD_GRID);
+const BOARD_UI = computeBoardUi(BOARD_POSITIONS, OUTER_LOOP_END);
 
 const NEWS_CARDS = [
   { text: 'Crise économique ! Perdez 2 000 000 €', effect: { type: 'pay_bank', amount: 2000000 } },
@@ -400,8 +331,8 @@ module.exports = {
   buildBoardPositions,
   buildOuterPositions,
   buildInnerPositions,
-  traceRectPerimeter,
+  traceOuterPerimeter,
+  traceInnerPerimeter,
   applyBoardInset,
   computeBoardUi,
-  computeInnerTrackClipPath,
 };

@@ -1594,42 +1594,23 @@ function applyBoardUi(ui) {
   set($('.board-track-outer'), ui?.trackOuter);
   set($('.board-track-inner'), ui?.trackInner);
   set($('.board-center'), ui?.center);
-  const inner = $('.board-track-inner');
-  if (inner) inner.style.clipPath = ui?.trackInner?.clipPath || 'none';
 }
 
 function getBoardPositions(state) {
   if (state.boardPositions?.length) return state.boardPositions;
-  const count = state.board?.length || 0;
-  const cols = state.boardGrid?.cols || 22;
-  const rows = state.boardGrid?.rows || 15;
-  const maxR = rows - 1;
-  const maxC = cols - 1;
-  const allemagneCol = maxC - 1;
-  const outerEnd = state.outerLoopEnd ?? 36;
-  const outerLen = outerEnd + 1;
-  const innerLen = count - outerLen;
-  const path = [];
+  return [];
+}
 
-  path.push({ row: maxR, col: maxC });
-  path.push({ row: maxR, col: allemagneCol });
-  for (let c = allemagneCol - 1; c >= 0 && path.length < outerLen; c--) path.push({ row: maxR, col: c });
-  for (let r = maxR - 1; r >= 1 && path.length < outerLen; r--) path.push({ row: r, col: 0 });
-  if (path.length < outerLen) path.push({ row: 0, col: 0 });
-  if (path.length < outerLen) path.push({ row: 0, col: 1 });
-  while (path.length < outerLen) path.push({ row: 0, col: Math.min(path.length, maxC - 1) });
-  if (path.length > outerLen) path.length = outerLen;
-
-  const inner = [];
-  for (let c = 2; c <= maxC; c++) inner.push({ row: 0, col: c });
-  for (let r = 1; r <= maxR - 1; r++) inner.push({ row: r, col: maxC });
-  for (let c = maxC - 1; c >= 2; c--) inner.push({ row: maxR - 1, col: c });
-  for (let r = maxR - 2; r >= 2; r--) inner.push({ row: r, col: 2 });
-  if (innerLen > 0) inner[innerLen - 1] = { row: maxR - 1, col: allemagneCol };
-  while (inner.length < innerLen) inner.push({ row: maxR - 1, col: allemagneCol });
-  if (inner.length > innerLen) inner.length = innerLen;
-
-  return [...path, ...inner];
+function getCellEdgeClass(pos, index, positions, outerEnd, boardUi) {
+  if (!pos) return '';
+  const bounds = index <= outerEnd ? boardUi?.outerBounds : boardUi?.innerBounds;
+  if (!bounds) return '';
+  const edges = [];
+  if (pos.row === bounds.rowMax) edges.push('edge-bottom');
+  if (pos.row === bounds.rowMin) edges.push('edge-top');
+  if (pos.col === bounds.colMin) edges.push('edge-left');
+  if (pos.col === bounds.colMax) edges.push('edge-right');
+  return edges.join(' ');
 }
 
 function formatRoyalty(amount) {
@@ -1793,7 +1774,9 @@ function renderBoard(state) {
     const res = getResourceInfo(space.resource);
     const outerEnd = state.outerLoopEnd ?? 36;
     const loopRing = index <= outerEnd ? 'loop-outer' : 'loop-inner';
-    cell.className = `board-cell ${loopRing} type-${space.type}${zone ? ` zone-${zone}` : ''}`;
+    const edgeClass = getCellEdgeClass(pos, index, positions, outerEnd, state.boardUi);
+    const junctionClass = index === outerEnd + 1 || index === state.board.length - 1 ? 'loop-junction' : '';
+    cell.className = `board-cell ${loopRing} type-${space.type}${zone ? ` zone-${zone}` : ''}${edgeClass ? ` ${edgeClass}` : ''}${junctionClass ? ` ${junctionClass}` : ''}`;
     cell.style.gridRow = pos.row + 1;
     cell.style.gridColumn = pos.col + 1;
     if (res?.color && space.type === 'country') {

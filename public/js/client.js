@@ -30,8 +30,6 @@ function formatMoneyPdf(amount) {
   return `${n.toLocaleString('fr-FR')} €`;
 }
 
-const COIN_RING_CIRC = 213.6;
-
 function coinHtml(size = 'md') {
   return `<span class="rdm-coin rdm-coin--${size}" role="img" aria-label="${t('currency.coin')}"></span>`;
 }
@@ -42,6 +40,8 @@ function formatCoinAmount(amount) {
 
 function renderCoinAmount(el, amount, size = 'md') {
   if (!el) return;
+  el.classList.add('rdm-coin-wrap');
+  if (size === 'lg') el.classList.add('rdm-coin-wrap--lg');
   el.innerHTML = `${coinHtml(size)}<span class="rdm-coin-value">${formatCoinAmount(amount)}</span>`;
 }
 
@@ -704,7 +704,7 @@ document.addEventListener('click', (e) => {
 // ===================== Tutoriel =====================
 const TUTORIAL_KEY = 'rdm_tutorial_done';
 const TUTORIAL_STEPS = 6;
-const TUTORIAL_ICONS = ['🎮', '🗺️', '🎲', '📊', '💰', '🏆'];
+const TUTORIAL_ICONS = ['🎮', '🗺️', '🎲', '📊', null, '🏆'];
 let tutorialStep = 0;
 
 function renderTutorialStep() {
@@ -766,9 +766,7 @@ function renderProfileChip() {
   $('#pc-avatar').textContent = profile.avatar;
   $('#pc-name').textContent = profile.displayName;
   $('#pc-level').textContent = t('chip.level', { n: profile.level });
-  const pcCoinsVal = $('#pc-coins .rdm-coin-value');
-  if (pcCoinsVal) pcCoinsVal.textContent = formatCoinAmount(profile.coins);
-  else renderCoinAmount($('#pc-coins'), profile.coins, 'sm');
+  renderCoinAmount($('#pc-coins'), profile.coins, 'sm');
   $('#pc-xp-fill').style.width = `${Math.min(100, (profile.xpIntoLevel / profile.xpForNext) * 100)}%`;
 }
 
@@ -1113,22 +1111,11 @@ function renderProfileTab() {
   $('#profile-level-label').textContent = t('profile.level', { n: profile.level });
   $('#profile-xp-fill').style.width = `${Math.min(100, (profile.xpIntoLevel / profile.xpForNext) * 100)}%`;
   $('#profile-xp-label').textContent = `${profile.xpIntoLevel} / ${profile.xpForNext} XP`;
-  const played = profile.stats.played || 0;
-  const wins = profile.stats.wins || 0;
-  const winPct = played ? Math.round((wins / played) * 100) : 0;
-  $('#stat-played').textContent = played;
-  $('#stat-wins').textContent = wins;
-  $('#stat-rate').textContent = `${winPct}%`;
-  const winFill = $('#profile-winring-fill');
-  if (winFill) {
-    winFill.style.strokeDasharray = String(COIN_RING_CIRC);
-    winFill.style.strokeDashoffset = String(COIN_RING_CIRC * (1 - winPct / 100));
-  }
-  const winDetail = $('#profile-win-detail');
-  if (winDetail) winDetail.textContent = t('profile.win_detail', { wins, played });
-  $('#stat-streak').textContent = String(profile.stats.streak || 0);
+  $('#stat-played').textContent = profile.stats.played;
+  $('#stat-wins').textContent = profile.stats.wins;
+  $('#stat-rate').textContent = profile.stats.played ? `${Math.round((profile.stats.wins / profile.stats.played) * 100)}%` : '0%';
+  $('#stat-streak').textContent = `${profile.stats.streak || 0}${(profile.stats.streak || 0) >= 5 ? ' 🔥' : ''}`;
   $('#stat-beststreak').textContent = profile.stats.bestStreak || 0;
-  renderCoinAmount($('#profile-wallet-coins'), profile.coins, 'lg');
   renderCoinAmount($('#stat-coins'), profile.coins, 'sm');
   $('#stat-pawns').textContent = profile.ownedPawns.length;
   const remaining = profile.renamesRemaining ?? 2;

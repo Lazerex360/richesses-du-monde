@@ -213,7 +213,7 @@
             </div>
             <div class="shop-wallet">
               <span class="shop-wallet-label" data-i18n="shop.balance">Votre solde</span>
-              <div id="shop-balance-coins" class="rdm-coin-wrap rdm-coin-wrap--lg"></div>
+              <div id="shop-balance-coins" class="shop-wallet-coins rdm-coin-wrap rdm-coin-wrap--lg"><span class="rdm-coin rdm-coin--lg" role="img" aria-hidden="true"></span><span class="rdm-coin-value">0</span></div>
             </div>
           </header>
           <div class="shop-section-tabs" role="tablist">
@@ -250,110 +250,61 @@
 
         <!-- ONGLET PROFIL -->
         <div class="tab-panel" id="tab-profile">
-          <div class="profile-page">
-            <section class="card profile-identity">
-              <div class="profile-identity-banner">
-                <span class="profile-rank-pill" id="profile-rank">Aventurier</span>
+          <div class="profile-layout">
+            <div class="card profile-main">
+              <div class="profile-banner">
+                <span class="banner-rank" id="profile-rank">Aventurier</span>
               </div>
-              <div class="profile-identity-body">
-                <div class="profile-avatar-ring">
-                  <div class="profile-avatar" id="profile-avatar">🙂</div>
-                  <span class="profile-level-ring" id="profile-level-badge">1</span>
+              <div class="profile-avatar-wrap">
+                <div class="profile-avatar" id="profile-avatar">🙂</div>
+                <span class="level-badge" id="profile-level-badge">1</span>
+              </div>
+              <h2 id="profile-name">Joueur</h2>
+              <div id="profile-honor-title" class="profile-honor-title hidden"></div>
+              <div class="profile-tag" id="profile-tag">Compte invité</div>
+              <div class="profile-cosmetics">
+                <div class="cosmetic-slot">
+                  <span class="cs-label" data-i18n="profile.pawn_slot">Pion</span>
+                  <div class="cosmetic-slot-preview" id="profile-pawn">🔘</div>
                 </div>
-                <div class="profile-identity-text">
-                  <h2 id="profile-name">Joueur</h2>
-                  <div id="profile-honor-title" class="profile-honor-title hidden"></div>
-                  <p class="profile-tag" id="profile-tag">Compte invité</p>
-                </div>
-                <div class="profile-wallet">
-                  <span class="profile-wallet-label" data-i18n="profile.wallet">Trésorerie</span>
-                  <div id="profile-wallet-coins" class="rdm-coin-wrap rdm-coin-wrap--lg"></div>
-                </div>
-                <div class="profile-cosmetics-row">
-                  <div class="cosmetic-tile">
-                    <span class="cosmetic-tile-label" data-i18n="profile.pawn_slot">Pion</span>
-                    <div class="cosmetic-tile-preview" id="profile-pawn">🔘</div>
-                  </div>
-                  <div class="cosmetic-tile">
-                    <span class="cosmetic-tile-label" data-i18n="profile.dice_slot">Dé</span>
-                    <div class="cosmetic-tile-preview" id="profile-dice"></div>
-                  </div>
-                </div>
-                <div class="profile-xp-block">
-                  <div class="profile-xp-head">
-                    <span id="profile-level-label">Niveau 1</span>
-                    <span id="profile-xp-label" class="profile-xp-meta"></span>
-                  </div>
-                  <div class="xp-bar profile-xp-bar"><div class="xp-fill" id="profile-xp-fill"></div></div>
-                </div>
-                <div class="rename-row">
-                  <input type="text" id="rename-input" placeholder="Nouveau pseudo" data-i18n-ph="profile.rename_ph" maxlength="20">
-                  <button id="btn-rename" class="btn-mini" data-i18n="profile.rename">Renommer</button>
-                </div>
-                <p id="rename-limit-hint" class="rename-limit-hint"></p>
-                <div class="profile-actions">
-                  <button id="btn-open-settings" class="btn btn-secondary" data-i18n="profile.settings">⚙️ Paramètres</button>
-                  <button id="btn-logout" class="btn btn-danger" data-i18n="profile.logout">Se déconnecter</button>
+                <div class="cosmetic-slot">
+                  <span class="cs-label" data-i18n="profile.dice_slot">Dé</span>
+                  <div class="cosmetic-slot-preview" id="profile-dice"></div>
                 </div>
               </div>
-            </section>
+              <div class="profile-level">
+                <span id="profile-level-label">Niveau 1</span>
+                <div class="xp-bar"><div class="xp-fill" id="profile-xp-fill"></div></div>
+                <span id="profile-xp-label"></span>
+              </div>
+              <div class="rename-row">
+                <input type="text" id="rename-input" placeholder="Nouveau pseudo" data-i18n-ph="profile.rename_ph" maxlength="20">
+                <button id="btn-rename" class="btn-mini" data-i18n="profile.rename">Renommer</button>
+              </div>
+              <p id="rename-limit-hint" class="rename-limit-hint"></p>
+              <div class="profile-buttons">
+                <button id="btn-open-settings" class="btn btn-secondary" data-i18n="profile.settings">⚙️ Paramètres</button>
+                <button id="btn-logout" class="btn btn-danger" data-i18n="profile.logout">Se déconnecter</button>
+              </div>
+            </div>
+            <div class="card profile-stats">
+              <h3 data-i18n="profile.stats">Statistiques</h3>
+              <div class="stat-row"><span data-i18n="profile.played">Parties jouées</span><strong id="stat-played">0</strong></div>
+              <div class="stat-row"><span data-i18n="profile.wins">Victoires</span><strong id="stat-wins">0</strong></div>
+              <div class="stat-row"><span data-i18n="profile.winrate">Taux de victoire</span><strong id="stat-rate">0%</strong></div>
+              <div class="stat-row"><span data-i18n="profile.streak">🔥 Série actuelle</span><strong id="stat-streak">0</strong></div>
+              <div class="stat-row"><span data-i18n="profile.beststreak">Meilleure série</span><strong id="stat-beststreak">0</strong></div>
+              <div class="stat-row"><span data-i18n="profile.coins">Pièces</span><strong id="stat-coins">0</strong></div>
+              <div class="stat-row"><span data-i18n="profile.pawns">Pions débloqués</span><strong id="stat-pawns">0</strong></div>
 
-            <section class="card profile-analytics">
-              <h3 class="profile-analytics-title" data-i18n="profile.stats">Statistiques</h3>
-              <div class="profile-highlight">
-                <div class="profile-winring" id="profile-winring" aria-hidden="true">
-                  <svg viewBox="0 0 80 80" class="profile-winring-svg">
-                    <circle class="profile-winring-track" cx="40" cy="40" r="34"/>
-                    <circle class="profile-winring-fill" id="profile-winring-fill" cx="40" cy="40" r="34"/>
-                  </svg>
-                  <span class="profile-winring-value" id="stat-rate">0%</span>
-                </div>
-                <div class="profile-highlight-meta">
-                  <span data-i18n="profile.winrate">Taux de victoire</span>
-                  <strong id="profile-win-detail">0 / 0</strong>
-                </div>
-              </div>
-              <div class="profile-stat-grid">
-                <div class="profile-stat-tile">
-                  <span class="profile-stat-icon" aria-hidden="true">🎮</span>
-                  <span class="profile-stat-label" data-i18n="profile.played">Parties jouées</span>
-                  <strong class="profile-stat-value" id="stat-played">0</strong>
-                </div>
-                <div class="profile-stat-tile">
-                  <span class="profile-stat-icon" aria-hidden="true">🏆</span>
-                  <span class="profile-stat-label" data-i18n="profile.wins">Victoires</span>
-                  <strong class="profile-stat-value" id="stat-wins">0</strong>
-                </div>
-                <div class="profile-stat-tile">
-                  <span class="profile-stat-icon" aria-hidden="true">🔥</span>
-                  <span class="profile-stat-label" data-i18n="profile.streak">Série actuelle</span>
-                  <strong class="profile-stat-value" id="stat-streak">0</strong>
-                </div>
-                <div class="profile-stat-tile">
-                  <span class="profile-stat-icon" aria-hidden="true">⭐</span>
-                  <span class="profile-stat-label" data-i18n="profile.beststreak">Meilleure série</span>
-                  <strong class="profile-stat-value" id="stat-beststreak">0</strong>
-                </div>
-                <div class="profile-stat-tile profile-stat-tile-coins">
-                  <span class="rdm-coin rdm-coin--md" aria-hidden="true"></span>
-                  <span class="profile-stat-label" data-i18n="profile.coins">Pièces d'or</span>
-                  <strong class="profile-stat-value rdm-coin-wrap" id="stat-coins">0</strong>
-                </div>
-                <div class="profile-stat-tile">
-                  <span class="profile-stat-icon" aria-hidden="true">🔘</span>
-                  <span class="profile-stat-label" data-i18n="profile.pawns">Pions débloqués</span>
-                  <strong class="profile-stat-value" id="stat-pawns">0</strong>
-                </div>
-              </div>
-              <div class="promo-box profile-promo">
+              <div class="promo-box">
                 <h3 data-i18n="profile.promo">Code promo</h3>
-                <p class="promo-hint" data-i18n="profile.promo_hint">Échangez un code contre des pièces ou des récompenses exclusives.</p>
                 <div class="promo-row">
                   <input type="text" id="promo-input" placeholder="Entrez un code" data-i18n-ph="profile.promo_ph" maxlength="20">
                   <button id="btn-promo" class="btn-mini" data-i18n="profile.promo_btn">Valider</button>
                 </div>
               </div>
-            </section>
+            </div>
           </div>
         </div>
       </div>

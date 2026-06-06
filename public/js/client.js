@@ -256,6 +256,11 @@ $('#news-overlay')?.addEventListener('click', (e) => {
   if (e.target.id === 'news-overlay' && $('#news-card-flipper')?.classList.contains('flipped')) dismissNewsCard();
 });
 
+$('#landing-dismiss')?.addEventListener('click', () => dismissLandingPanel(true));
+$('#landing-overlay')?.addEventListener('click', (e) => {
+  if (e.target.id === 'landing-overlay') dismissLandingPanel(true);
+});
+
 $('#rules-close').addEventListener('click', () => hide($('#rules-overlay')));
 $('#rules-overlay').addEventListener('click', (e) => { if (e.target.id === 'rules-overlay') hide($('#rules-overlay')); });
 $('#settings-close').addEventListener('click', closeSettings);
@@ -1194,6 +1199,8 @@ let lastAnimatedRollId = '';
 let pawnMoveSession = { active: false, waitingDice: false, playerId: null, path: [], pathIndex: -1, displayPos: null, timer: null };
 let landingPauseActive = false;
 let landingPauseTimer = null;
+let landingPanelSession = { onDone: null };
+const LANDING_DISPLAY_MS = 4000;
 let pendingNewsReveal = null;
 let selectedTitles = new Set();
 let resourcesData = {};
@@ -1962,8 +1969,7 @@ function renderActions(state) {
   if (state.phase === 'rolling' && isMyTurn) {
     if (!state.diceResult && isGameSequenceActive()) {
       clearPawnMoveTimer();
-      if (landingPauseTimer) { clearTimeout(landingPauseTimer); landingPauseTimer = null; }
-      landingPauseActive = false;
+      dismissLandingPanel(true);
       pawnMoveSession.active = false;
       pawnMoveSession.waitingDice = false;
       pawnMoveSession.displayPos = null;
@@ -2180,13 +2186,11 @@ function resetGameAnimationState() {
   lastAnimatedRollId = '';
   localSurrendered = false;
   clearPawnMoveTimer();
-  if (landingPauseTimer) { clearTimeout(landingPauseTimer); landingPauseTimer = null; }
-  landingPauseActive = false;
+  dismissLandingPanel(false);
   pawnMoveSession = { active: false, waitingDice: false, playerId: null, path: [], pathIndex: -1, displayPos: null, timer: null };
   pendingNewsReveal = null;
   lastNewsRevealId = 0;
   dismissNewsCard();
-  hide($('#landing-overlay'));
   hideBuyTitlesOverlay();
   resetDiceDisplay();
 }
@@ -2247,9 +2251,7 @@ function preparePawnMoveAnimation(state) {
   if (!path.length) return;
   lastAnimatedRollId = key;
   clearPawnMoveTimer();
-  if (landingPauseTimer) { clearTimeout(landingPauseTimer); landingPauseTimer = null; }
-  landingPauseActive = false;
-  hide($('#landing-overlay'));
+  dismissLandingPanel(true);
   pawnMoveSession = {
     active: true,
     waitingDice: true,
@@ -2326,10 +2328,23 @@ function buildLandingPanelHtml(state) {
   return html;
 }
 
+function dismissLandingPanel(runCallback = false) {
+  if (landingPauseTimer) {
+    clearTimeout(landingPauseTimer);
+    landingPauseTimer = null;
+  }
+  landingPauseActive = false;
+  hide($('#landing-overlay'));
+  const done = landingPanelSession.onDone;
+  landingPanelSession.onDone = null;
+  if (runCallback && done) done();
+}
+
 function showLandingPanel(state, onDone) {
   const roller = state.players[state.currentPlayerIndex];
   const space = state.board[roller?.position];
   if (!space) { onDone?.(); return; }
+  dismissLandingPanel(false);
   const title = $('#landing-title');
   const resEl = $('#landing-resource');
   const body = $('#landing-body');
@@ -2343,15 +2358,10 @@ function showLandingPanel(state, onDone) {
     } else hide(resEl);
   }
   if (body) body.innerHTML = buildLandingPanelHtml(state);
+  landingPanelSession.onDone = onDone || null;
   show($('#landing-overlay'));
   landingPauseActive = true;
-  if (landingPauseTimer) clearTimeout(landingPauseTimer);
-  landingPauseTimer = setTimeout(() => {
-    landingPauseTimer = null;
-    hide($('#landing-overlay'));
-    landingPauseActive = false;
-    onDone?.();
-  }, getSeqDelay(1600));
+  landingPauseTimer = setTimeout(() => dismissLandingPanel(true), getSeqDelay(LANDING_DISPLAY_MS));
 }
 
 function finishPawnArrival() {
@@ -2361,7 +2371,7 @@ function finishPawnArrival() {
     : null;
   renderBoard(gameState);
   landingPauseActive = true;
-  if (landingPauseTimer) clearTimeout(landingPauseTimer);
+  if (landingPauseTimer) { clearTimeout(landingPauseTimer); landingPauseTimer = null; }
   const delay = getSeqDelay(PAWN_POST_ARRIVE_MS);
   const afterLandingPause = () => {
     landingPauseActive = false;

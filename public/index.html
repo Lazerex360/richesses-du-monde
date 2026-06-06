@@ -489,10 +489,13 @@
 
     <!-- PANNEAU ATTERRISSAGE (royalties avant achat) -->
     <div id="landing-overlay" class="overlay landing-overlay hidden" aria-live="polite">
-      <div class="card landing-card">
-        <h2 id="landing-title" class="landing-title"></h2>
-        <p id="landing-resource" class="landing-resource hidden"></p>
-        <div id="landing-body" class="landing-body"></div>
+      <div class="landing-wrap">
+        <div class="card landing-card">
+          <h2 id="landing-title" class="landing-title"></h2>
+          <p id="landing-resource" class="landing-resource hidden"></p>
+          <div id="landing-body" class="landing-body"></div>
+        </div>
+        <button type="button" id="landing-dismiss" class="btn btn-primary landing-dismiss" data-i18n="news.close">OK</button>
       </div>
     </div>
 

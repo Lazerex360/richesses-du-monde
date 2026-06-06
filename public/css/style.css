@@ -1049,8 +1049,18 @@ select option { background: var(--bg-card); color: var(--text); }
   padding: 0.65rem 1.1rem 0.75rem;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
 }
-.landing-overlay { align-items: flex-start; padding-top: max(2rem, env(safe-area-inset-top)); z-index: 105; }
+.landing-overlay {
+  align-items: center !important;
+  justify-content: center !important;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  z-index: 105;
+}
+.landing-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 1rem;
+  width: 100%; max-width: min(92vw, 500px); margin: auto;
+}
 .landing-card { max-width: 480px; width: 100%; text-align: center; }
+.landing-dismiss { min-width: 120px; }
 .landing-title { color: var(--gold-light); margin-bottom: 0.35rem; font-size: 1.35rem; }
 .landing-resource { font-weight: 700; margin: 0 0 0.75rem; font-size: 1rem; }
 .landing-body { text-align: left; font-size: 0.88rem; line-height: 1.5; }

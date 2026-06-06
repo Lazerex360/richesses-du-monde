@@ -684,7 +684,8 @@ document.addEventListener('click', (e) => {
 
 // ===================== Tutoriel =====================
 const TUTORIAL_KEY = 'rdm_tutorial_done';
-const TUTORIAL_STEPS = 4;
+const TUTORIAL_STEPS = 6;
+const TUTORIAL_ICONS = ['🎮', '🗺️', '🎲', '📊', '💰', '🏆'];
 let tutorialStep = 0;
 
 function renderTutorialStep() {
@@ -692,10 +693,21 @@ function renderTutorialStep() {
   const titleEl = $('#tutorial-step-title');
   const bodyEl = $('#tutorial-step-body');
   const nextBtn = $('#tutorial-next');
+  const prevBtn = $('#tutorial-prev');
   const dotsEl = $('#tutorial-dots');
+  const iconEl = $('#tutorial-icon');
+  const progressFill = $('#tutorial-progress-fill');
+  const progressLabel = $('#tutorial-progress-label');
   if (titleEl) titleEl.textContent = t(`tutorial.step${n}_title`);
   if (bodyEl) bodyEl.textContent = t(`tutorial.step${n}_body`);
+  if (iconEl) iconEl.textContent = TUTORIAL_ICONS[tutorialStep] || '🎮';
   if (nextBtn) nextBtn.textContent = tutorialStep >= TUTORIAL_STEPS - 1 ? t('tutorial.done') : t('tutorial.next');
+  if (prevBtn) {
+    if (tutorialStep > 0) show(prevBtn);
+    else hide(prevBtn);
+  }
+  if (progressFill) progressFill.style.width = `${((tutorialStep + 1) / TUTORIAL_STEPS) * 100}%`;
+  if (progressLabel) progressLabel.textContent = t('tutorial.progress', { n, total: TUTORIAL_STEPS });
   if (dotsEl) {
     dotsEl.innerHTML = Array.from({ length: TUTORIAL_STEPS }, (_, i) =>
       `<span class="tutorial-dot${i === tutorialStep ? ' active' : ''}"></span>`
@@ -716,6 +728,9 @@ function maybeShowTutorial() {
 }
 
 $('#tutorial-skip')?.addEventListener('click', closeTutorial);
+$('#tutorial-prev')?.addEventListener('click', () => {
+  if (tutorialStep > 0) { tutorialStep -= 1; renderTutorialStep(); }
+});
 $('#tutorial-next')?.addEventListener('click', () => {
   if (tutorialStep >= TUTORIAL_STEPS - 1) closeTutorial();
   else { tutorialStep += 1; renderTutorialStep(); }
@@ -1575,20 +1590,53 @@ function buildResourceAccordionHtml(resId, res) {
     </div>`;
 }
 
+function setResourceAccordionOpen(item, open) {
+  const btn = item?.querySelector('.resource-accordion-head');
+  const body = item?.querySelector('.resource-accordion-body');
+  const toggle = btn?.querySelector('.resource-accordion-toggle');
+  if (!body || !toggle || !btn) return;
+  if (open) body.classList.remove('hidden');
+  else body.classList.add('hidden');
+  btn.setAttribute('aria-expanded', String(open));
+  toggle.textContent = open ? '−' : '+';
+  item.classList.toggle('open', open);
+}
+
 function bindResourceAccordion() {
   $$('.resource-accordion-head').forEach((btn) => {
     btn.addEventListener('click', () => {
       const item = btn.closest('.resource-accordion-item');
       const body = item?.querySelector('.resource-accordion-body');
-      const toggle = btn.querySelector('.resource-accordion-toggle');
-      if (!body || !toggle) return;
-      const open = body.classList.toggle('hidden');
-      const isOpen = !open;
-      btn.setAttribute('aria-expanded', String(isOpen));
-      toggle.textContent = isOpen ? '−' : '+';
-      item.classList.toggle('open', isOpen);
+      if (!body) return;
+      setResourceAccordionOpen(item, body.classList.contains('hidden'));
     });
   });
+}
+
+function updateResourcesCount() {
+  const countEl = $('#resources-count');
+  if (!countEl) return;
+  const total = $$('.resource-accordion-item').length;
+  const visible = $$('.resource-accordion-item:not(.filtered-out)').length;
+  countEl.textContent = visible < total
+    ? t('resources.meta_filtered', { visible, total })
+    : t('resources.meta_count', { count: total });
+}
+
+function filterResourceAccordions(query) {
+  const q = query.trim().toLowerCase();
+  $$('.resource-accordion-item').forEach((item) => {
+    const name = item.querySelector('.resource-accordion-title')?.textContent?.toLowerCase() || '';
+    const countries = [...item.querySelectorAll('tbody td:first-child')].map((td) => td.textContent.toLowerCase()).join(' ');
+    const match = !q || name.includes(q) || countries.includes(q);
+    item.classList.toggle('filtered-out', !match);
+  });
+  const emptyEl = $('#resources-empty');
+  const accordion = $('.resources-accordion');
+  const visible = $$('.resource-accordion-item:not(.filtered-out)').length;
+  if (emptyEl) emptyEl.classList.toggle('hidden', visible > 0);
+  if (accordion) accordion.classList.toggle('hidden', visible === 0 && q.length > 0);
+  updateResourcesCount();
 }
 
 function renderResourcesGuide() {
@@ -1598,10 +1646,22 @@ function renderResourcesGuide() {
     .filter((id) => resourcesData[id])
     .map((id) => buildResourceAccordionHtml(id, resourcesData[id]));
   body.innerHTML = `
-    <p class="resources-footnote">${t('resources.footnote')}</p>
-    <div class="resources-accordion">${items.join('')}</div>`;
+    <div id="resources-empty" class="resources-empty hidden">${t('resources.no_results')}</div>
+    <div class="resources-accordion">${items.join('')}</div>
+    <p class="resources-footnote">${t('resources.footnote')}</p>`;
   bindResourceAccordion();
+  const searchEl = $('#resources-search');
+  if (searchEl) filterResourceAccordions(searchEl.value || '');
+  else updateResourcesCount();
 }
+
+$('#resources-search')?.addEventListener('input', (e) => filterResourceAccordions(e.target.value));
+$('#resources-expand-all')?.addEventListener('click', () => {
+  $$('.resource-accordion-item:not(.filtered-out)').forEach((item) => setResourceAccordionOpen(item, true));
+});
+$('#resources-collapse-all')?.addEventListener('click', () => {
+  $$('.resource-accordion-item').forEach((item) => setResourceAccordionOpen(item, false));
+});
 
 async function openResourcesGuide() {
   await loadResourcesData();
@@ -1712,21 +1772,6 @@ function applyBoardUi(ui) {
 function getBoardPositions(state) {
   if (state.boardPositions?.length) return state.boardPositions;
   return [];
-}
-
-function getCellFlowClass(index, positions) {
-  const loopEnd = positions.length - 1;
-  const nextIdx = index < loopEnd ? index + 1 : 1;
-  const cur = positions[index];
-  const nxt = positions[nextIdx];
-  if (!cur || !nxt) return '';
-  const dr = nxt.row - cur.row;
-  const dc = nxt.col - cur.col;
-  if (dr > 0) return 'flow-down';
-  if (dr < 0) return 'flow-up';
-  if (dc > 0) return 'flow-right';
-  if (dc < 0) return 'flow-left';
-  return '';
 }
 
 function getCellEdgeClass(pos, index, positions, outerEnd, boardUi) {
@@ -1902,69 +1947,11 @@ function buildCellContent(space, state, index) {
   return `<span class="cell-label">${escapeHtml(space.label)}</span>`;
 }
 
-function showCellTooltip(space, state) {
-  const tip = $('#cell-tooltip');
-  if (!tip) return;
-  if (space.type === 'resource') { hide(tip); return; }
-
-  const res = getResourceInfo(space.resource);
-  const region = getSpaceRegionLabel(space);
-  const placeName = space.label || '';
-  const zone = getZoneForSpace(space);
-  const zoneColor = zone && ZONE_COLORS[zone] ? ZONE_COLORS[zone] : 'var(--gold)';
-
-  let resourceHtml = '';
-  if (res?.name) {
-    resourceHtml = `<div class="tip-res" style="color:${res.color || '#fff'}">${escapeHtml(res.name)}</div>`;
-  }
-
-  let ownersHtml = '';
-  if (space.resource) {
-    const owners = getOwnersForResource(state, space.resource);
-    ownersHtml = `
-      <div class="tip-label">${t('board.current_owners')}</div>
-      ${owners.length
-        ? owners.map((o) => `<div class="tip-owner">${escapeHtml(o.player.name)} — ${o.pct}% → ${formatMoney(o.royalty)}</div>`).join('')
-        : `<div class="tip-owner muted">${t('board.no_owners')}</div>`}`;
-  }
-
-  const purchasable = getPurchasableTitlesForSpace(space);
-  let pricesHtml = '';
-  if (purchasable.length) {
-    pricesHtml = `<div class="tip-label">${t('board.title_prices')}</div>` +
-      purchasable.map((ti) =>
-        `<div class="tip-tier"><span>${escapeHtml(ti.country)} — ${escapeHtml(ti.resourceName)} ${ti.percent}%</span><span>${formatMoney(ti.price)}</span></div>`
-      ).join('');
-  }
-
-  tip.innerHTML = `
-    <div class="tip-place">${escapeHtml(placeName)}</div>
-    ${region ? `<div class="tip-region" style="color:${zoneColor}">${escapeHtml(region)}</div>` : ''}
-    ${resourceHtml}
-    ${pricesHtml}
-    ${ownersHtml}`;
-  show(tip);
-}
-
 function getPlayerBoardPosition(player, state) {
   if (pawnMoveSession.active && pawnMoveSession.playerId === player.id && pawnMoveSession.displayPos != null) {
     return pawnMoveSession.displayPos;
   }
   return player.position;
-}
-
-function renderBoardPathArrows(state) {
-  const layer = $('#board-path-arrows');
-  if (!layer) return;
-  layer.querySelectorAll('.board-path-arrow').forEach((el) => el.remove());
-  const arrows = state.boardPathArrows || [];
-  arrows.forEach((arrow) => {
-    const el = document.createElement('div');
-    el.className = `board-path-arrow dir-${arrow.dir}${arrow.junction ? ' junction' : ''}`;
-    el.style.gridRow = arrow.row + 1;
-    el.style.gridColumn = arrow.col + 1;
-    layer.appendChild(el);
-  });
 }
 
 function renderBoardCenterStatus(state) {
@@ -2031,10 +2018,9 @@ function renderBoard(state) {
     const outerEnd = state.outerLoopEnd ?? 36;
     const loopRing = index <= outerEnd ? 'loop-outer' : 'loop-inner';
     const edgeClass = getCellEdgeClass(pos, index, positions, outerEnd, state.boardUi);
-    const flowClass = getCellFlowClass(index, positions);
     const junctionClass = index === outerEnd + 1 || index === state.board.length - 1 ? 'loop-junction' : '';
     const royaltyClass = getRoyaltyCellClasses(state, space);
-    cell.className = `board-cell ${loopRing} type-${space.type}${zone ? ` zone-${zone}` : ''}${edgeClass ? ` ${edgeClass}` : ''}${flowClass ? ` ${flowClass}` : ''}${junctionClass ? ` ${junctionClass}` : ''}${royaltyClass ? ` ${royaltyClass}` : ''}`;
+    cell.className = `board-cell ${loopRing} type-${space.type}${zone ? ` zone-${zone}` : ''}${edgeClass ? ` ${edgeClass}` : ''}${junctionClass ? ` ${junctionClass}` : ''}${royaltyClass ? ` ${royaltyClass}` : ''}`;
     cell.style.gridRow = pos.row + 1;
     cell.style.gridColumn = pos.col + 1;
     if (res?.color && space.type === 'country') {
@@ -2055,15 +2041,8 @@ function renderBoard(state) {
       <div class="pions-container">
         ${playersHere.map((p) => `<span class="pion-emoji pion-ring" style="color:${p.color}" title="${escapeHtml(p.name)}">${pawnEmojiMap[p.pawn] || '🔘'}</span>`).join('')}
       </div>`;
-    cell.addEventListener('mouseenter', () => showCellTooltip(space, state));
-    cell.addEventListener('mouseleave', () => hide($('#cell-tooltip')));
-    cell.addEventListener('click', () => {
-      if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
-      showCellTooltip(space, state);
-    });
     board.appendChild(cell);
   });
-  renderBoardPathArrows(state);
   renderBoardCenterStatus(state);
   if ($('#screen-game')?.classList.contains('active')) requestAnimationFrame(() => applyBoardZoom());
 }
@@ -2530,7 +2509,6 @@ function settleDiceCubes(d1, d2) {
 function resetDiceDisplay() {
   hideDiceScores();
   hide($('#dice-area'));
-  hide($('#cell-tooltip'));
   lastDisplayedRollId = 0;
   diceSettledRollId = 0;
   diceLandingRollId = 0;

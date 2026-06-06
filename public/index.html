@@ -24,6 +24,7 @@
           <select id="auth-language" aria-label="Langue"></select>
         </label>
       </div>
+      <div class="auth-shell">
       <div class="auth-box">
         <div class="hero-badge" data-i18n="auth.badge">Lansay — Édition en ligne</div>
         <h1 class="auth-title" data-i18n="auth.title">Richesses du Monde</h1>
@@ -64,6 +65,30 @@
 
           <button id="btn-guest" class="auth-guest-link" data-i18n="auth.guest">Jouer en invité</button>
         </div>
+      </div>
+      <div class="auth-features" aria-hidden="false">
+        <div class="auth-feature">
+          <span class="auth-feature-icon" aria-hidden="true">🎲</span>
+          <div>
+            <strong data-i18n="auth.feat_play_title">Parties fluides</strong>
+            <p data-i18n="auth.feat_play_desc">Dés 3D, tours en temps réel et actions claires à chaque étape.</p>
+          </div>
+        </div>
+        <div class="auth-feature">
+          <span class="auth-feature-icon" aria-hidden="true">🗺️</span>
+          <div>
+            <strong data-i18n="auth.feat_board_title">Plateau fidèle Lansay</strong>
+            <p data-i18n="auth.feat_board_desc">Double boucle, 24 richesses et royalties authentiques du jeu de société.</p>
+          </div>
+        </div>
+        <div class="auth-feature">
+          <span class="auth-feature-icon" aria-hidden="true">🌐</span>
+          <div>
+            <strong data-i18n="auth.feat_multi_title">Multijoueur mondial</strong>
+            <p data-i18n="auth.feat_multi_desc">Salons privés, matchmaking rapide et jusqu'à 6 joueurs en ligne.</p>
+          </div>
+        </div>
+      </div>
       </div>
     </section>
 
@@ -370,7 +395,6 @@
                   <div id="board" class="board">
                     <div class="board-track board-track-outer" aria-hidden="true"></div>
                     <div class="board-track board-track-inner" aria-hidden="true"></div>
-                    <div id="board-path-arrows" class="board-path-arrows" aria-hidden="true"></div>
                     <div class="board-center">
                       <div id="board-center-status" class="board-center-status" aria-live="polite"></div>
                       <div id="board-center-dice" class="board-center-dice">
@@ -416,7 +440,6 @@
               <button type="button" id="board-zoom-in" class="board-zoom-btn" data-i18n-title="board.zoom_in" title="Zoom avant" aria-label="Zoom avant">+</button>
               <button type="button" id="board-zoom-reset" class="board-zoom-btn board-zoom-reset" data-i18n-title="board.zoom_reset" title="Réinitialiser" aria-label="Réinitialiser le zoom">↺</button>
             </div>
-            <div id="cell-tooltip" class="cell-tooltip hidden"></div>
           </div>
         </main>
       </div>
@@ -532,7 +555,17 @@
       <div class="card resources-card">
         <button id="resources-close" class="btn-mini back" data-i18n="trade.close">← Fermer</button>
         <h2 data-i18n="resources.title">Richesses du monde</h2>
-        <p class="resources-intro" data-i18n="resources.intro">Référence Lansay : cliquez sur + pour déplier chaque richesse (pays, prix, barème de royalties).</p>
+        <div class="resources-toolbar">
+          <div class="resources-toolbar-top">
+            <p class="resources-intro" data-i18n="resources.intro">Référence Lansay : cliquez sur + pour déplier chaque richesse (pays, prix, barème de royalties).</p>
+            <span id="resources-count" class="resources-count" aria-live="polite"></span>
+          </div>
+          <div class="resources-toolbar-actions">
+            <input type="search" id="resources-search" class="resources-search" data-i18n-ph="resources.search_ph" placeholder="Rechercher une richesse ou un pays…" autocomplete="off">
+            <button type="button" id="resources-expand-all" class="btn-mini" data-i18n="resources.expand_all">Tout déplier</button>
+            <button type="button" id="resources-collapse-all" class="btn-mini" data-i18n="resources.collapse_all">Tout replier</button>
+          </div>
+        </div>
         <div id="resources-body" class="resources-body"></div>
       </div>
     </div>
@@ -638,11 +671,17 @@
     <!-- TUTORIEL -->
     <div id="tutorial-overlay" class="overlay tutorial-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="tutorial-step-title">
       <div class="tutorial-card card">
+        <div class="tutorial-progress-wrap">
+          <div class="tutorial-progress-track" aria-hidden="true"><div id="tutorial-progress-fill" class="tutorial-progress-fill"></div></div>
+          <span id="tutorial-progress-label" class="tutorial-progress-label" aria-live="polite"></span>
+        </div>
+        <div id="tutorial-icon" class="tutorial-icon" aria-hidden="true">🎮</div>
         <h2 id="tutorial-title" class="tutorial-title" data-i18n="tutorial.title">Bienvenue !</h2>
         <h3 id="tutorial-step-title" class="tutorial-step-title"></h3>
         <p id="tutorial-step-body" class="tutorial-step-body"></p>
         <div class="tutorial-dots" id="tutorial-dots" aria-hidden="true"></div>
         <div class="tutorial-nav">
+          <button type="button" id="tutorial-prev" class="btn btn-secondary hidden" data-i18n="tutorial.prev">Retour</button>
           <button type="button" id="tutorial-skip" class="btn btn-secondary" data-i18n="tutorial.skip">Passer</button>
           <button type="button" id="tutorial-next" class="btn btn-primary" data-i18n="tutorial.next">Suivant</button>
         </div>

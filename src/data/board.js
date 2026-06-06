@@ -311,32 +311,6 @@ const BOARD_POSITIONS = applyBoardInset(
 
 const BOARD_UI = computeBoardUi(BOARD_POSITIONS, OUTER_LOOP_END);
 
-/** Flèches dans les couloirs entre pistes (plateau Lansay) */
-const BOARD_PATH_ARROWS = [
-  { row: 1, col: 1, dir: 'right' },
-  { row: 1, col: 4, dir: 'right' },
-  { row: 1, col: 7, dir: 'right' },
-  { row: 1, col: 10, dir: 'right' },
-  { row: 1, col: 11, dir: 'down' },
-  { row: 10, col: 1, dir: 'left' },
-  { row: 10, col: 4, dir: 'left' },
-  { row: 10, col: 7, dir: 'left' },
-  { row: 10, col: 9, dir: 'left' },
-  { row: 10, col: 11, dir: 'up' },
-  { row: 11, col: 11, dir: 'left' },
-  { row: 11, col: 1, dir: 'up' },
-  { row: 0, col: 1, dir: 'right' },
-  { row: 0, col: 11, dir: 'down' },
-  { row: 3, col: 1, dir: 'up' },
-  { row: 6, col: 1, dir: 'up' },
-  { row: 3, col: 11, dir: 'down' },
-  { row: 6, col: 11, dir: 'down' },
-  { row: 8, col: 11, dir: 'down', junction: true },
-  { row: 9, col: 11, dir: 'down', junction: true },
-  { row: 2, col: 1, dir: 'right', junction: true },
-  { row: 4, col: 2, dir: 'up', junction: true },
-];
-
 const NEWS_CARDS = [
   { text: 'Crise économique ! Perdez 2 000 000 €', effect: { type: 'pay_bank', amount: 2000000 } },
   { text: 'Subvention gouvernementale : +3 000 000 €', effect: { type: 'receive_bank', amount: 3000000 } },
@@ -363,7 +337,6 @@ module.exports = {
   BOARD_LOGIC_GRID,
   BOARD_INSET,
   BOARD_UI,
-  BOARD_PATH_ARROWS,
   LOOP_START,
   LOOP_END,
   LOOP_SIZE,

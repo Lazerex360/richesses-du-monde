@@ -1483,6 +1483,8 @@ function getSeqDelay(ms) {
   return settings.reduceMotion ? 0 : ms;
 }
 let diceRollSession = { active: false, start: 0, result: null, timer: null };
+let boardCells = null; // cache DOM — rebuilt once per game
+let auctionCountdownTimer = null;
 let lastDisplayedRollId = 0;
 let diceSettledRollId = 0;
 let diceLandingRollId = 0;
@@ -2094,52 +2096,80 @@ function renderTurnIndicator(state) {
   indicator.classList.toggle('my-turn', isMyTurn);
 }
 
-function renderBoard(state) {
+function buildBoardCells(state) {
   const board = $('#board');
   board.querySelectorAll('.board-cell').forEach((el) => el.remove());
+  boardCells = new Map();
   applyBoardGrid(state.boardGrid || { cols: 24, rows: 17 });
   applyBoardUi(state.boardUi);
   const positions = getBoardPositions(state);
-  const showDepart = state.players.some((p) => !p.bankrupt && getPlayerBoardPosition(p, state) === 0);
-  const pathTrail = pawnMoveSession.active && pawnMoveSession.path.length
-    ? new Set(pawnMoveSession.path.slice(0, pawnMoveSession.pathIndex + 1))
-    : null;
+  const outerEnd = state.outerLoopEnd ?? 36;
   state.board.forEach((space, index) => {
     if (space.type === 'resource') return;
-    if (space.type === 'start' && !showDepart) return;
     const pos = positions[index];
     if (!pos) return;
     const cell = document.createElement('div');
     const zone = getZoneForSpace(space);
     const res = getResourceInfo(space.resource);
-    const outerEnd = state.outerLoopEnd ?? 36;
     const loopRing = index <= outerEnd ? 'loop-outer' : 'loop-inner';
     const edgeClass = getCellEdgeClass(pos, index, positions, outerEnd, state.boardUi);
     const junctionClass = index === outerEnd + 1 || index === state.board.length - 1 ? 'loop-junction' : '';
-    const royaltyClass = getRoyaltyCellClasses(state, space);
-    cell.className = `board-cell ${loopRing} type-${space.type}${zone ? ` zone-${zone}` : ''}${edgeClass ? ` ${edgeClass}` : ''}${junctionClass ? ` ${junctionClass}` : ''}${royaltyClass ? ` ${royaltyClass}` : ''}`;
+    cell.className = `board-cell ${loopRing} type-${space.type}${zone ? ` zone-${zone}` : ''}${edgeClass ? ` ${edgeClass}` : ''}${junctionClass ? ` ${junctionClass}` : ''}`;
     cell.style.gridRow = pos.row + 1;
     cell.style.gridColumn = pos.col + 1;
-    if (res?.color && space.type === 'country') {
-      cell.style.setProperty('--tile-accent', res.color);
-    }
-    if (zone && ZONE_COLORS[zone]) {
-      cell.style.setProperty('--zone-color', ZONE_COLORS[zone]);
-    }
-    const playersHere = state.players.filter((p) => !p.bankrupt && getPlayerBoardPosition(p, state) === index);
-    const current = state.players[state.currentPlayerIndex];
-    const movingHere = pawnMoveSession.active && pawnMoveSession.displayPos === index;
-    if (playersHere.some((p) => current?.id === p.id) || movingHere) cell.classList.add('active-cell');
-    if (movingHere) cell.classList.add('pawn-landing-cell');
-    if (pathTrail?.has(index)) cell.classList.add('path-trail');
-    if (movingHere) cell.classList.add('path-trail-current');
-    cell.innerHTML = `
-      <div class="cell-body">${buildCellContent(space, state, index)}</div>
-      <div class="pions-container">
-        ${playersHere.map((p) => `<span class="pion-emoji pion-ring" style="color:${p.color}" title="${escapeHtml(p.name)}">${pawnEmojiMap[p.pawn] || '🔘'}</span>`).join('')}
-      </div>`;
+    if (res?.color && space.type === 'country') cell.style.setProperty('--tile-accent', res.color);
+    if (zone && ZONE_COLORS[zone]) cell.style.setProperty('--zone-color', ZONE_COLORS[zone]);
+    cell.innerHTML = `<div class="cell-body">${buildCellContent(space, state, index)}</div><div class="pions-container"></div>`;
+    if (space.type === 'start') cell.style.visibility = 'hidden';
     board.appendChild(cell);
+    boardCells.set(index, { el: cell, space });
   });
+}
+
+function renderBoard(state) {
+  if (!boardCells) buildBoardCells(state);
+
+  const positions = getBoardPositions(state);
+  const outerEnd = state.outerLoopEnd ?? 36;
+  const showDepart = state.players.some((p) => !p.bankrupt && getPlayerBoardPosition(p, state) === 0);
+  const pathTrail = pawnMoveSession.active && pawnMoveSession.path.length
+    ? new Set(pawnMoveSession.path.slice(0, pawnMoveSession.pathIndex + 1))
+    : null;
+  const current = state.players[state.currentPlayerIndex];
+
+  for (const [index, { el, space }] of boardCells) {
+    if (space.type === 'start') {
+      el.style.visibility = showDepart ? '' : 'hidden';
+    }
+    const zone = getZoneForSpace(space);
+    const loopRing = index <= outerEnd ? 'loop-outer' : 'loop-inner';
+    const edgeClass = getCellEdgeClass(positions[index], index, positions, outerEnd, state.boardUi);
+    const junctionClass = index === outerEnd + 1 || index === state.board.length - 1 ? 'loop-junction' : '';
+    const royaltyClass = getRoyaltyCellClasses(state, space);
+    const playersHere = state.players.filter((p) => !p.bankrupt && getPlayerBoardPosition(p, state) === index);
+    const movingHere = pawnMoveSession.active && pawnMoveSession.displayPos === index;
+    const isActive = playersHere.some((p) => current?.id === p.id) || movingHere;
+
+    let cls = `board-cell ${loopRing} type-${space.type}`;
+    if (zone) cls += ` zone-${zone}`;
+    if (edgeClass) cls += ` ${edgeClass}`;
+    if (junctionClass) cls += ` ${junctionClass}`;
+    if (royaltyClass) cls += ` ${royaltyClass}`;
+    if (isActive) cls += ' active-cell';
+    if (movingHere) cls += ' pawn-landing-cell';
+    if (pathTrail?.has(index)) cls += ' path-trail';
+    if (movingHere) cls += ' path-trail-current';
+    el.className = cls;
+
+    const pions = el.querySelector('.pions-container');
+    if (pions) {
+      const newHtml = playersHere.map((p) =>
+        `<span class="pion-emoji pion-ring" style="color:${p.color}" title="${escapeHtml(p.name)}">${pawnEmojiMap[p.pawn] || '🔘'}</span>`
+      ).join('');
+      if (pions.innerHTML !== newHtml) pions.innerHTML = newHtml;
+    }
+  }
+
   renderBoardCenterStatus(state);
   if ($('#screen-game')?.classList.contains('active')) requestAnimationFrame(() => applyBoardZoom());
 }
@@ -2459,17 +2489,19 @@ function renderActions(state) {
 
   if (action?.type === 'auction' && state.auction) {
     const auc = state.auction;
-    const remaining = Math.max(0, auc.endTime - Date.now());
+    const sNow = Math.max(0, Math.ceil((auc.endTime - Date.now()) / 1000));
     const isSeller = auc.sellerId === myGameId;
     area.innerHTML = `
-      <p class="action-desc">${t('action.auction_desc', { bid: formatMoney(auc.currentBid), s: Math.ceil(remaining / 1000) })}</p>
+      <p class="action-desc">${t('action.auction_desc', { bid: formatMoney(auc.currentBid), s: '<span class="auction-countdown">' + sNow + '</span>' })}</p>
       ${!isSeller && !me?.bankrupt ? `<div class="action-buttons"><button class="btn btn-primary" id="btn-bid">+100 k€</button><button class="btn btn-primary" id="btn-bid-big">+500 k€</button></div>` : ''}`;
     if (!isSeller && !me?.bankrupt) {
       $('#btn-bid')?.addEventListener('click', () => socket.emit('place_bid', { amount: auc.currentBid + 100000 }));
       $('#btn-bid-big')?.addEventListener('click', () => socket.emit('place_bid', { amount: auc.currentBid + 500000 }));
     }
+    startAuctionCountdown();
     return;
   }
+  stopAuctionCountdown();
 
   if ((state.phase === 'end_turn' || state.phase === 'action') && isMyTurn) {
     area.innerHTML = `<div class="action-buttons"><button class="btn btn-primary" id="btn-end-turn">${t('action.end_turn')}</button></div>`;
@@ -2620,9 +2652,28 @@ function resetDiceDisplay() {
   });
 }
 
+function stopAuctionCountdown() {
+  if (auctionCountdownTimer) { clearInterval(auctionCountdownTimer); auctionCountdownTimer = null; }
+}
+
+function startAuctionCountdown() {
+  stopAuctionCountdown();
+  auctionCountdownTimer = setInterval(() => {
+    if (!gameState?.auction) { stopAuctionCountdown(); return; }
+    const el = document.querySelector('#action-area .auction-countdown');
+    if (el) {
+      const s = Math.max(0, Math.ceil((gameState.auction.endTime - Date.now()) / 1000));
+      el.textContent = s;
+      if (s <= 0) stopAuctionCountdown();
+    }
+  }, 500);
+}
+
 function resetGameAnimationState() {
   lastAnimatedRollId = '';
   localSurrendered = false;
+  boardCells = null;
+  stopAuctionCountdown();
   clearPawnMoveTimer();
   dismissLandingPanel(false);
   pawnMoveSession = { active: false, waitingDice: false, playerId: null, path: [], pathIndex: -1, displayPos: null, timer: null };

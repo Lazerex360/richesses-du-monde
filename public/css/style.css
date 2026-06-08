@@ -2811,3 +2811,90 @@ body.high-contrast .board-cell.path-trail { background: rgba(255, 220, 120, 0.2)
   .btn:hover:not(:disabled) { transform: none; }
   .icon-btn:hover { transform: none; }
 }
+
+/* ===== AMÉLIORATIONS QUALITÉ — v2 ===== */
+
+/* Pions : transition fluide quand les pions apparaissent / disparaissent */
+.pions-container { transition: opacity 0.15s ease; }
+
+/* Cellule active : animation pulsante subtile pour le joueur courant */
+@keyframes activeCell {
+  0%, 100% { box-shadow: 0 0 0 2px var(--gold), 0 0 14px rgba(212,168,83,0.55); }
+  50%       { box-shadow: 0 0 0 2px var(--gold-light), 0 0 22px rgba(212,168,83,0.75); }
+}
+.board-cell.active-cell {
+  animation: activeCell 1.8s ease-in-out infinite;
+}
+
+/* Cellule d'atterrissage du pion : éclat plus marqué */
+@keyframes pawnLand {
+  0%   { box-shadow: inset 0 0 0 2px var(--gold-light), 0 0 28px rgba(212,168,83,0.7); }
+  100% { box-shadow: inset 0 0 0 2px var(--gold-light), 0 0 18px rgba(212,168,83,0.45); }
+}
+.board-cell.pawn-landing-cell {
+  animation: pawnLand 0.4s ease-out forwards;
+}
+
+/* Timer d'enchères : affiché en gras doré */
+.auction-countdown {
+  font-weight: 700;
+  color: var(--gold-light);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.05em;
+}
+
+/* Zone d'action : meilleur espacement vertical entre sections */
+#action-area > p.action-desc { margin-bottom: 0.5rem; }
+#action-area .action-buttons { gap: 0.6rem; margin-top: 0.75rem; }
+
+/* Bouton "Lancer les dés" : taille minimum tactile */
+#btn-roll { min-height: 48px; font-size: 1rem; letter-spacing: 0.02em; }
+
+/* Log de jeu : meilleure lisibilité des entrées récentes */
+.log-entry { padding: 0.22rem 0.5rem; border-radius: 4px; line-height: 1.45; }
+.log-entry:first-child { background: rgba(212,168,83,0.08); font-weight: 600; }
+
+/* Panneau de débarquement : icône ressource plus visible */
+.landing-resource { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.01em; }
+
+/* Card royalty-due : fond d'urgence légèrement teinté */
+#action-area:has(#btn-pay-royalties) {
+  background: rgba(231, 76, 60, 0.05);
+  border-radius: var(--radius);
+  padding: 0.5rem;
+}
+
+/* Transitions de phase (action-desc) */
+.action-desc { animation: fadeSlideIn 0.2s ease-out; }
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Profil : tag de titre honorifique mieux espacé */
+.honor-title-badge { letter-spacing: 0.03em; }
+
+/* Joueur courant dans le panneau lateral : indicateur de tour plus visible */
+.player-card.current {
+  background: linear-gradient(135deg, rgba(201,160,74,0.12), rgba(201,160,74,0.04));
+  border-color: rgba(201,160,74,0.45);
+}
+
+/* Badge royalty reçue : animation attention */
+.board-cell.royalty-receive {
+  animation: royaltyReceive 1.2s ease-in-out 2;
+}
+@keyframes royaltyReceive {
+  0%, 100% { box-shadow: inset 0 -3px 0 rgba(46,204,113,0.9); }
+  50%       { box-shadow: inset 0 -3px 0 rgba(46,204,113,0.9), 0 0 12px rgba(46,204,113,0.4); }
+}
+
+/* Overlay de victoire : titre plus impactant */
+#winner-overlay .win-emoji { font-size: clamp(2.5rem, 6vw, 4rem); }
+
+/* Améliore le focus clavier sur toutes les cellules joueurs */
+.player-card-clickable:focus-visible {
+  outline: 2px solid var(--gold-light);
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}

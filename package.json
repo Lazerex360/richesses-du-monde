@@ -14,7 +14,8 @@
     "dist:portable": "electron-builder --win portable"
   },
   "dependencies": {
-    "localtunnel": "^2.0.2"
+    "localtunnel": "^2.0.2",
+    "three": "^0.184.0"
   },
   "devDependencies": {
     "electron": "^33.2.1",

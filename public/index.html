@@ -674,6 +674,11 @@
             <input type="checkbox" id="set-reduce-motion">
           </div>
           <div class="setting-row toggle">
+            <label for="set-cinematic-mode" data-i18n="settings.cinematic_mode">Mode cinématique 3D</label>
+            <input type="checkbox" id="set-cinematic-mode">
+          </div>
+          <p class="setting-hint" data-i18n="settings.cinematic_hint">Fond WebGL, dés 3D et effets visuels. Désactivé par défaut sur mobile.</p>
+          <div class="setting-row toggle">
             <label for="set-high-contrast" data-i18n="settings.high_contrast">Contraste élevé</label>
             <input type="checkbox" id="set-high-contrast">
           </div>
@@ -718,6 +723,7 @@
   <script src="/js/dice3d.js"></script>
   <script type="module" src="/js/ambient3d.js"></script>
   <script type="module" src="/js/dice-webgl.js"></script>
+  <script type="module" src="/js/board-globe-three.js"></script>
   <script type="module" src="/js/fx-confetti.js"></script>
   <script src="/js/client.js"></script>
 </body>

@@ -139,7 +139,7 @@ class RdmAmbient3D {
     });
 
     this.ready = true;
-    this.setMode('auth');
+    window.syncAmbientScreen?.();
   }
 
   resize() {

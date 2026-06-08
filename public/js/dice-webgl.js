@@ -15,10 +15,35 @@ const PIP_POS = {
   6: [[0.28, 0.28], [0.28, 0.5], [0.28, 0.72], [0.72, 0.28], [0.72, 0.5], [0.72, 0.72]],
 };
 
-const instances = new WeakMap();
+const instances = new Map();
 const failed = new WeakSet();
 const active = new Set();
 let raf = 0;
+let webglEnabled = true;
+
+function canUseWebgl() {
+  return webglEnabled && window.RdmCinematic?.isActive?.() !== false;
+}
+
+function disposeAll() {
+  instances.forEach((inst) => {
+    inst.renderer?.dispose();
+    inst.sceneEl?.classList.remove('dice-scene--webgl');
+    inst.sceneEl?.querySelector('.dice-webgl-canvas')?.remove();
+    if (inst.cubeEl) inst.cubeEl.style.visibility = '';
+  });
+  instances.clear();
+  active.clear();
+  if (raf) cancelAnimationFrame(raf);
+  raf = 0;
+}
+
+window.RdmDiceWebgl = {
+  setEnabled(on) {
+    webglEnabled = !!on;
+    if (!on) disposeAll();
+  },
+};
 
 function pipTexture(val, bg, pip) {
   const c = document.createElement('canvas');
@@ -202,7 +227,7 @@ function createInstance(cubeEl) {
 }
 
 function getInst(cubeEl) {
-  if (!isGameDie(cubeEl) || failed.has(cubeEl)) return null;
+  if (!canUseWebgl() || !isGameDie(cubeEl) || failed.has(cubeEl)) return null;
   return instances.get(cubeEl) || createInstance(cubeEl);
 }
 

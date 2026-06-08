@@ -2,13 +2,13 @@
   position: fixed; inset: 0; width: 100%; height: 100%;
   z-index: 0; pointer-events: none; opacity: 0; transition: opacity 1s ease;
 }
-body.rdm-ambient-on #app { position: relative; z-index: 1; }
-body.rdm-ambient-on .auth-bg::before,
-body.rdm-ambient-on .auth-bg::after { opacity: 0.3; }
+body.rdm-cinematic-on #app { position: relative; z-index: 1; }
+body.rdm-cinematic-on .auth-bg::before,
+body.rdm-cinematic-on .auth-bg::after { opacity: 0.3; }
 
-body.rdm-ambient-on .auth-card,
-body.rdm-ambient-on .panel,
-body.rdm-ambient-on .game-quick-bar-inner {
+body.rdm-cinematic-on .auth-card,
+body.rdm-cinematic-on .panel,
+body.rdm-cinematic-on .game-quick-bar-inner {
   background: linear-gradient(155deg, rgba(18,32,58,0.82), rgba(10,18,34,0.78));
   backdrop-filter: blur(12px);
   border-color: rgba(201,160,74,0.28);
@@ -17,7 +17,7 @@ body.rdm-ambient-on .game-quick-bar-inner {
 
 .board-cinematic-wrap { perspective: 1400px; perspective-origin: 50% 42%; }
 .board-cinematic-wrap .board-zoom-stage { transform-style: preserve-3d; }
-body.rdm-ambient-on .board-cinematic-wrap .board-zoom-stage {
+body.rdm-cinematic-on .board-cinematic-wrap .board-zoom-stage {
   transform: scale(var(--board-zoom)) rotateX(7deg);
 }
 body.reduce-motion.rdm-ambient-on .board-cinematic-wrap .board-zoom-stage {
@@ -37,6 +37,7 @@ body.reduce-motion .board-cinematic-wrap .board-frame { animation: none; }
   width: clamp(2.5rem, calc(var(--cell-w) * 0.85), 3.5rem);
   height: clamp(2.5rem, calc(var(--cell-w) * 0.85), 3.5rem);
   margin: 0 auto 0.2rem; border-radius: 50%; position: relative;
+  transition: opacity 0.35s ease;
   background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.3), transparent 40%),
     radial-gradient(circle at 70% 70%, rgba(27,67,50,0.9), rgba(7,17,31,0.95));
   box-shadow: 0 0 22px rgba(201,160,74,0.35), 0 8px 18px rgba(0,0,0,0.4);
@@ -46,25 +47,40 @@ body.reduce-motion .board-cinematic-wrap .board-frame { animation: none; }
   from { transform: rotateY(0deg) rotateX(10deg); }
   to { transform: rotateY(360deg) rotateX(10deg); }
 }
+.board-globe-3d.has-webgl-globe {
+  background: transparent !important;
+  animation: none;
+  box-shadow: none;
+}
+.board-globe-canvas {
+  position: absolute; inset: 0; width: 100% !important; height: 100% !important;
+  border-radius: 50%;
+  filter: drop-shadow(0 0 14px rgba(201, 160, 74, 0.4));
+}
 
-body.rdm-ambient-on .board-cell { transition: transform 0.35s var(--ease-out), box-shadow 0.35s ease; }
-body.rdm-ambient-on .board-cell.active-cell {
+.setting-hint {
+  font-size: 0.78rem; color: var(--text-muted); margin: -0.25rem 0 0.5rem;
+  line-height: 1.4; padding-left: 0.15rem;
+}
+
+body.rdm-cinematic-on .board-cell { transition: transform 0.35s var(--ease-out), box-shadow 0.35s ease; }
+body.rdm-cinematic-on .board-cell.active-cell {
   transform: translateZ(8px) scale(1.03);
   box-shadow: 0 8px 20px rgba(0,0,0,0.4), 0 0 18px rgba(201,160,74,0.18);
   border-color: rgba(201,160,74,0.5);
 }
-body.rdm-ambient-on .board-cell.pawn-landing-cell {
+body.rdm-cinematic-on .board-cell.pawn-landing-cell {
   animation: cellLand 0.6s var(--ease-out);
 }
 @keyframes cellLand {
   0% { transform: translateZ(16px) scale(1.05); box-shadow: 0 0 24px rgba(61,214,140,0.4); }
   100% { transform: translateZ(8px) scale(1.03); }
 }
-body.rdm-ambient-on .pion-emoji {
+body.rdm-cinematic-on .pion-emoji {
   display: inline-block;
   filter: drop-shadow(0 3px 4px rgba(0,0,0,0.65));
 }
-body.rdm-ambient-on .board-cell.active-cell .pion-emoji {
+body.rdm-cinematic-on .board-cell.active-cell .pion-emoji {
   animation: pawnBob 1.6s ease-in-out infinite;
 }
 @keyframes pawnBob {
@@ -83,38 +99,38 @@ body.rdm-ambient-on .board-cell.active-cell .pion-emoji {
   height: clamp(40px, calc(var(--cell-w) * 0.56), 50px) !important;
 }
 
-body.rdm-ambient-on .game-header {
+body.rdm-cinematic-on .game-header {
   background: rgba(12,22,40,0.75);
   backdrop-filter: blur(10px);
 }
-body.rdm-ambient-on .board-track-outer {
+body.rdm-cinematic-on .board-track-outer {
   box-shadow: 0 0 30px rgba(212,168,83,0.2), inset 0 0 32px rgba(212,168,83,0.06);
 }
 
 /* Vignette cinématique */
-body.rdm-ambient-on::after {
+body.rdm-cinematic-on::after {
   content: '';
   position: fixed; inset: 0; pointer-events: none; z-index: 2;
   background: radial-gradient(ellipse 85% 75% at 50% 45%, transparent 45%, rgba(0, 6, 16, 0.55) 100%);
 }
 
 /* Hub & auth */
-body.rdm-ambient-on .hub-hero,
-body.rdm-ambient-on .auth-box {
+body.rdm-cinematic-on .hub-hero,
+body.rdm-cinematic-on .auth-box {
   animation: heroFadeIn 1s var(--ease-out) both;
 }
 @keyframes heroFadeIn {
   from { opacity: 0; transform: translateY(18px); }
   to { opacity: 1; transform: none; }
 }
-body.rdm-ambient-on .hub-tab-btn.active {
+body.rdm-cinematic-on .hub-tab-btn.active {
   box-shadow: 0 0 18px rgba(201, 160, 74, 0.25);
 }
-body.rdm-ambient-on .btn-primary {
+body.rdm-cinematic-on .btn-primary {
   position: relative;
   overflow: hidden;
 }
-body.rdm-ambient-on .btn-primary::after {
+body.rdm-cinematic-on .btn-primary::after {
   content: '';
   position: absolute; inset: 0;
   background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.22) 50%, transparent 65%);
@@ -128,7 +144,7 @@ body.rdm-ambient-on .btn-primary::after {
 body.reduce-motion.rdm-ambient-on .btn-primary::after { display: none; }
 
 /* Plateau — zoom 3D via variable CSS (pas inline) */
-body.rdm-ambient-on .board-cinematic-wrap .board-zoom-stage {
+body.rdm-cinematic-on .board-cinematic-wrap .board-zoom-stage {
   transform: scale(var(--board-zoom)) rotateX(7deg) rotateZ(-0.35deg);
 }
 .board-cinematic-wrap.board-dice-shake .board-frame {
@@ -141,10 +157,10 @@ body.rdm-ambient-on .board-cinematic-wrap .board-zoom-stage {
   60% { transform: translateY(-2px); }
 }
 
-body.rdm-ambient-on .board-cell.loop-outer.type-country {
+body.rdm-cinematic-on .board-cell.loop-outer.type-country {
   box-shadow: inset 0 0 0 1px rgba(201, 160, 74, 0.08);
 }
-body.rdm-ambient-on .board-cell.path-trail {
+body.rdm-cinematic-on .board-cell.path-trail {
   background-image: linear-gradient(135deg, rgba(77, 181, 255, 0.12), transparent 60%);
   animation: trailPulse 1.2s ease-in-out infinite;
 }
@@ -152,7 +168,7 @@ body.rdm-ambient-on .board-cell.path-trail {
   0%, 100% { filter: brightness(1); }
   50% { filter: brightness(1.15); }
 }
-body.rdm-ambient-on .board-cell.path-trail-current {
+body.rdm-cinematic-on .board-cell.path-trail-current {
   box-shadow: 0 0 20px rgba(77, 181, 255, 0.35), inset 0 0 14px rgba(77, 181, 255, 0.15);
   border-color: rgba(77, 181, 255, 0.55);
 }
@@ -180,28 +196,28 @@ body.rdm-ambient-on .board-cell.path-trail-current {
 }
 
 /* Joueurs & cartes */
-body.rdm-ambient-on .player-card {
+body.rdm-cinematic-on .player-card {
   transition: transform 0.3s var(--ease-out), box-shadow 0.3s ease, border-color 0.3s ease;
   transform-style: preserve-3d;
 }
-body.rdm-ambient-on .player-card.current {
+body.rdm-cinematic-on .player-card.current {
   transform: translateZ(4px) scale(1.02);
   box-shadow: 0 6px 20px rgba(61, 214, 140, 0.15);
   border-color: rgba(61, 214, 140, 0.4);
 }
-body.rdm-ambient-on .player-card-clickable:hover {
+body.rdm-cinematic-on .player-card-clickable:hover {
   transform: translateY(-2px) translateZ(6px);
 }
-body.rdm-ambient-on .title-card {
+body.rdm-cinematic-on .title-card {
   transition: transform 0.3s var(--ease-out), box-shadow 0.3s ease;
 }
-body.rdm-ambient-on .title-card-select:hover .title-card {
+body.rdm-cinematic-on .title-card-select:hover .title-card {
   transform: translateY(-3px) rotateX(3deg);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
 }
 
 /* Overlays */
-body.rdm-ambient-on .winner-card {
+body.rdm-cinematic-on .winner-card {
   animation: winnerPop 0.9s var(--ease-out);
   border-color: rgba(201, 160, 74, 0.5);
   box-shadow: 0 0 80px rgba(201, 160, 74, 0.3), 0 24px 60px rgba(0, 0, 0, 0.5);
@@ -211,22 +227,22 @@ body.rdm-ambient-on .winner-card {
   60% { transform: scale(1.03) translateY(-4px); }
   100% { opacity: 1; transform: none; }
 }
-body.rdm-ambient-on .news-card-scene {
+body.rdm-cinematic-on .news-card-scene {
   perspective: 1200px;
 }
-body.rdm-ambient-on .news-card-flipper.flipped {
+body.rdm-cinematic-on .news-card-flipper.flipped {
   filter: drop-shadow(0 16px 40px rgba(0, 0, 0, 0.5));
 }
-body.rdm-ambient-on .landing-card {
+body.rdm-cinematic-on .landing-card {
   box-shadow: 0 0 40px rgba(201, 160, 74, 0.12), var(--shadow);
   border-color: rgba(201, 160, 74, 0.35);
 }
-body.rdm-ambient-on .overlay:not(.hidden) > .card {
+body.rdm-cinematic-on .overlay:not(.hidden) > .card {
   backdrop-filter: blur(10px);
 }
 
 /* Pièce 3D */
-body.rdm-ambient-on .rdm-coin {
+body.rdm-cinematic-on .rdm-coin {
   animation: coinSpin 6s linear infinite;
   transform-style: preserve-3d;
 }
@@ -251,13 +267,27 @@ body.reduce-motion.rdm-ambient-on .rdm-coin { animation: none; }
 }
 
 /* Mon tour — pulse action */
-body.rdm-ambient-on .action-area-quick .btn-primary:not(:disabled) {
+body.rdm-cinematic-on .action-area-quick .btn-primary:not(:disabled) {
   animation: actionPulse 2.2s ease-in-out infinite;
 }
 @keyframes actionPulse {
   0%, 100% { box-shadow: 0 6px 20px rgba(212, 168, 83, 0.3); }
   50% { box-shadow: 0 8px 32px rgba(212, 168, 83, 0.55); }
 }
-body.reduce-motion.rdm-ambient-on .action-area-quick .btn-primary:not(:disabled) {
+body.reduce-motion.rdm-cinematic-on .action-area-quick .btn-primary:not(:disabled) {
   animation: none;
+}
+
+/* Overlays — risque moyen (CSS) */
+body.rdm-cinematic-on .social-card,
+body.rdm-cinematic-on .trade-card,
+body.rdm-cinematic-on .resources-card,
+body.rdm-cinematic-on .rules-card {
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(201, 160, 74, 0.08);
+}
+body.rdm-cinematic-on .news-card-flipper {
+  transition: transform 0.85s cubic-bezier(0.34, 1.2, 0.48, 1);
+}
+body.rdm-cinematic-on .tutorial-card {
+  box-shadow: 0 0 40px rgba(77, 181, 255, 0.12), var(--shadow);
 }

@@ -14,13 +14,12 @@ function showScreen(id) {
   $(`#${id}`).classList.add('active');
   updateDocumentTitle();
   applyLanguage();
-  if (window.RdmAmbient3D) {
-    const mode = id === 'screen-auth' || id === 'screen-pseudo' ? 'auth'
-      : id === 'screen-hub' ? 'hub'
-      : id === 'screen-lobby' ? 'lobby'
-      : id === 'screen-game' ? 'game'
-      : 'off';
-    window.RdmAmbient3D.setMode(mode);
+  if (isCinematicActive()) {
+    window.RdmAmbient3D?.setMode?.(getAmbientModeForScreen(id));
+    if (id === 'screen-game') window.RdmBoardGlobe?.setEnabled?.(true);
+  } else {
+    window.RdmAmbient3D?.setMode?.('off');
+    window.RdmBoardGlobe?.setEnabled?.(false);
   }
 }
 
@@ -71,19 +70,62 @@ function toast(msg, type = '') {
 
 // ===================== Paramètres (son / affichage) =====================
 const SETTINGS_KEY = 'rdm_settings';
-const DEFAULT_SETTINGS = { volume: 50, sfx: true, textSize: 100, reduceMotion: false, highContrast: false, lang: 'fr' };
+function detectDefaultCinematic() {
+  if (typeof window === 'undefined') return true;
+  const mobile = window.matchMedia('(max-width: 767px), (pointer: coarse)').matches;
+  const lowPower = (navigator.hardwareConcurrency || 4) < 4;
+  return !mobile && !lowPower;
+}
+
+const DEFAULT_SETTINGS = {
+  volume: 50, sfx: true, textSize: 100, reduceMotion: false, highContrast: false,
+  cinematicMode: detectDefaultCinematic(), lang: 'fr',
+};
 let settings = loadSettings();
 
 function loadSettings() {
-  try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }; }
-  catch (_) { return { ...DEFAULT_SETTINGS }; }
+  try {
+    const s = { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') };
+    if (s.cinematicMode === undefined) s.cinematicMode = detectDefaultCinematic();
+    return s;
+  } catch (_) { return { ...DEFAULT_SETTINGS }; }
 }
+
+function isCinematicActive() {
+  return !!settings.cinematicMode && !settings.reduceMotion;
+}
+
+window.RdmCinematic = { isActive: isCinematicActive };
+
+function getAmbientModeForScreen(id) {
+  if (id === 'screen-auth' || id === 'screen-pseudo') return 'auth';
+  if (id === 'screen-hub') return 'hub';
+  if (id === 'screen-lobby') return 'lobby';
+  if (id === 'screen-game') return 'game';
+  return 'off';
+}
+
+function syncAmbientScreen() {
+  if (!isCinematicActive()) {
+    window.RdmAmbient3D?.setMode?.('off');
+    return;
+  }
+  const active = document.querySelector('.screen.active');
+  window.RdmAmbient3D?.setMode?.(getAmbientModeForScreen(active?.id || ''));
+}
+window.syncAmbientScreen = syncAmbientScreen;
+
 function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
+
 function applySettings() {
   document.documentElement.style.setProperty('--font-scale', settings.textSize / 100);
   document.body.classList.toggle('reduce-motion', settings.reduceMotion);
   document.body.classList.toggle('high-contrast', settings.highContrast);
+  document.body.classList.toggle('rdm-cinematic-on', isCinematicActive());
   window.RdmAmbient3D?.setReduceMotion?.(settings.reduceMotion);
+  window.RdmDiceWebgl?.setEnabled?.(isCinematicActive());
+  window.RdmBoardGlobe?.setEnabled?.(isCinematicActive());
+  syncAmbientScreen();
   applyBoardZoom();
 }
 
@@ -178,6 +220,7 @@ function renderSettingsUI() {
   $('#set-textsize').value = settings.textSize;
   $('#set-textsize-val').textContent = `${settings.textSize}%`;
   $('#set-reduce-motion').checked = settings.reduceMotion;
+  $('#set-cinematic-mode').checked = settings.cinematicMode;
   $('#set-high-contrast').checked = settings.highContrast;
 }
 function openSettings() { renderSettingsUI(); show($('#settings-overlay')); }
@@ -312,6 +355,12 @@ $('#set-textsize').addEventListener('input', (e) => {
   saveSettings();
 });
 $('#set-reduce-motion').addEventListener('change', (e) => { settings.reduceMotion = e.target.checked; applySettings(); saveSettings(); });
+$('#set-cinematic-mode').addEventListener('change', (e) => {
+  settings.cinematicMode = e.target.checked;
+  applySettings();
+  saveSettings();
+  if (settings.cinematicMode) toast(t('settings.cinematic_on'), 'success');
+});
 $('#set-high-contrast').addEventListener('change', (e) => { settings.highContrast = e.target.checked; applySettings(); saveSettings(); });
 $('#settings-reset').addEventListener('click', () => {
   settings = { ...DEFAULT_SETTINGS };
@@ -663,8 +712,7 @@ function applyBoardZoom() {
   const frame = stage?.querySelector('.board-frame');
   if (stage) {
     stage.style.setProperty('--board-zoom', String(boardZoom));
-    const cinematic = document.body.classList.contains('rdm-ambient-on')
-      && !document.body.classList.contains('reduce-motion');
+    const cinematic = isCinematicActive();
     stage.style.transform = cinematic ? '' : `scale(${boardZoom})`;
     if (frame) {
       const h = frame.offsetHeight;
@@ -2976,6 +3024,7 @@ function finishDiceRoll() {
 }
 
 function triggerDiceFx() {
+  if (!isCinematicActive()) return;
   window.RdmAmbient3D?.pulse?.();
   const wrap = document.querySelector('.board-cinematic-wrap');
   if (wrap && !settings.reduceMotion) {
@@ -3240,8 +3289,10 @@ function renderGame(state) {
     show($('#winner-overlay'));
     if (wasHidden) {
       sfx('win');
-      window.RdmAmbient3D?.celebrate?.();
-      window.RdmFx?.confetti?.();
+      if (isCinematicActive()) {
+        window.RdmAmbient3D?.celebrate?.();
+        window.RdmFx?.confetti?.();
+      }
     }
     const iWon = state.winningTeam ? state.winningTeam.includes(myGameId) : state.winner.id === myGameId;
     $('#winner-text').textContent = iWon

@@ -68,6 +68,7 @@ function toast(msg, type = '') {
   toastTimer = setTimeout(() => hide(el), 3200);
 }
 
+let boardZoom = 1; // déclaré tôt pour éviter TDZ dans applySettings()
 // ===================== Paramètres (son / affichage) =====================
 const SETTINGS_KEY = 'rdm_settings';
 function detectDefaultCinematic() {
@@ -697,7 +698,7 @@ async function enterHub() {
 const BOARD_ZOOM_KEY = 'rdm_board_zoom';
 const BOARD_ZOOM_MIN = 0.65;
 const BOARD_ZOOM_MAX = 1.55;
-let boardZoom = 1;
+boardZoom = 1; // (déclaration déplacée en haut du fichier)
 let boardPinchStart = null;
 
 function touchPinchDistance(touches) {

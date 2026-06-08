@@ -2188,7 +2188,7 @@ function renderPlayersPanel(state) {
   $('#players-panel').innerHTML = state.players
     .map(
       (p) => `
-    <div class="player-card player-card-clickable ${p.id === current?.id ? 'current' : ''} ${p.bankrupt ? 'bankrupt' : ''}" data-player-id="${p.id}" title="${t('game.player_titles_hint')}" role="button" tabindex="0">
+    <div class="player-card player-card-clickable ${p.id === current?.id ? 'current' : ''} ${p.id === current?.id && p.id === myGameId ? 'is-me' : ''} ${p.bankrupt ? 'bankrupt' : ''}" data-player-id="${p.id}" title="${t('game.player_titles_hint')}" role="button" tabindex="0">
       <span class="pc-pawn">${pawnEmojiMap[p.pawn] || '🔘'}</span>
       <span class="player-card-name">${escapeHtml(p.name)}${honorTitleBadge(p.honorTitle)}${p.id === myGameId ? ' ★' : ''}${p.isBot ? ' 🤖' : ''}${teamBadge(state, p)}</span>
       <span class="player-money">${formatMoney(p.money)}</span>
@@ -2199,7 +2199,16 @@ function renderPlayersPanel(state) {
 }
 
 function renderLog(state) {
-  $('#game-log').innerHTML = (state.log || []).map((e) => `<div class="log-entry">${escapeHtml(e.message)}</div>`).join('');
+  $('#game-log').innerHTML = (state.log || []).map((e) => {
+    const msg = e.message || '';
+    let cls = 'log-entry';
+    if (e.type === 'roll' || /dé|dice|lancé/i.test(msg)) cls += ' log-roll';
+    else if (e.type === 'buy' || /achet|acqui|acheté/i.test(msg)) cls += ' log-buy';
+    else if (e.type === 'pay' || /pay|royal|verse/i.test(msg)) cls += ' log-pay';
+    else if (e.type === 'earn' || /reço|gagn|touche/i.test(msg)) cls += ' log-earn';
+    else if (e.type === 'event' || /actualité|événem|news/i.test(msg)) cls += ' log-event';
+    return `<div class="${cls}">${escapeHtml(msg)}</div>`;
+  }).join('');
 }
 
 function groupTitlesByResource(titles) {

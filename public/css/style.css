@@ -2898,3 +2898,347 @@ body.high-contrast .board-cell.path-trail { background: rgba(255, 220, 120, 0.2)
   outline-offset: 2px;
   border-radius: var(--radius);
 }
+
+/* ===== AMÉLIORATIONS QUALITÉ — v3 ===== */
+
+/* ── 1. TRANSITIONS D'ÉCRANS ──────────────────────────────── */
+/* Fade-in fluide à chaque changement d'écran */
+@keyframes screenEnter {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.screen.active {
+  animation: screenEnter 0.28s var(--ease-out, cubic-bezier(0.16,1,0.3,1));
+}
+body.reduce-motion .screen.active { animation: none; }
+
+/* ── 2. SCROLLBARS PERSONNALISÉES ─────────────────────────── */
+:root {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(201,160,74,0.35) transparent;
+}
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(201,160,74,0.3);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(201,160,74,0.55); }
+
+/* ── 3. HUB — INDICATEUR D'ONGLET ANIMÉ ──────────────────── */
+.hub-nav {
+  position: relative;
+}
+.hub-nav .nav-tab {
+  position: relative;
+  overflow: hidden;
+}
+.hub-nav .nav-tab::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 50%; right: 50%;
+  height: 2px;
+  background: var(--gold-light);
+  transition: left 0.22s var(--ease-out, ease), right 0.22s var(--ease-out, ease);
+  border-radius: 2px 2px 0 0;
+}
+.hub-nav .nav-tab.active::after {
+  left: 12%; right: 12%;
+}
+.hub-nav .nav-tab:focus-visible {
+  outline: 2px solid var(--gold-light);
+  outline-offset: -3px;
+}
+
+/* ── 4. AUTH — BOÎTE AMÉLIORÉE ───────────────────────────── */
+.auth-box {
+  animation: screenEnter 0.35s var(--ease-out, ease);
+}
+.auth-card {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.auth-features {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  margin-top: 2rem;
+}
+.auth-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  padding: 0.85rem 1rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: var(--radius, 12px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+.auth-feature:hover {
+  background: rgba(201,160,74,0.06);
+  border-color: rgba(201,160,74,0.2);
+}
+.auth-feature-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 8px rgba(201,160,74,0.3));
+}
+.auth-feature strong {
+  display: block;
+  font-size: 0.92rem;
+  color: var(--text, #edf2f9);
+  margin-bottom: 0.2rem;
+}
+.auth-feature p {
+  font-size: 0.82rem;
+  color: var(--text-muted, #8fa4c4);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ── 5. PANNEAUX LATÉRAUX — GLASSMORPHISM RENFORCÉ ──────── */
+.panel {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: border-color 0.2s ease;
+}
+.panel:hover {
+  border-color: rgba(201,160,74,0.18);
+}
+.panel h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* ── 6. GAME QUICK BAR — PLUS VISIBLE ────────────────────── */
+.game-quick-bar {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(201,160,74,0.22);
+  box-shadow: 0 -4px 24px rgba(0,0,8,0.45);
+}
+.game-quick-bar-inner {
+  position: relative;
+}
+.game-quick-bar-title {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--gold, #c9a04a);
+  margin-bottom: 0.55rem;
+  opacity: 0.85;
+}
+
+/* ── 7. PLAYER CARDS — MEILLEUR ÉTAT COURANT ──────────────── */
+.player-card {
+  transition:
+    background 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    transform 0.18s var(--ease-snap, ease);
+  cursor: default;
+}
+.player-card-clickable {
+  cursor: pointer;
+}
+.player-card-clickable:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+.player-card.current {
+  box-shadow:
+    0 0 0 1px rgba(201,160,74,0.45),
+    0 4px 16px rgba(201,160,74,0.15);
+}
+/* Indicateur "c'est mon tour" — pulsation de la bordure */
+@keyframes myTurnPulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(61,214,140,0.5), 0 4px 16px rgba(61,214,140,0.15); }
+  50%       { box-shadow: 0 0 0 3px rgba(61,214,140,0.75), 0 6px 22px rgba(61,214,140,0.25); }
+}
+.player-card.current.is-me {
+  animation: myTurnPulse 2.2s ease-in-out infinite;
+  border-color: rgba(61,214,140,0.5);
+  background: linear-gradient(135deg, rgba(61,214,140,0.08), rgba(201,160,74,0.04));
+}
+body.reduce-motion .player-card.current.is-me { animation: none; }
+
+/* ── 8. LOG DE JEU — MEILLEURE LISIBILITÉ ────────────────── */
+.game-log {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.log-entry {
+  border-radius: 5px;
+  transition: background 0.15s ease;
+}
+.log-entry:hover { background: rgba(255,255,255,0.04); }
+
+/* Entrées selon type */
+.log-entry.log-roll   { border-left: 2px solid rgba(77,181,255,0.45); }
+.log-entry.log-buy    { border-left: 2px solid rgba(201,160,74,0.5); }
+.log-entry.log-pay    { border-left: 2px solid rgba(231,76,60,0.45); }
+.log-entry.log-earn   { border-left: 2px solid rgba(61,214,140,0.5); }
+.log-entry.log-event  { border-left: 2px solid rgba(167,139,250,0.45); }
+
+/* ── 9. OVERLAY VICTOIRE — ANIMATION IMPACTANTE ───────────── */
+@keyframes winnerEntrance {
+  0%   { opacity: 0; transform: scale(0.88) translateY(20px); }
+  60%  { transform: scale(1.03) translateY(-4px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.winner-card {
+  animation: winnerEntrance 0.55s var(--ease-out, ease) both;
+}
+.winner-card h2 {
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  background: linear-gradient(135deg, var(--gold-light, #e8c878), var(--gold, #c9a04a));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.5rem;
+}
+
+/* ── 10. NEWS OVERLAY — CARTE ACTUALITÉ ───────────────────── */
+@keyframes newsCardEnter {
+  from { opacity: 0; transform: scale(0.92) translateY(16px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.news-overlay .news-card {
+  animation: newsCardEnter 0.3s var(--ease-out, ease);
+}
+
+/* ── 11. GAME HEADER — PLUS STRUCTURÉ ────────────────────── */
+.game-header {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(201,160,74,0.15);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+}
+.game-header h1 {
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  background: linear-gradient(90deg, var(--gold-light, #e8c878), var(--gold, #c9a04a) 70%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── 12. BOARD CENTER — TITRE PLUS LISIBLE ────────────────── */
+.board-center-title {
+  font-size: clamp(0.85rem, 1.6vw, 1.1rem);
+  letter-spacing: 0.02em;
+  color: var(--gold-light, #e8c878);
+  text-shadow: 0 2px 12px rgba(201,160,74,0.45);
+}
+.board-center-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted, #8fa4c4);
+  line-height: 1.5;
+}
+.btn-board-resources {
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.15s var(--ease-snap, ease);
+}
+.btn-board-resources:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(201,160,74,0.25);
+}
+
+/* ── 13. XP BAR — ANIMATION DE REMPLISSAGE ───────────────── */
+.xp-bar { border-radius: 999px; overflow: hidden; }
+.xp-fill {
+  transition: width 0.6s var(--ease-out, ease);
+  border-radius: 999px;
+}
+
+/* ── 14. BONUS : skeleton loader pour parties publiques ────── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.04) 25%,
+    rgba(255,255,255,0.09) 50%,
+    rgba(255,255,255,0.04) 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.6s infinite linear;
+  border-radius: 6px;
+  height: 1rem;
+}
+body.reduce-motion .skeleton { animation: none; }
+
+/* ── 15. LOBBY — MEILLEURE HIÉRARCHIE ────────────────────── */
+.lobby-header h2 {
+  font-size: clamp(1.2rem, 3vw, 1.6rem);
+}
+.player-list li {
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.player-list li:hover {
+  background: rgba(201,160,74,0.06);
+  transform: translateX(2px);
+}
+
+/* ── 16. RESPONSIVE — GAME SCREEN MOBILE ─────────────────── */
+@media (max-width: 600px) {
+  .game-panels {
+    grid-template-columns: 1fr;
+  }
+  .sidebar.right {
+    display: none; /* Masqué sur mobile — accessible via menu */
+  }
+  .game-header h1 {
+    font-size: 0.82rem;
+  }
+  .game-header-right .btn-mini {
+    padding: 0.28rem 0.5rem;
+    font-size: 0.66rem;
+  }
+  .panel {
+    padding: 0.75rem;
+  }
+}
+
+/* ── 17. AMÉLIORATION GLOBALE DES OVERLAYS ────────────────── */
+.overlay {
+  transition: opacity 0.22s ease;
+}
+.overlay:not(.hidden) {
+  animation: screenEnter 0.25s var(--ease-out, ease);
+}
+
+/* ── 18. CURSEURS CLIQUABLES ──────────────────────────────── */
+.nav-tab,
+.shop-cat,
+.hub-menu-item,
+.play-hero,
+.game-item {
+  cursor: pointer;
+}
+
+/* ── 19. TOPBAR — EFFET STICKY SUBTIL ────────────────────── */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+}
+
+/* ── 20. COIN ANIMATION — PIÈCE QUI TOURNE ───────────────── */
+.rdm-coin {
+  transition: transform 0.3s ease;
+}
+.rdm-coin-wrap:hover .rdm-coin {
+  transform: rotateY(180deg);
+}

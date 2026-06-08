@@ -12,6 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/cinematic.css">
 </head>
 <body>
   <div id="app">
@@ -395,7 +396,7 @@
 
       <div class="game-board-zone">
         <main class="board-area">
-          <div class="board-wrapper">
+            <div class="board-wrapper board-cinematic-wrap">
             <div id="board-zoom-viewport" class="board-zoom-viewport">
               <div id="board-zoom-stage" class="board-zoom-stage">
                 <div class="board-frame">
@@ -405,6 +406,7 @@
                     <div class="board-center">
                       <div id="board-center-status" class="board-center-status" aria-live="polite"></div>
                       <div class="board-center-main">
+                        <div class="board-globe-3d" aria-hidden="true"></div>
                         <div class="board-center-title" data-i18n="game.board_title">🌍 Richesses du Monde</div>
                         <p class="board-center-hint" data-i18n="board.hint">Consultez « Voir toutes les richesses » pour les prix et royalties.</p>
                         <p class="board-loop-legend">
@@ -714,6 +716,8 @@
   <script src="/js/i18n-ja.js"></script>
   <script src="/js/rules.js"></script>
   <script src="/js/dice3d.js"></script>
+  <script type="module" src="/js/ambient3d.js"></script>
+  <script type="module" src="/js/dice-webgl.js"></script>
   <script src="/js/client.js"></script>
 </body>
 </html>

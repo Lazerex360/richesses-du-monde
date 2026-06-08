@@ -1,0 +1,92 @@
+#rdm-ambient-canvas {
+  position: fixed; inset: 0; width: 100%; height: 100%;
+  z-index: 0; pointer-events: none; opacity: 0; transition: opacity 1s ease;
+}
+body.rdm-ambient-on #app { position: relative; z-index: 1; }
+body.rdm-ambient-on .auth-bg::before,
+body.rdm-ambient-on .auth-bg::after { opacity: 0.3; }
+
+body.rdm-ambient-on .auth-card,
+body.rdm-ambient-on .panel,
+body.rdm-ambient-on .game-quick-bar-inner {
+  background: linear-gradient(155deg, rgba(18,32,58,0.82), rgba(10,18,34,0.78));
+  backdrop-filter: blur(12px);
+  border-color: rgba(201,160,74,0.28);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+.board-cinematic-wrap { perspective: 1400px; perspective-origin: 50% 42%; }
+.board-cinematic-wrap .board-zoom-stage { transform-style: preserve-3d; }
+body.rdm-ambient-on .board-cinematic-wrap .board-zoom-stage {
+  transform: scale(var(--board-zoom)) rotateX(7deg);
+}
+body.reduce-motion.rdm-ambient-on .board-cinematic-wrap .board-zoom-stage {
+  transform: scale(var(--board-zoom));
+}
+.board-cinematic-wrap .board-frame {
+  animation: boardFloat 7s ease-in-out infinite;
+  box-shadow: 0 28px 70px rgba(0,0,0,0.55), 0 0 50px rgba(201,160,74,0.08);
+}
+@keyframes boardFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+body.reduce-motion .board-cinematic-wrap .board-frame { animation: none; }
+
+.board-globe-3d {
+  width: clamp(2.5rem, calc(var(--cell-w) * 0.85), 3.5rem);
+  height: clamp(2.5rem, calc(var(--cell-w) * 0.85), 3.5rem);
+  margin: 0 auto 0.2rem; border-radius: 50%; position: relative;
+  background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.3), transparent 40%),
+    radial-gradient(circle at 70% 70%, rgba(27,67,50,0.9), rgba(7,17,31,0.95));
+  box-shadow: 0 0 22px rgba(201,160,74,0.35), 0 8px 18px rgba(0,0,0,0.4);
+  animation: globeSpin 14s linear infinite;
+}
+@keyframes globeSpin {
+  from { transform: rotateY(0deg) rotateX(10deg); }
+  to { transform: rotateY(360deg) rotateX(10deg); }
+}
+
+body.rdm-ambient-on .board-cell { transition: transform 0.35s var(--ease-out), box-shadow 0.35s ease; }
+body.rdm-ambient-on .board-cell.active-cell {
+  transform: translateZ(8px) scale(1.03);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4), 0 0 18px rgba(201,160,74,0.18);
+  border-color: rgba(201,160,74,0.5);
+}
+body.rdm-ambient-on .board-cell.pawn-landing-cell {
+  animation: cellLand 0.6s var(--ease-out);
+}
+@keyframes cellLand {
+  0% { transform: translateZ(16px) scale(1.05); box-shadow: 0 0 24px rgba(61,214,140,0.4); }
+  100% { transform: translateZ(8px) scale(1.03); }
+}
+body.rdm-ambient-on .pion-emoji {
+  display: inline-block;
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.65));
+}
+body.rdm-ambient-on .board-cell.active-cell .pion-emoji {
+  animation: pawnBob 1.6s ease-in-out infinite;
+}
+@keyframes pawnBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.dice-scene--webgl { position: relative; overflow: visible !important; }
+.dice-scene--webgl .dice-cube { visibility: hidden; }
+.dice-scene--webgl .dice-webgl-canvas {
+  position: absolute; inset: 0; width: 100% !important; height: 100% !important;
+  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.5));
+}
+.board-center-dice .dice-scene--webgl {
+  width: clamp(40px, calc(var(--cell-w) * 0.56), 50px) !important;
+  height: clamp(40px, calc(var(--cell-w) * 0.56), 50px) !important;
+}
+
+body.rdm-ambient-on .game-header {
+  background: rgba(12,22,40,0.75);
+  backdrop-filter: blur(10px);
+}
+body.rdm-ambient-on .board-track-outer {
+  box-shadow: 0 0 30px rgba(212,168,83,0.2), inset 0 0 32px rgba(212,168,83,0.06);
+}

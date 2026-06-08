@@ -14,6 +14,14 @@ function showScreen(id) {
   $(`#${id}`).classList.add('active');
   updateDocumentTitle();
   applyLanguage();
+  if (window.RdmAmbient3D) {
+    const mode = id === 'screen-auth' || id === 'screen-pseudo' ? 'auth'
+      : id === 'screen-hub' ? 'hub'
+      : id === 'screen-lobby' ? 'lobby'
+      : id === 'screen-game' ? 'game'
+      : 'off';
+    window.RdmAmbient3D.setMode(mode);
+  }
 }
 
 function formatMoney(amount) {

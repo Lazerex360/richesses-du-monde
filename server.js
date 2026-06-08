@@ -62,6 +62,22 @@ setInterval(() => {
   }
 }, 1000);
 
+// Keep-alive : évite la mise en veille Render (offre gratuite → 15 min)
+// En production, on se ping nous-même toutes les 10 minutes.
+if (IS_PRODUCTION) {
+  const PING_INTERVAL_MS = 10 * 60 * 1000; // 10 min
+  setInterval(() => {
+    const selfUrl = PUBLIC_URL || process.env.RENDER_EXTERNAL_URL;
+    if (!selfUrl) return;
+    const https = require('https');
+    const url = `${selfUrl}/api/health`;
+    https.get(url, (res) => {
+      if (res.statusCode !== 200) console.warn(`[keep-alive] ping ${res.statusCode}`);
+    }).on('error', (err) => console.warn('[keep-alive] erreur:', err.message));
+  }, PING_INTERVAL_MS);
+  console.log('⏱  Keep-alive activé (ping toutes les 10 min)');
+}
+
 server.listen(PORT, HOST, () => {
   const lan = IS_PRODUCTION ? null : getLanPlayUrl(PORT);
   console.log(`\n🌍 Richesses du Monde — écoute sur ${HOST}:${PORT}`);

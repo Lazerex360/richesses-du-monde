@@ -415,11 +415,19 @@ class GameSocket {
     this.handlers = {};
     this.ws = null;
     this.authed = false;
+    this._retryDelay = 1500;
+    this._retryTimer = null;
+    this._reconnecting = false;
   }
   connect() {
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     this.ws = new WebSocket(`${proto}://${location.host}`);
     this.ws.onopen = () => {
+      this._retryDelay = 1500; // reset backoff
+      if (this._reconnecting) {
+        this._reconnecting = false;
+        this._hideReconnectBanner();
+      }
       if (token) this.emit('auth', { token });
     };
     this.ws.onmessage = (e) => {
@@ -430,8 +438,29 @@ class GameSocket {
     };
     this.ws.onclose = () => {
       this.authed = false;
-      setTimeout(() => this.connect(), 1500);
+      this._reconnecting = true;
+      this._showReconnectBanner();
+      clearTimeout(this._retryTimer);
+      this._retryTimer = setTimeout(() => this.connect(), this._retryDelay);
+      // Exponential backoff : 1.5s → 3s → 6s → 12s → 30s max
+      this._retryDelay = Math.min(this._retryDelay * 2, 30000);
     };
+  }
+  _showReconnectBanner() {
+    let el = document.getElementById('rdm-reconnect-banner');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'rdm-reconnect-banner';
+      el.setAttribute('role', 'alert');
+      el.setAttribute('aria-live', 'polite');
+      el.innerHTML = `<span class="rdm-reconnect-spinner"></span> Reconnexion en cours…`;
+      document.body.appendChild(el);
+    }
+    el.classList.add('visible');
+  }
+  _hideReconnectBanner() {
+    const el = document.getElementById('rdm-reconnect-banner');
+    if (el) el.classList.remove('visible');
   }
   on(event, fn) {
     (this.handlers[event] = this.handlers[event] || []).push(fn);

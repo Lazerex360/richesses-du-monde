@@ -3242,3 +3242,44 @@ body.reduce-motion .skeleton { animation: none; }
 .rdm-coin-wrap:hover .rdm-coin {
   transform: rotateY(180deg);
 }
+
+/* ── 21. RECONNECT BANNER ─────────────────────────────────── */
+@keyframes rdmSpinnerRotate {
+  to { transform: rotate(360deg); }
+}
+#rdm-reconnect-banner {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(120%);
+  z-index: 9999;
+  background: rgba(18,18,24,0.94);
+  border: 1px solid rgba(201,160,74,0.35);
+  color: rgba(255,255,255,0.85);
+  font-size: 0.85rem;
+  padding: 0.55rem 1.2rem;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: transform 0.3s var(--ease-out, ease), opacity 0.3s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+#rdm-reconnect-banner.visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+.rdm-reconnect-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(201,160,74,0.3);
+  border-top-color: #c9a04a;
+  border-radius: 50%;
+  animation: rdmSpinnerRotate 0.8s linear infinite;
+  flex-shrink: 0;
+}
+body.reduce-motion .rdm-reconnect-spinner { animation: none; }

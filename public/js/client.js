@@ -83,6 +83,8 @@ function applySettings() {
   document.documentElement.style.setProperty('--font-scale', settings.textSize / 100);
   document.body.classList.toggle('reduce-motion', settings.reduceMotion);
   document.body.classList.toggle('high-contrast', settings.highContrast);
+  window.RdmAmbient3D?.setReduceMotion?.(settings.reduceMotion);
+  applyBoardZoom();
 }
 
 // ===================== Internationalisation =====================
@@ -661,7 +663,9 @@ function applyBoardZoom() {
   const frame = stage?.querySelector('.board-frame');
   if (stage) {
     stage.style.setProperty('--board-zoom', String(boardZoom));
-    stage.style.transform = `scale(${boardZoom})`;
+    const cinematic = document.body.classList.contains('rdm-ambient-on')
+      && !document.body.classList.contains('reduce-motion');
+    stage.style.transform = cinematic ? '' : `scale(${boardZoom})`;
     if (frame) {
       const h = frame.offsetHeight;
       stage.style.minHeight = `${Math.ceil(h * boardZoom)}px`;
@@ -2910,6 +2914,7 @@ function showDiceResult(d1, d2, opts = {}) {
     diceRollSession.result = { d1, d2, rollId, rollerName };
     if (diceRollSession.timer) clearTimeout(diceRollSession.timer);
     sfx('dice');
+    triggerDiceFx();
     $('#dice-area')?.classList.add('dice-area-rolling');
     $('.dice-roll-arena')?.classList.add('dice-arena-rolling');
     Dice3D.startWildRoll($('#die1'));
@@ -2970,6 +2975,17 @@ function finishDiceRoll() {
   setTimeout(onLanded, settings.reduceMotion ? 300 : 1800);
 }
 
+function triggerDiceFx() {
+  window.RdmAmbient3D?.pulse?.();
+  const wrap = document.querySelector('.board-cinematic-wrap');
+  if (wrap && !settings.reduceMotion) {
+    wrap.classList.remove('board-dice-shake');
+    void wrap.offsetWidth;
+    wrap.classList.add('board-dice-shake');
+    setTimeout(() => wrap.classList.remove('board-dice-shake'), 600);
+  }
+}
+
 function animateDice() {
   applyDiceSkin();
   ensureDiceCubes();
@@ -2978,6 +2994,7 @@ function animateDice() {
   diceLandingRollId = 0;
   unlockDiceCubes();
   sfx('dice');
+  triggerDiceFx();
   show($('#dice-area'));
   $('#dice-area')?.classList.add('dice-area-rolling');
   $('.dice-roll-arena')?.classList.add('dice-arena-rolling');
@@ -3221,7 +3238,11 @@ function renderGame(state) {
   if (state.winner) {
     const wasHidden = $('#winner-overlay').classList.contains('hidden');
     show($('#winner-overlay'));
-    if (wasHidden) sfx('win');
+    if (wasHidden) {
+      sfx('win');
+      window.RdmAmbient3D?.celebrate?.();
+      window.RdmFx?.confetti?.();
+    }
     const iWon = state.winningTeam ? state.winningTeam.includes(myGameId) : state.winner.id === myGameId;
     $('#winner-text').textContent = iWon
       ? t('game.win')

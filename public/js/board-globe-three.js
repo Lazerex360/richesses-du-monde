@@ -1,13 +1,17 @@
 /**
- * Planète Terre 3D au centre du plateau (mode cinématique).
- * Texture satellite + shader atmosphère Rayleigh + normal map relief.
+ * Planète Terre 3D — Globe cinématique.
+ * Shader Rayleigh + texture nuit (city lights) + normal map + étoiles.
  */
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.184.0/build/three.module.js';
 
-const CDN    = 'https://cdn.jsdelivr.net/npm/three-globe/example/img/';
+const CDN      = 'https://cdn.jsdelivr.net/npm/three-globe/example/img/';
 const EARTH_TEX  = CDN + 'earth-blue-marble.jpg';
 const CLOUDS_TEX = CDN + 'earth-clouds.png';
 const NORMAL_TEX = CDN + 'earth-topology.png';
+const NIGHT_TEX  = CDN + 'earth-night.jpg';
+
+/* Direction normalisée vers le soleil (world-space, fixe) */
+const SUN = new THREE.Vector3(4, 2, 3).normalize();
 
 /* ── Shader atmosphère Rayleigh ─────────────────────────────── */
 const ATMOS_VERT = /* glsl */`
@@ -27,14 +31,39 @@ const ATMOS_FRAG = /* glsl */`
   }
 `;
 
+/* ── Shader nuit (city lights côté sombre) ──────────────────── */
+const NIGHT_VERT = /* glsl */`
+  varying vec2 vUv;
+  varying vec3 vWorldNormal;
+  void main() {
+    vUv = uv;
+    vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+const NIGHT_FRAG = /* glsl */`
+  uniform sampler2D nightMap;
+  uniform vec3      sunDir;
+  varying vec2      vUv;
+  varying vec3      vWorldNormal;
+  void main() {
+    float sun       = dot(vWorldNormal, sunDir);
+    float nightBlend = smoothstep(0.15, -0.25, sun);
+    if (nightBlend < 0.01) discard;
+    vec4  night      = texture2D(nightMap, vUv);
+    float brightness = dot(night.rgb, vec3(0.3, 0.59, 0.11));
+    float lights     = smoothstep(0.04, 0.30, brightness);
+    gl_FragColor = vec4(night.rgb * 2.4, nightBlend * lights);
+  }
+`;
+
 class RdmBoardGlobe {
   constructor() {
-    this.enabled  = false;
-    this.ready    = false;
-    this.raf      = 0;
-    this.host     = null;
-    this.visible  = true;
-    this.loaded   = false;
+    this.enabled = false;
+    this.ready   = false;
+    this.raf     = 0;
+    this.host    = null;
+    this.visible = true;
   }
 
   init() {
@@ -66,44 +95,69 @@ class RdmBoardGlobe {
 
       /* ── Scène / caméra ───────────────────────────────────── */
       this.scene  = new THREE.Scene();
-      // FOV 35° → z_min = r_atmos(1.13) / tan(17.5°) ≈ 3.6
       this.camera = new THREE.PerspectiveCamera(35, 1, 0.1, 20);
       this.camera.position.z = 3.6;
 
       /* ── Étoiles ──────────────────────────────────────────── */
-      const starPositions = new Float32Array(3600);
-      for (let i = 0; i < 3600; i++) starPositions[i] = (Math.random() - 0.5) * 40;
+      const starPos = new Float32Array(3600);
+      for (let i = 0; i < 3600; i++) starPos[i] = (Math.random() - 0.5) * 40;
       const starGeo = new THREE.BufferGeometry();
-      starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-      this.stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.06 }));
+      starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+      this.stars = new THREE.Points(
+        starGeo,
+        new THREE.PointsMaterial({ color: 0xffffff, size: 0.06 })
+      );
       this.scene.add(this.stars);
 
       /* ── Lumières ─────────────────────────────────────────── */
       const sun = new THREE.DirectionalLight(0xfff4e0, 1.35);
-      sun.position.set(4, 2, 3);
+      sun.position.copy(SUN.clone().multiplyScalar(10));
       this.scene.add(sun);
       this.scene.add(new THREE.AmbientLight(0x223355, 0.40));
 
-      /* ── Groupe Terre (inclinaison axiale 23.5°) ──────────── */
+      /* ── Groupe Terre (tilt axial 23.5°) ─────────────────── */
       this.earthGroup = new THREE.Group();
       this.earthGroup.rotation.z = THREE.MathUtils.degToRad(23.5);
       this.scene.add(this.earthGroup);
 
-      /* Globe Terre — placeholder pendant chargement */
+      /* Placeholder globe (avant chargement textures) */
       this.earth = new THREE.Mesh(
         new THREE.SphereGeometry(1.0, 64, 64),
-        new THREE.MeshPhongMaterial({ color: 0x1a5276, emissive: 0x0d2b40, emissiveIntensity: 0.4, shininess: 18 })
+        new THREE.MeshPhongMaterial({
+          color: 0x1a5276, emissive: 0x0d2b40,
+          emissiveIntensity: 0.4, shininess: 18,
+        })
       );
       this.earthGroup.add(this.earth);
 
-      /* Nuages */
+      /* Nuages (opacity 0 avant chargement) */
       this.clouds = new THREE.Mesh(
         new THREE.SphereGeometry(1.012, 48, 48),
-        new THREE.MeshPhongMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false })
+        new THREE.MeshPhongMaterial({
+          color: 0xffffff, transparent: true, opacity: 0, depthWrite: false,
+        })
       );
       this.earthGroup.add(this.clouds);
 
-      /* ── Atmosphère Rayleigh (shader GLSL) ────────────────── */
+      /* Texture nuit — couche additive sur face sombre */
+      this.nightMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(1.001, 64, 64),
+        new THREE.ShaderMaterial({
+          uniforms: {
+            nightMap: { value: null },
+            sunDir:   { value: SUN },
+          },
+          vertexShader:   NIGHT_VERT,
+          fragmentShader: NIGHT_FRAG,
+          blending:    THREE.AdditiveBlending,
+          transparent: true,
+          depthWrite:  false,
+        })
+      );
+      this.nightMesh.visible = false; // caché jusqu'au chargement
+      this.earthGroup.add(this.nightMesh);
+
+      /* ── Atmosphère Rayleigh ──────────────────────────────── */
       this.atmos = new THREE.Mesh(
         new THREE.SphereGeometry(1.13, 48, 48),
         new THREE.ShaderMaterial({
@@ -111,17 +165,14 @@ class RdmBoardGlobe {
             glowColor: { value: new THREE.Color(0x4fc3f7) },
             power:     { value: 2.8 },
           },
-          vertexShader:   ATMOS_VERT,
-          fragmentShader: ATMOS_FRAG,
-          side:       THREE.BackSide,
-          blending:   THREE.AdditiveBlending,
-          transparent: true,
-          depthWrite:  false,
+          vertexShader: ATMOS_VERT, fragmentShader: ATMOS_FRAG,
+          side: THREE.BackSide, blending: THREE.AdditiveBlending,
+          transparent: true, depthWrite: false,
         })
       );
-      this.scene.add(this.atmos); // hors du groupe — pas de rotation avec la Terre
+      this.scene.add(this.atmos);
 
-      /* Halo doux extérieur */
+      /* Halo extérieur */
       this.halo = new THREE.Mesh(
         new THREE.SphereGeometry(1.22, 32, 32),
         new THREE.ShaderMaterial({
@@ -129,47 +180,50 @@ class RdmBoardGlobe {
             glowColor: { value: new THREE.Color(0x1565c0) },
             power:     { value: 4.2 },
           },
-          vertexShader:   ATMOS_VERT,
-          fragmentShader: ATMOS_FRAG,
-          side:       THREE.BackSide,
-          blending:   THREE.AdditiveBlending,
-          transparent: true,
-          depthWrite:  false,
+          vertexShader: ATMOS_VERT, fragmentShader: ATMOS_FRAG,
+          side: THREE.BackSide, blending: THREE.AdditiveBlending,
+          transparent: true, depthWrite: false,
         })
       );
       this.scene.add(this.halo);
 
       /* ── Chargement textures ──────────────────────────────── */
-      const loader = new THREE.TextureLoader();
-      const loadTex = url => new Promise((res, rej) => loader.load(url, res, undefined, rej));
+      const loader   = new THREE.TextureLoader();
+      const loadTex  = url => new Promise((ok, ko) => loader.load(url, ok, undefined, ko));
       const maxAniso = this.renderer.capabilities.getMaxAnisotropy();
 
-      Promise.all([loadTex(EARTH_TEX), loadTex(CLOUDS_TEX), loadTex(NORMAL_TEX)])
-        .then(([dayTex, cloudTex, normalTex]) => {
-          dayTex.colorSpace   = THREE.SRGBColorSpace;
-          cloudTex.colorSpace = THREE.SRGBColorSpace;
-          // Anisotropy → textures nettes à angle rasant
-          dayTex.anisotropy   = maxAniso;
-          cloudTex.anisotropy = maxAniso;
+      Promise.all([
+        loadTex(EARTH_TEX),
+        loadTex(CLOUDS_TEX),
+        loadTex(NORMAL_TEX),
+        loadTex(NIGHT_TEX),
+      ]).then(([dayTex, cloudTex, normalTex, nightTex]) => {
+        dayTex.colorSpace   = THREE.SRGBColorSpace;
+        cloudTex.colorSpace = THREE.SRGBColorSpace;
+        nightTex.colorSpace = THREE.SRGBColorSpace;
+        dayTex.anisotropy   = maxAniso;
+        cloudTex.anisotropy = maxAniso;
+        nightTex.anisotropy = maxAniso;
 
-          this.earth.material = new THREE.MeshPhongMaterial({
-            map:         dayTex,
-            normalMap:   normalTex,
-            normalScale: new THREE.Vector2(0.06, 0.06),
-            specular:    new THREE.Color(0x226688),
-            shininess:   28,
-          });
-
-          this.clouds.material = new THREE.MeshPhongMaterial({
-            map: cloudTex, transparent: true, opacity: 0.45, depthWrite: false,
-          });
-
-          this.loaded = true;
-        })
-        .catch(() => {
-          this.earth.material = new THREE.MeshPhongMaterial({ color: 0x1565c0, emissive: 0x0a2540, shininess: 20 });
-          this.loaded = true;
+        this.earth.material = new THREE.MeshPhongMaterial({
+          map:         dayTex,
+          normalMap:   normalTex,
+          normalScale: new THREE.Vector2(0.06, 0.06),
+          specular:    new THREE.Color(0x226688),
+          shininess:   28,
         });
+
+        this.clouds.material = new THREE.MeshPhongMaterial({
+          map: cloudTex, transparent: true, opacity: 0.45, depthWrite: false,
+        });
+
+        this.nightMesh.material.uniforms.nightMap.value = nightTex;
+        this.nightMesh.visible = true;
+      }).catch(() => {
+        this.earth.material = new THREE.MeshPhongMaterial({
+          color: 0x1565c0, emissive: 0x0a2540, shininess: 20,
+        });
+      });
 
       this._startResize();
     } catch (_) {
@@ -194,8 +248,8 @@ class RdmBoardGlobe {
     this.canvas?.remove();
     this.canvas = null;
     this.host?.classList.remove('has-webgl-globe');
-    this.loaded = false;
-    this.earth = this.clouds = this.atmos = this.halo = this.stars = this.earthGroup = null;
+    this.earth = this.clouds = this.nightMesh = null;
+    this.atmos = this.halo  = this.stars = this.earthGroup = null;
   }
 
   setEnabled(on) {
@@ -215,18 +269,17 @@ class RdmBoardGlobe {
 
       const t = performance.now() * 0.001;
 
-      if (this.earthGroup) this.earthGroup.rotation.y = t * 0.62;   // ~10s/tour
-      if (this.clouds)     this.clouds.rotation.y     = t * 0.08;   // nuages plus lents
-      if (this.stars)      this.stars.rotation.y      = t * 0.004;  // ciel étoilé lent
+      if (this.earthGroup) this.earthGroup.rotation.y = t * 0.62;
+      if (this.clouds)     this.clouds.rotation.y     = t * 0.08;
+      if (this.stars)      this.stars.rotation.y      = t * 0.004;
 
-      // Pulsation atmosphère
       if (this.atmos && this.halo) {
         const pulse = 1 + Math.sin(t * 0.9) * 0.007;
         this.atmos.scale.setScalar(pulse);
         this.halo.scale.setScalar(pulse * 1.008);
       }
 
-      // Resize si nécessaire
+      /* Resize dynamique */
       const s = this.host.clientWidth || 120;
       const dpr = this.renderer.getPixelRatio();
       if (this.renderer.domElement.width !== Math.floor(s * dpr)) {

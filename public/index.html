@@ -13,6 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/cinematic.css">
+  <link rel="stylesheet" href="/css/improvements.css">
 </head>
 <body>
   <div id="app">
@@ -388,6 +389,7 @@
           <button id="btn-game-resources" class="btn-mini game-resources-btn" data-i18n="menu.resources">Richesses</button>
           <button type="button" id="btn-game-rules" class="btn-mini" data-i18n="menu.rules">Règles</button>
           <button type="button" id="btn-game-settings" class="btn-mini" data-i18n="menu.settings">Paramètres</button>
+          <button type="button" id="btn-save-game" class="btn-mini" title="Exporter la partie en JSON">💾</button>
           <button type="button" id="btn-surrender" class="btn-mini btn-surrender" data-i18n="game.surrender">Abandonner</button>
           <button type="button" id="btn-leave-game" class="btn-mini hidden" data-i18n="game.leave_after_out">Quitter la partie</button>
           <div id="turn-indicator" class="turn-indicator"></div>
@@ -484,6 +486,10 @@
         </aside>
 
         <aside class="sidebar right">
+          <div class="panel leaderboard-panel">
+            <h3>🏆 Classement</h3>
+            <div id="leaderboard-body"></div>
+          </div>
           <div class="panel">
             <h3 data-i18n="game.my_titles">Mes titres</h3>
             <div id="my-titles" class="my-titles"></div>
@@ -709,8 +715,8 @@
       </div>
     </div>
 
-    <!-- TOAST -->
-    <div id="toast" class="toast hidden"></div>
+    <!-- TOASTS EMPILÉS -->
+    <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="false"></div>
   </div>
 
   <script src="/js/i18n.js"></script>
@@ -727,5 +733,13 @@
   <script type="module" src="/js/board-globe-three.js"></script>
   <script type="module" src="/js/fx-confetti.js"></script>
   <script src="/js/client.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .catch(() => {}); // silencieux si offline
+      });
+    }
+  </script>
 </body>
 </html>

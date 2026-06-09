@@ -10,8 +10,27 @@ function updateDocumentTitle() {
 }
 
 function showScreen(id) {
-  $$('.screen').forEach((s) => s.classList.remove('active'));
-  $(`#${id}`).classList.add('active');
+  const current = document.querySelector('.screen.active');
+  const next = $(`#${id}`);
+  if (!next || current === next) return;
+
+  /* Fade-out écran sortant */
+  if (current) {
+    current.classList.add('screen-leaving');
+    const onLeaveEnd = () => {
+      current.classList.remove('active', 'screen-leaving');
+    };
+    current.addEventListener('animationend', onLeaveEnd, { once: true });
+    /* Sécurité : retrait forcé après 220ms même si animationend ne tire pas */
+    setTimeout(() => current.classList.remove('active', 'screen-leaving'), 220);
+  }
+
+  /* Fade-in écran entrant (léger délai pour croiser) */
+  setTimeout(() => {
+    next.classList.add('active', 'screen-entering');
+    next.addEventListener('animationend', () => next.classList.remove('screen-entering'), { once: true });
+  }, current ? 80 : 0);
+
   updateDocumentTitle();
   applyLanguage();
   if (isCinematicActive()) {
@@ -56,16 +75,45 @@ function renderCoinPriceHtml(amount, size = 'sm') {
   return `<span class="rdm-coin-wrap shop-price-coins">${coinHtml(size)}<span class="rdm-coin-value">${formatCoinAmount(amount)}</span></span>`;
 }
 
-let toastTimer = null;
+/* ── Système de toasts empilés ─────────────────────────────── */
+const TOAST_ICONS = {
+  success: '✓',
+  error:   '✕',
+  gold:    '🪙',
+  info:    'ℹ',
+  '':      '•',
+};
+const TOAST_DUR = 3400; // ms
+
 function toast(msg, type = '') {
-  const el = $('#toast');
-  el.textContent = msg;
-  el.className = `toast ${type}`;
-  show(el);
   if (type === 'success') sfx('success');
   else if (type === 'error') sfx('error');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => hide(el), 3200);
+  else if (type === 'gold') sfx('buy');
+
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  /* Limiter à 4 toasts visibles */
+  const existing = container.querySelectorAll('.toast-item');
+  if (existing.length >= 4) existing[0].remove();
+
+  const item = document.createElement('div');
+  item.className = `toast-item${type ? ' toast-' + type : ''}`;
+  item.style.setProperty('--toast-dur', TOAST_DUR + 'ms');
+  item.innerHTML = `
+    <span class="toast-icon">${TOAST_ICONS[type] || TOAST_ICONS['']}</span>
+    <span class="toast-msg">${msg}</span>
+    <button class="toast-close" aria-label="Fermer">×</button>
+  `;
+
+  const dismiss = () => {
+    item.classList.add('toast-out');
+    item.addEventListener('animationend', () => item.remove(), { once: true });
+  };
+  item.querySelector('.toast-close').addEventListener('click', dismiss);
+  setTimeout(dismiss, TOAST_DUR);
+
+  container.appendChild(item);
 }
 
 let boardZoom = 1; // déclaré tôt pour éviter TDZ dans applySettings()
@@ -192,12 +240,21 @@ function sfx(kind = 'click') {
     audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const presets = {
-      click: { f: 420, d: 0.06, type: 'triangle' },
-      dice: { f: 620, d: 0.13, type: 'square' },
-      success: { f: 880, d: 0.18, type: 'sine' },
-      win: { f: 988, d: 0.45, type: 'sine' },
-      error: { f: 170, d: 0.22, type: 'sawtooth' },
-      card: { f: 520, d: 0.2, type: 'triangle' },
+      click:   { f: 420,  d: 0.06, type: 'triangle'  },
+      dice:    { f: 620,  d: 0.13, type: 'square'     },
+      success: { f: 880,  d: 0.18, type: 'sine'       },
+      win:     { f: 988,  d: 0.45, type: 'sine'       },
+      error:   { f: 170,  d: 0.22, type: 'sawtooth'   },
+      card:    { f: 520,  d: 0.2,  type: 'triangle'   },
+      /* Nouveaux */
+      buy:     { f: 850,  d: 0.22, type: 'sine'       }, // achat titre
+      sell:    { f: 660,  d: 0.18, type: 'sine'       }, // vente
+      royalty: { f: 740,  d: 0.26, type: 'triangle'   }, // royalties reçues
+      pay:     { f: 280,  d: 0.16, type: 'sine'       }, // paiement sortant
+      move:    { f: 300,  d: 0.07, type: 'sine'       }, // déplacement pion
+      levelup: { f: 1047, d: 0.38, type: 'sine'       }, // montée de niveau
+      trade:   { f: 580,  d: 0.2,  type: 'triangle'   }, // échange
+      news:    { f: 470,  d: 0.28, type: 'square'     }, // carte actualité
     };
     const p = presets[kind] || presets.click;
     const now = audioCtx.currentTime;
@@ -324,6 +381,25 @@ $('#players-panel')?.addEventListener('keydown', (e) => {
 $('#btn-game-resources').addEventListener('click', openResourcesGuide);
 $('#btn-game-settings')?.addEventListener('click', openSettings);
 $('#btn-game-rules')?.addEventListener('click', openRules);
+
+/* ── Sauvegarde / export partie ─────────────────────────────── */
+$('#btn-save-game')?.addEventListener('click', () => {
+  if (!gameState) { toast('Aucune partie active.', 'error'); return; }
+  const snapshot = {
+    exportedAt: new Date().toISOString(),
+    roomCode: $('#room-label')?.textContent?.trim() || '?',
+    state: gameState,
+  };
+  const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `rdm-${snapshot.roomCode}-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Partie exportée 💾', 'success');
+  sfx('success');
+});
 
 $('#news-card-dismiss')?.addEventListener('click', dismissNewsCard);
 $('#news-overlay')?.addEventListener('click', (e) => {
@@ -2257,6 +2333,44 @@ function renderPlayersPanel(state) {
     .join('');
 }
 
+/* ── Leaderboard temps réel ──────────────────────────────────── */
+let _lbPrev = {}; // fortune précédente par joueur (pour flèche delta)
+function renderLeaderboard(state) {
+  const el = document.getElementById('leaderboard-body');
+  if (!el) return;
+
+  /* Trier les joueurs par fortune décroissante */
+  const sorted = [...state.players].sort((a, b) => (b.money || 0) - (a.money || 0));
+
+  el.innerHTML = sorted.map((p, i) => {
+    const prev  = _lbPrev[p.id] ?? p.money;
+    const delta = (p.money || 0) - prev;
+    const deltaHtml = delta !== 0
+      ? `<span class="lb-delta ${delta > 0 ? 'up' : 'down'}">${delta > 0 ? '+' : ''}${formatMoney(delta)}</span>`
+      : '';
+
+    const isLeader = i === 0 && !p.bankrupt;
+    const isMe     = p.id === myGameId;
+
+    return `<div class="lb-row ${isLeader ? 'lb-leader' : ''} ${isMe ? 'lb-me' : ''} ${p.bankrupt ? 'lb-bankrupt' : ''}">
+      <span class="lb-rank">${p.bankrupt ? '✕' : i + 1}</span>
+      <span class="lb-pawn">${pawnEmojiMap[p.pawn] || '🔘'}</span>
+      <span class="lb-name">${escapeHtml(p.name)}${p.isBot ? ' 🤖' : ''}</span>
+      ${deltaHtml}
+      <span class="lb-money">${formatMoney(p.money || 0)}</span>
+    </div>`;
+  }).join('');
+
+  /* Mémoriser pour prochain delta */
+  sorted.forEach(p => { _lbPrev[p.id] = p.money || 0; });
+
+  /* Effacer les deltas après 3s */
+  clearTimeout(renderLeaderboard._timer);
+  renderLeaderboard._timer = setTimeout(() => {
+    sorted.forEach(p => { _lbPrev[p.id] = p.money || 0; });
+  }, 3000);
+}
+
 function renderLog(state) {
   const logEl = $('#game-log');
   if (!logEl) return;
@@ -3410,6 +3524,7 @@ function renderGame(state) {
   renderTurnIndicator(state);
   renderBoard(state);
   renderPlayersPanel(state);
+  renderLeaderboard(state);
   renderAlliancePanel(state);
   renderLog(state);
   renderMyTitles(state);

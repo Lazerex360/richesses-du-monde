@@ -187,9 +187,7 @@ class RdmBoardGlobe {
       const gameOn = document.querySelector('#screen-game')?.classList.contains('active');
       if (!this.visible || !this.enabled || !gameOn) return;
 
-      const diceVisible = !document.querySelector('#dice-area')?.classList.contains('hidden');
-      this.host.style.opacity = diceVisible ? '0' : '1';
-      if (diceVisible) return;
+      // La planète reste toujours visible (CSS réduit sa taille quand les dés s'affichent)
 
       const t = performance.now() * 0.001;
 

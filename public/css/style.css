@@ -1473,10 +1473,11 @@ body.reduce-motion .board-zoom-stage { transition: none; }
     0 4px 24px rgba(0,0,0,0.4);
 }
 .board-center:has(.dice-area:not(.hidden)) {
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
-  padding: clamp(0.85rem, 22%, 1.75rem) 0.4rem 0.3rem;
+  padding: 0.35rem 0.4rem 0.3rem;
   gap: 0;
+  overflow: visible; /* laisser les dés 3D dépasser si besoin */
 }
 .board-center-status { width: 100%; margin: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; }
 .board-center-main {
@@ -1555,7 +1556,7 @@ body.reduce-motion .board-globe-3d::before { animation: none; }
 .board-center-dice .dice-roll-arena,
 .board-center-dice .dice-pair,
 .board-center-dice .dice-scene {
-  overflow: hidden;
+  overflow: visible;
 }
 .board-center-dice .dice-scene {
   width: clamp(32px, calc(var(--cell-w) * 0.52), 44px);
@@ -1576,7 +1577,18 @@ body.reduce-motion .board-globe-3d::before { animation: none; }
 .board-center-dice .dice-score { min-width: 1.15rem; height: 1.15rem; font-size: 0.68rem; }
 .board-center-dice .dice-roller-label { font-size: 0.62rem; }
 .board-center:has(.dice-area:not(.hidden)) .board-center-status { display: none; }
-.board-center:has(.dice-area:not(.hidden)) .board-center-main { display: none; }
+/* Globe + bouton ressources restent visibles — on masque seulement le texte */
+.board-center:has(.dice-area:not(.hidden)) .board-center-main {
+  flex: 0 0 auto;
+  gap: 0.08rem;
+}
+.board-center:has(.dice-area:not(.hidden)) .board-globe-3d {
+  width:  clamp(52px, calc(var(--cell-w, 80px) * 1.25), 100px);
+  height: clamp(52px, calc(var(--cell-w, 80px) * 1.25), 100px);
+}
+.board-center:has(.dice-area:not(.hidden)) .board-center-title,
+.board-center:has(.dice-area:not(.hidden)) .board-center-hint,
+.board-center:has(.dice-area:not(.hidden)) .center-phase { display: none; }
 @keyframes boardCenterDiceIn {
   from { opacity: 0; transform: translateY(10px) scale(0.96); }
   to { opacity: 1; transform: none; }

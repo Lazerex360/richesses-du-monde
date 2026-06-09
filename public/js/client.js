@@ -3430,6 +3430,26 @@ function renderGame(state) {
     $('#winner-text').textContent = iWon
       ? t('game.win')
       : t('game.win_other', { name: state.winner.name });
+
+    // Podium — classement final par argent
+    const podiumEl = document.getElementById('winner-podium');
+    if (!podiumEl && $('#winner-overlay')) {
+      const podiumDiv = document.createElement('div');
+      podiumDiv.id = 'winner-podium';
+      podiumDiv.className = 'winner-podium';
+      $('#winner-text').insertAdjacentElement('afterend', podiumDiv);
+    }
+    if (document.getElementById('winner-podium')) {
+      const sorted = [...state.players].sort((a, b) => (b.money || 0) - (a.money || 0));
+      const medals = ['🥇', '🥈', '🥉'];
+      document.getElementById('winner-podium').innerHTML = sorted.map((p, i) => `
+        <div class="podium-row ${p.id === myGameId ? 'podium-me' : ''}">
+          <span class="podium-rank">${medals[i] || `${i + 1}.`}</span>
+          <span class="podium-pawn" style="color:${p.color}">${pawnEmojiMap[p.pawn] || '🔘'}</span>
+          <span class="podium-name">${escapeHtml(p.name)}</span>
+          <span class="podium-money">${formatMoney(p.money)}</span>
+        </div>`).join('');
+    }
   }
 }
 

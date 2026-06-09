@@ -3105,7 +3105,9 @@ body.reduce-motion .player-card.current.is-me { animation: none; }
   60%  { transform: scale(1.03) translateY(-4px); }
   100% { opacity: 1; transform: scale(1) translateY(0); }
 }
-.winner-card {
+/* L'animation se déclenche quand l'overlay parent perd sa classe .hidden
+   → le selector change, CSS retrigger l'animation sur l'enfant */
+#winner-overlay:not(.hidden) > .winner-card {
   animation: winnerEntrance 0.55s var(--ease-out, ease) both;
 }
 .winner-card h2 {
@@ -3116,6 +3118,27 @@ body.reduce-motion .player-card.current.is-me { animation: none; }
   background-clip: text;
   margin-bottom: 0.5rem;
 }
+
+/* Podium classement final */
+.winner-podium {
+  display: flex; flex-direction: column; gap: 0.4rem;
+  margin: 0.5rem 0; width: 100%;
+}
+.podium-row {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.4rem 0.75rem; border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  font-size: 0.9rem;
+}
+.podium-row.podium-me {
+  background: rgba(201,160,74,0.1);
+  border-color: rgba(201,160,74,0.3);
+}
+.podium-rank { font-size: 1.1rem; width: 1.8rem; flex-shrink: 0; }
+.podium-pawn { font-size: 1.1rem; flex-shrink: 0; }
+.podium-name { flex: 1; font-weight: 600; color: var(--text-main, #f0ece4); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.podium-money { font-weight: 700; color: var(--gold-light, #e8c878); flex-shrink: 0; }
 
 /* ── 10. NEWS OVERLAY — CARTE ACTUALITÉ ───────────────────── */
 @keyframes newsCardEnter {

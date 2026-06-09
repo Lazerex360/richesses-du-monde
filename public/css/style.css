@@ -1475,8 +1475,8 @@ body.reduce-motion .board-zoom-stage { transition: none; }
 .board-center:has(.dice-area:not(.hidden)) {
   justify-content: center;
   align-items: center;
-  padding: 0.5rem 0.4rem 1.8rem; /* bottom genereux pour que les faces 3D ne soient pas clippées */
-  gap: 0.6rem;
+  padding: 0.4rem 0.4rem 0.55rem; /* 0.55rem suffit pour que les faces 3D ne dépassent pas */
+  gap: 0.5rem;
 }
 .board-center-status { width: 100%; margin: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; }
 .board-center-main {
@@ -1581,6 +1581,7 @@ body.reduce-motion .board-globe-3d::before { animation: none; }
 .board-center:has(.dice-area:not(.hidden)) .board-center-main {
   flex: 0 0 auto;
   gap: 0.08rem;
+  overflow: visible; /* canvas WebGL ne doit pas être clippé */
 }
 .board-center:has(.dice-area:not(.hidden)) .board-globe-3d {
   width:  clamp(44px, calc(var(--cell-w, 80px) * 0.9), 72px);

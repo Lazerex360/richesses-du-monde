@@ -1473,10 +1473,10 @@ body.reduce-motion .board-zoom-stage { transition: none; }
     0 4px 24px rgba(0,0,0,0.4);
 }
 .board-center:has(.dice-area:not(.hidden)) {
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  padding: 0.35rem 0.4rem 0.3rem;
-  gap: 0;
+  padding: 0.5rem 0.4rem 1.8rem; /* bottom genereux pour que les faces 3D ne soient pas clippées */
+  gap: 0.6rem;
 }
 .board-center-status { width: 100%; margin: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; }
 .board-center-main {
@@ -1528,8 +1528,9 @@ body.reduce-motion .board-globe-3d::before { animation: none; }
 }
 .board-center-dice {
   pointer-events: auto; width: 100%; max-width: 100%;
-  display: flex; justify-content: center; align-items: flex-end;
-  flex-shrink: 0; margin-top: auto;
+  display: flex; justify-content: center; align-items: center;
+  flex-shrink: 0;
+  /* pas de margin-top:auto — on centre verticalement dans le board-center */
 }
 .board-center-dice .dice-area {
   margin-top: 0; min-height: 0; gap: 0.2rem; max-width: 100%;

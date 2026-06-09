@@ -119,3 +119,57 @@ Réinitialiser `boardCells = null` dans `resetGameAnimationState()` pour chaque 
 3. Bannière UI "Reconnexion en cours…" avec spinner pendant les tentatives.
 
 **Règle générale :** Toujours implémenter backoff exponentiel sur WS reconnect (jamais de retry flat <2s). Pour Render free, un self-ping toutes les 10 min évite la mise en veille sans surcharger les logs.
+
+---
+
+### LRN-20260609-008 — CSS `contain: paint` clippe les faces 3D même avec `overflow: visible`
+- **Date:** 2026-06-09
+- **Priority:** high
+- **Status:** resolved
+- **Area:** CSS 3D / dice
+- **Related files:** `public/css/style.css`
+- **Tags:** css, contain, overflow, 3d, dice, clipping
+
+**Description:** `contain: layout paint` avait été ajouté sur `.board-center-dice .dice-scene` pour optimiser le rendu. Même en changeant `overflow: visible` sur l'élément, les faces 3D CSS en rotation étaient coupées. `contain: paint` force le clipping au bord de l'élément indépendamment de `overflow`.
+
+**Resolution:** Supprimer `contain: layout paint` des `.dice-scene` dans le board-center. `overflow: visible` seul est suffisant pour laisser passer les faces 3D.
+
+**Règle générale :** `contain: paint` est équivalent à `overflow: hidden` pour le clipping — il ignore `overflow: visible`. Ne jamais l'utiliser sur des conteneurs qui ont des enfants 3D CSS qui doivent dépasser.
+
+**Promotion candidate:** oui — applicable à tout projet CSS 3D.
+
+---
+
+### LRN-20260609-009 — CSS 3D dice-wild-roll : diagonale 3D dépasse overflow:hidden parent
+- **Date:** 2026-06-09
+- **Priority:** high
+- **Status:** resolved
+- **Area:** CSS 3D / layout / board center
+- **Related files:** `public/index.html`, `public/css/style.css`, `public/js/client.js`
+- **Tags:** css, 3d, overflow, dice, animation, clipping, board
+
+**Description:** L'animation `dice-wild-roll` tourne le cube CSS sur 3 axes simultanément (rotateX + rotateY + rotateZ). Un cube de 52px projette en 2D jusqu'à `52 × √3 ≈ 90px` (diagonale 3D). La zone `.dice-scene` ne fait que 52px → 19px dépassent. Tant que `#board-center-dice` était imbriqué dans `.board-center` (`overflow: hidden`), les faces étaient clippées pendant la rotation.
+
+`overflow: visible` sur les enfants (`.dice-scene`, `.dice-pair`, `.dice-roll-arena`) ne suffit pas : le premier ancêtre avec `overflow: hidden` (`.board-center`) clippe quand même.
+
+**Resolution:** Déplacer `#board-center-dice` hors de `.board-center` dans le HTML — en enfant direct de `#board` (grid CSS, `overflow: visible`). Lui donner la même position de grille que `.board-center` via `applyBoardUi()` dans `client.js`. Résultat : aucun ancêtre `overflow: hidden` entre les dés et le viewport.
+
+**Règle générale :** Pour des éléments CSS 3D avec rotation multi-axes dans un layout, remonter l'élément au premier ancêtre sans `overflow: hidden` dans la chaîne. On ne peut pas "percer" `overflow: hidden` avec `overflow: visible` sur un enfant — seule une restructuration HTML le permet.
+
+**Promotion candidate:** oui — pattern architectural critique pour tout rendu 3D CSS dans un layout contraint.
+
+---
+
+### LRN-20260609-010 — `overflow: hidden` sur ancêtre avec `:has()` et dice area
+- **Date:** 2026-06-09
+- **Priority:** medium
+- **Status:** resolved
+- **Area:** CSS architecture / board
+- **Related files:** `public/css/style.css`
+- **Tags:** css, overflow, has, pseudo-class, dice, board-center
+
+**Description:** Plusieurs tentatives de fix (`overflow: visible` sur `.board-center:has(.dice-area:not(.hidden))`), padding-bottom excessif (1.8rem), `justify-content: space-between` → aucune n'a résolu le problème de clipping des dés. La vraie cause était structurelle : l'élément des dés était dans le mauvais conteneur HTML.
+
+**Resolution:** Voir LRN-20260609-009. Les fixes CSS temporaires (overflow, padding, contain) masquaient le problème sans le résoudre. Le diagnostic correct était : trouver le premier ancêtre `overflow: hidden` dans la chaîne de parenté de l'élément clippé.
+
+**Règle générale :** Face à du clipping CSS inexpliqué sur un élément 3D, remonter la chaîne `parentElement` jusqu'au premier `overflow: hidden` — c'est toujours lui le coupable. Checker via DevTools : computed style → overflow sur chaque ancêtre.

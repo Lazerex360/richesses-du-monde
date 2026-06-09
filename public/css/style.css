@@ -1477,7 +1477,6 @@ body.reduce-motion .board-zoom-stage { transition: none; }
   align-items: center;
   padding: 0.35rem 0.4rem 0.3rem;
   gap: 0;
-  overflow: visible; /* laisser les dés 3D dépasser si besoin */
 }
 .board-center-status { width: 100%; margin: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; }
 .board-center-main {

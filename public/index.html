@@ -415,34 +415,35 @@
                         </p>
                         <button type="button" id="btn-board-resources" class="btn-board-resources" data-i18n="resources.open">Voir toutes les richesses</button>
                       </div>
-                      <div id="board-center-dice" class="board-center-dice">
-                        <div id="dice-area" class="dice-area hidden">
-                          <p id="dice-roller-label" class="dice-roller-label hidden" aria-live="polite"></p>
-                          <div class="dice-roll-arena">
-                          <div class="dice-pair">
-                            <div class="dice-unit">
-                              <div class="dice-scene" id="die1-scene" aria-label="Dé 1">
-                                <div class="dice-cube" id="die1"></div>
-                              </div>
-                              <span id="die1-score" class="dice-score hidden" aria-hidden="true"></span>
+                    </div>
+                    <!-- Zone dés hors du board-center : évite le clipping overflow:hidden -->
+                    <div id="board-center-dice" class="board-center-dice">
+                      <div id="dice-area" class="dice-area hidden">
+                        <p id="dice-roller-label" class="dice-roller-label hidden" aria-live="polite"></p>
+                        <div class="dice-roll-arena">
+                        <div class="dice-pair">
+                          <div class="dice-unit">
+                            <div class="dice-scene" id="die1-scene" aria-label="Dé 1">
+                              <div class="dice-cube" id="die1"></div>
                             </div>
-                            <div class="dice-unit">
-                              <div class="dice-scene" id="die2-scene" aria-label="Dé 2">
-                                <div class="dice-cube" id="die2"></div>
-                              </div>
-                              <span id="die2-score" class="dice-score hidden" aria-hidden="true"></span>
+                            <span id="die1-score" class="dice-score hidden" aria-hidden="true"></span>
+                          </div>
+                          <div class="dice-unit">
+                            <div class="dice-scene" id="die2-scene" aria-label="Dé 2">
+                              <div class="dice-cube" id="die2"></div>
                             </div>
+                            <span id="die2-score" class="dice-score hidden" aria-hidden="true"></span>
                           </div>
-                          <div class="dice-arena-glow" aria-hidden="true"></div>
-                          </div>
-                          <p id="dice-total-score" class="dice-total-score hidden" aria-live="polite">
-                            <span class="dice-sum-part" id="dice-sum-d1">—</span>
-                            <span class="dice-sum-op" aria-hidden="true">+</span>
-                            <span class="dice-sum-part" id="dice-sum-d2">—</span>
-                            <span class="dice-sum-op" aria-hidden="true">=</span>
-                            <span class="dice-sum-result" id="dice-sum-total">—</span>
-                          </p>
                         </div>
+                        <div class="dice-arena-glow" aria-hidden="true"></div>
+                        </div>
+                        <p id="dice-total-score" class="dice-total-score hidden" aria-live="polite">
+                          <span class="dice-sum-part" id="dice-sum-d1">—</span>
+                          <span class="dice-sum-op" aria-hidden="true">+</span>
+                          <span class="dice-sum-part" id="dice-sum-d2">—</span>
+                          <span class="dice-sum-op" aria-hidden="true">=</span>
+                          <span class="dice-sum-result" id="dice-sum-total">—</span>
+                        </p>
                       </div>
                     </div>
                   </div>

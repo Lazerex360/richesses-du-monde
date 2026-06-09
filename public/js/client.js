@@ -1923,6 +1923,8 @@ function applyBoardUi(ui) {
   set($('.board-track-outer'), ui?.trackOuter);
   set($('.board-track-inner'), ui?.trackInner);
   set($('.board-center'), ui?.center);
+  // #board-center-dice est un enfant direct de #board — même position de grille que le centre
+  set($('#board-center-dice'), ui?.center);
 }
 
 function getBoardPositions(state) {

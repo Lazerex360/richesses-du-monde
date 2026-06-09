@@ -1,5 +1,19 @@
 # Instructions agent — Richesses du Monde
 
+## Agent skills
+
+### Issue tracker
+
+Issues suivies en markdown local sous `.scratch/`. Voir `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Labels en français : `à-trier`, `info-manquante`, `prêt-agent`, `prêt-humain`, `annulé`. Voir `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Repo multi-context : `CONTEXT-MAP.md` à la racine + `src/<contexte>/CONTEXT.md`. Voir `docs/agents/domain.md`.
+
 ## Commit et push automatiques
 
 Après chaque tâche qui modifie le code :

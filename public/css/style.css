@@ -1459,13 +1459,18 @@ body.reduce-motion .board-zoom-stage { transition: none; }
 }
 .board-center {
   position: relative; z-index: 0;
-  background: linear-gradient(145deg, rgba(22,33,62,0.98), rgba(15,20,35,0.99));
-  border: 1px solid rgba(212,168,83,0.38); border-radius: 8px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(33,150,243,0.08) 0%, transparent 60%),
+    linear-gradient(165deg, rgba(18,28,55,0.99), rgba(9,13,25,1));
+  border: 1px solid rgba(212,168,83,0.40); border-radius: 10px;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 0.5rem 0.65rem; text-align: center; pointer-events: none;
-  min-height: 0; min-width: 0; gap: 0.3rem;
+  padding: 0.5rem 0.55rem; text-align: center; pointer-events: none;
+  min-height: 0; min-width: 0; gap: 0.22rem;
   overflow: hidden;
   isolation: isolate;
+  box-shadow:
+    0 0 0 1px rgba(33,150,243,0.06) inset,
+    0 4px 24px rgba(0,0,0,0.4);
 }
 .board-center:has(.dice-area:not(.hidden)) {
   justify-content: flex-end;
@@ -1476,8 +1481,37 @@ body.reduce-motion .board-zoom-stage { transition: none; }
 .board-center-status { width: 100%; margin: 0; pointer-events: none; display: flex; flex-direction: column; align-items: center; }
 .board-center-main {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  width: 100%; flex: 1; gap: 0.35rem; text-align: center; min-height: 0;
+  width: 100%; flex: 1; gap: 0.25rem; text-align: center; min-height: 0; overflow: hidden;
 }
+
+/* ── Globe Terre au centre du plateau ─────────────────────── */
+.board-globe-3d {
+  /* Taille proportionnelle à la largeur de la cellule centrale */
+  width:  clamp(60px, calc(var(--cell-w, 80px) * 1.05), 130px);
+  height: clamp(60px, calc(var(--cell-w, 80px) * 1.05), 130px);
+  position: relative;
+  flex-shrink: 0;
+  transition: opacity 0.4s ease;
+}
+.board-globe-3d canvas {
+  position: absolute; inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+/* Halo CSS en dessous du canvas (visible avant chargement WebGL) */
+.board-globe-3d::before {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #1e88e5 0%, #0d2040 60%, #060d1a 100%);
+  animation: globePulse 4s ease-in-out infinite;
+}
+.board-globe-3d.has-webgl-globe::before { opacity: 0; }
+@keyframes globePulse {
+  0%, 100% { box-shadow: 0 0 18px 4px rgba(33,150,243,0.22); }
+  50%       { box-shadow: 0 0 28px 8px rgba(33,150,243,0.38); }
+}
+body.reduce-motion .board-globe-3d::before { animation: none; }
 .center-turn {
   display: inline-flex; align-items: center; gap: 0.35rem;
   padding: 0.2rem 0.55rem; border-radius: 999px;
@@ -1560,12 +1594,19 @@ body.reduce-motion .board-zoom-stage { transition: none; }
 .game-header-right { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 .game-resources-btn { white-space: nowrap; }
 .board-center-title {
-  font-family: 'Playfair Display', serif; font-size: clamp(0.95rem, calc(var(--cell-w) * 0.38), 1.55rem);
-  color: var(--gold-light); font-weight: 700; line-height: 1.2;
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(0.82rem, calc(var(--cell-w) * 0.34), 1.35rem);
+  font-weight: 700; line-height: 1.15;
+  background: linear-gradient(135deg, #e8c878 0%, #c9a04a 50%, #ffe9a0 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
+  letter-spacing: 0.01em;
 }
 .board-center-hint {
-  font-size: clamp(0.58rem, calc(var(--cell-w) * 0.2), 0.76rem); color: var(--text-muted);
-  line-height: 1.4; margin: 0; max-width: 92%;
+  font-size: clamp(0.52rem, calc(var(--cell-w) * 0.175), 0.68rem); color: var(--text-muted);
+  line-height: 1.35; margin: 0; max-width: 95%;
+  opacity: 0.72;
 }
 .board-loop-legend {
   margin: 0;
@@ -1616,21 +1657,61 @@ body.reduce-motion .board-zoom-stage { transition: none; }
 .board-cell.loop-junction {
   box-shadow: 0 0 0 2px rgba(241, 196, 15, 0.45);
 }
-.board-cell:hover { z-index: 8; box-shadow: 0 0 0 2px rgba(212,168,83,0.55), 0 4px 14px rgba(0,0,0,0.45); border-color: rgba(212,168,83,0.45); }
-.board-cell.active-cell { box-shadow: 0 0 0 2px var(--gold), 0 0 14px rgba(212,168,83,0.55); z-index: 6; }
+/* Hover cellule */
+.board-cell:hover {
+  z-index: 8;
+  box-shadow: 0 0 0 2px rgba(212,168,83,0.6), 0 6px 18px rgba(0,0,0,0.5);
+  border-color: rgba(212,168,83,0.5);
+  transform: translateZ(0) scale(1.02);
+}
+
+/* Cellule du joueur actif — pulse dorée */
+@keyframes activeCellGlow {
+  0%, 100% { box-shadow: 0 0 0 2px var(--gold), 0 0 14px rgba(212,168,83,0.45); }
+  50%       { box-shadow: 0 0 0 2.5px var(--gold-light), 0 0 22px rgba(232,200,120,0.7); }
+}
+.board-cell.active-cell {
+  animation: activeCellGlow 1.8s ease-in-out infinite;
+  border-color: var(--gold);
+  z-index: 7;
+}
+body.reduce-motion .board-cell.active-cell {
+  box-shadow: 0 0 0 2px var(--gold), 0 0 14px rgba(212,168,83,0.55);
+  animation: none;
+}
+
+/* Pion en atterrissage */
+@keyframes pawnLanding {
+  0%   { transform: scale(1.12); box-shadow: 0 0 0 3px var(--gold-light), 0 0 28px rgba(232,200,120,0.8); }
+  100% { transform: scale(1); box-shadow: 0 0 0 2px var(--gold), 0 0 14px rgba(212,168,83,0.45); }
+}
+.board-cell.pawn-landing-cell {
+  animation: pawnLanding 0.4s var(--ease-out, ease) both;
+  z-index: 9;
+}
+body.reduce-motion .board-cell.pawn-landing-cell { animation: none; }
+
 .board-cell.has-royalties { border-color: rgba(46,204,113,0.35); }
-.board-cell.royalty-mine { box-shadow: inset 0 -3px 0 rgba(46,204,113,0.75); }
-.board-cell.royalty-owe { box-shadow: inset 0 -3px 0 rgba(231,76,60,0.85); }
+.board-cell.royalty-mine  { box-shadow: inset 0 -3px 0 rgba(46,204,113,0.75); }
+.board-cell.royalty-owe   { box-shadow: inset 0 -3px 0 rgba(231,76,60,0.85); }
 .board-cell.royalty-receive { box-shadow: inset 0 -3px 0 rgba(46,204,113,0.9); }
 .board-cell.royalty-owe::after,
 .board-cell.royalty-receive::after {
   content: ''; position: absolute; top: 2px; right: 2px;
   width: 7px; height: 7px; border-radius: 50%; z-index: 4;
 }
-.board-cell.royalty-owe::after { background: #e74c3c; box-shadow: 0 0 0 1px rgba(0,0,0,0.4); }
+.board-cell.royalty-owe::after     { background: #e74c3c; box-shadow: 0 0 0 1px rgba(0,0,0,0.4); }
 .board-cell.royalty-receive::after { background: #2ecc71; box-shadow: 0 0 0 1px rgba(0,0,0,0.4); }
-.board-cell.path-trail { background: rgba(212, 168, 83, 0.12) !important; box-shadow: inset 0 0 0 1px rgba(212, 168, 83, 0.28); }
-.board-cell.path-trail-current { box-shadow: inset 0 0 0 2px var(--gold-light), 0 0 14px rgba(212, 168, 83, 0.4); z-index: 7; }
+
+/* Traînée de mouvement du pion */
+.board-cell.path-trail {
+  background: rgba(201,160,74,0.14) !important;
+  box-shadow: inset 0 0 0 1px rgba(212,168,83,0.32);
+}
+.board-cell.path-trail-current {
+  box-shadow: inset 0 0 0 2px var(--gold-light), 0 0 18px rgba(212,168,83,0.5);
+  z-index: 7;
+}
 .cell-accent-bar {
   display: block; width: calc(100% + 6px); height: 4px; margin: -4px -3px 2px;
   border-radius: 4px 4px 0 0; flex-shrink: 0;

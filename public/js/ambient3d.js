@@ -1,7 +1,10 @@
 /**
- * Fond 3D cinématique — étoiles, globe, anneau, particules, bloom.
+ * Fond 3D cinématique — étoiles, planète Terre, anneau, particules, bloom.
  */
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.184.0/build/three.module.js';
+
+const EARTH_TEX  = 'https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg';
+const CLOUDS_TEX = 'https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-clouds.png';
 import { EffectComposer } from 'https://cdn.jsdelivr.net/npm/three@0.184.0/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'https://cdn.jsdelivr.net/npm/three@0.184.0/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'https://cdn.jsdelivr.net/npm/three@0.184.0/examples/jsm/postprocessing/UnrealBloomPass.js';
@@ -73,22 +76,58 @@ class RdmAmbient3D {
     }));
     this.scene.add(this.stars);
 
-    this.globe = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(1.12, 2),
-      new THREE.MeshStandardMaterial({
-        color: 0xc9a04a, emissive: 0x4a3810, emissiveIntensity: 0.45,
-        metalness: 0.75, roughness: 0.28, wireframe: true, transparent: true, opacity: 0.52,
+    // Planète Terre principale
+    this.globe = new THREE.Group();
+    this.globe.rotation.z = THREE.MathUtils.degToRad(23.5); // inclinaison axiale
+
+    this.globeSphere = new THREE.Mesh(
+      new THREE.SphereGeometry(1.08, 48, 48),
+      new THREE.MeshPhongMaterial({
+        color: 0x1565c0, emissive: 0x0a2540, shininess: 20,
+        transparent: true, opacity: 0.85,
       }),
     );
-    this.globeCore = new THREE.Mesh(
-      new THREE.SphereGeometry(0.44, 32, 32),
-      new THREE.MeshStandardMaterial({
-        color: 0x1b4332, emissive: 0x2d6a4f, emissiveIntensity: 0.55,
-        metalness: 0.15, roughness: 0.5,
+    this.globe.add(this.globeSphere);
+
+    // Nuages
+    this.globeClouds = new THREE.Mesh(
+      new THREE.SphereGeometry(1.095, 40, 40),
+      new THREE.MeshPhongMaterial({
+        color: 0xffffff, transparent: true, opacity: 0.0, depthWrite: false,
       }),
     );
-    this.globe.add(this.globeCore);
+    this.globe.add(this.globeClouds);
+
+    // Atmosphère glow
+    this.globeAtmos = new THREE.Mesh(
+      new THREE.SphereGeometry(1.14, 32, 32),
+      new THREE.MeshPhongMaterial({
+        color: 0x4fc3f7, transparent: true, opacity: 0.10,
+        depthWrite: false, blending: THREE.AdditiveBlending,
+      }),
+    );
+    this.scene.add(this.globeAtmos); // hors du groupe (pas d'inclinaison)
     this.scene.add(this.globe);
+
+    // Chargement textures Terre en arrière-plan
+    const loader = new THREE.TextureLoader();
+    const loadTex = (url) => new Promise((res) => loader.load(url, res, undefined, () => res(null)));
+    Promise.all([loadTex(EARTH_TEX), loadTex(CLOUDS_TEX)]).then(([dayTex, cloudTex]) => {
+      if (dayTex) {
+        dayTex.colorSpace = THREE.SRGBColorSpace;
+        this.globeSphere.material = new THREE.MeshPhongMaterial({
+          map: dayTex, specular: new THREE.Color(0x226688),
+          shininess: 22, transparent: true, opacity: 0.85,
+        });
+      }
+      if (cloudTex) {
+        cloudTex.colorSpace = THREE.SRGBColorSpace;
+        this.globeClouds.material = new THREE.MeshPhongMaterial({
+          map: cloudTex, transparent: true, opacity: 0.32,
+          depthWrite: false,
+        });
+      }
+    });
 
     this.ring = new THREE.Mesh(
       new THREE.TorusGeometry(1.75, 0.022, 10, 128),
@@ -201,11 +240,16 @@ class RdmAmbient3D {
       this.stars.rotation.x = Math.sin(t * 0.07) * 0.05;
       this.stars.material.opacity = 0.18 + this.current.stars * 0.72 + burst * 0.15;
 
+      // Rotation Terre
       this.globe.rotation.y = t * 0.28 * s * (1 + burst * 0.4);
-      this.globe.rotation.x = Math.sin(t * 0.32) * 0.1;
+      if (this.globeClouds) this.globeClouds.rotation.y = t * 0.06 * s;
       const gScale = 0.28 + this.current.globe * 0.9 + burst * 0.12 + celeb * 0.08;
       this.globe.scale.setScalar(gScale);
-      this.globe.material.opacity = 0.12 + this.current.globe * 0.48 + burst * 0.1;
+      if (this.globeAtmos) this.globeAtmos.scale.setScalar(gScale);
+      // Opacité des sphères
+      const globeOpacity = 0.18 + this.current.globe * 0.72 + burst * 0.1;
+      if (this.globeSphere?.material) this.globeSphere.material.opacity = globeOpacity;
+      if (this.globeAtmos?.material) this.globeAtmos.material.opacity = (0.06 + this.current.globe * 0.1 + burst * 0.04);
 
       this.ring.rotation.z = t * 0.48 * s;
       this.ring.rotation.y = Math.sin(t * 0.2) * 0.15;

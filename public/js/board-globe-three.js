@@ -56,8 +56,9 @@ class RdmBoardGlobe {
       this.renderer.shadowMap.enabled = false;
 
       this.scene  = new THREE.Scene();
+      // FOV 35°, demi-frustum à z=0 : tan(17.5°)*z = r_atmos(1.13) → z ≈ 3.6
       this.camera = new THREE.PerspectiveCamera(35, 1, 0.1, 20);
-      this.camera.position.z = 2.6;
+      this.camera.position.z = 3.6;
 
       // Lumière solaire
       const sun = new THREE.DirectionalLight(0xfff4e0, 1.35);

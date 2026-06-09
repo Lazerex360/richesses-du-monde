@@ -1485,10 +1485,10 @@ body.reduce-motion .board-zoom-stage { transition: none; }
 }
 
 /* ── Globe Terre au centre du plateau ─────────────────────── */
+/* Centre = 8 cols × 6 rows ≈ 740×510px. Globe ≈ 2.5 × cell-w, max 220px */
 .board-globe-3d {
-  /* Taille proportionnelle à la largeur de la cellule centrale */
-  width:  clamp(60px, calc(var(--cell-w, 80px) * 1.05), 130px);
-  height: clamp(60px, calc(var(--cell-w, 80px) * 1.05), 130px);
+  width:  clamp(110px, calc(var(--cell-w, 80px) * 2.5), 220px);
+  height: clamp(110px, calc(var(--cell-w, 80px) * 2.5), 220px);
   position: relative;
   flex-shrink: 0;
   transition: opacity 0.4s ease;

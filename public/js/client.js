@@ -720,6 +720,7 @@ async function enterHub() {
   renderProfileChip();
   renderProfileTab();
   switchTab('play');
+  startGamesAutoRefresh();
   maybeShowTutorial();
 }
 
@@ -866,8 +867,8 @@ function switchTab(tab) {
   if (tab === 'shop') renderShop();
   if (tab === 'pass') loadAndRenderPass();
   if (tab === 'profile') renderProfileTab();
-  if (tab === 'play') socket.emit('browse_games');
-  else socket.emit('stop_browse');
+  if (tab === 'play') startGamesAutoRefresh();
+  else { stopGamesAutoRefresh(); socket.emit('stop_browse'); }
 }
 
 $$('.nav-tab').forEach((t) => t.addEventListener('click', () => switchTab(t.dataset.tab)));
@@ -900,25 +901,52 @@ $('#btn-refresh-games').addEventListener('click', () => socket.emit('browse_game
 socket.on('public_games', (list) => {
   const c = $('#public-games');
   if (!list || list.length === 0) {
-    c.innerHTML = `<p class="empty-hint">${t('play.no_games')}</p>`;
+    c.innerHTML = `<div class="games-empty"><span class="games-empty-icon" aria-hidden="true">🌍</span><p>${t('play.no_games')}</p><button class="btn btn-secondary btn-sm" id="btn-create-from-empty" data-i18n="play.create_btn">Créer une partie</button></div>`;
+    c.querySelector('#btn-create-from-empty')?.addEventListener('click', () => {
+      $('#create-name').focus();
+    });
     return;
   }
   c.innerHTML = list
-    .map(
-      (g) => `
+    .map((g) => {
+      const fillPct = Math.round((g.players / g.maxPlayers) * 100);
+      const fillColor = fillPct >= 80 ? '#e84393' : fillPct >= 50 ? '#c9a04a' : '#3dd68c';
+      const statusBadge = g.inProgress
+        ? `<span class="gr-badge gr-badge--live">🔴 En cours</span>`
+        : `<span class="gr-badge gr-badge--open">🟢 Ouvert</span>`;
+      return `
     <div class="game-row">
       <div class="gr-info">
-        <span class="gr-name">${escapeHtml(g.name)}</span>
-        <span class="gr-meta">${t('play.host')} : ${escapeHtml(g.host)} · ${g.players}/${g.maxPlayers} ${t('play.players')}</span>
+        <div class="gr-name-row">${statusBadge}<span class="gr-name">${escapeHtml(g.name)}</span></div>
+        <span class="gr-meta">${t('play.host')} : ${escapeHtml(g.host)}</span>
+        <div class="gr-capacity">
+          <div class="gr-cap-bar"><div class="gr-cap-fill" style="width:${fillPct}%;background:${fillColor}"></div></div>
+          <span class="gr-cap-label">${g.players}/${g.maxPlayers}</span>
+        </div>
       </div>
-      <button class="btn btn-secondary" data-code="${g.code}">${t('play.join')}</button>
-    </div>`
-    )
+      <button class="btn btn-secondary btn-sm" data-code="${g.code}">${t('play.join')}</button>
+    </div>`;
+    })
     .join('');
   c.querySelectorAll('button[data-code]').forEach((b) =>
     b.addEventListener('click', () => socket.emit('join_room', { roomCode: b.dataset.code }))
   );
 });
+
+// Auto-refresh liste des parties toutes les 15s quand l'onglet Jouer est visible
+let _gamesRefreshTimer = null;
+function startGamesAutoRefresh() {
+  stopGamesAutoRefresh();
+  socket.emit('browse_games');
+  _gamesRefreshTimer = setInterval(() => {
+    if ($('#tab-play')?.classList.contains('active') && $('#screen-hub')?.classList.contains('active')) {
+      socket.emit('browse_games');
+    }
+  }, 15000);
+}
+function stopGamesAutoRefresh() {
+  if (_gamesRefreshTimer) { clearInterval(_gamesRefreshTimer); _gamesRefreshTimer = null; }
+}
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -2228,7 +2256,15 @@ function renderPlayersPanel(state) {
 }
 
 function renderLog(state) {
-  $('#game-log').innerHTML = (state.log || []).map((e) => {
+  const logEl = $('#game-log');
+  if (!logEl) return;
+  const entries = state.log || [];
+  // Détection si on est déjà en bas (±40px) pour décider de l'auto-scroll
+  const atBottom = logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 40;
+  const prevCount = logEl.dataset.logCount ? Number(logEl.dataset.logCount) : 0;
+  const hasNew = entries.length > prevCount;
+
+  logEl.innerHTML = entries.map((e) => {
     const msg = e.message || '';
     let cls = 'log-entry';
     if (e.type === 'roll' || /dé|dice|lancé/i.test(msg)) cls += ' log-roll';
@@ -2238,6 +2274,12 @@ function renderLog(state) {
     else if (e.type === 'event' || /actualité|événem|news/i.test(msg)) cls += ' log-event';
     return `<div class="${cls}">${escapeHtml(msg)}</div>`;
   }).join('');
+
+  logEl.dataset.logCount = entries.length;
+  // Auto-scroll si on était déjà en bas ou si c'est la toute première fois
+  if (hasNew && (atBottom || prevCount === 0)) {
+    logEl.scrollTop = logEl.scrollHeight;
+  }
 }
 
 function groupTitlesByResource(titles) {

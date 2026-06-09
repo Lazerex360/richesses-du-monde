@@ -521,9 +521,23 @@ select option { background: var(--bg-card); color: var(--text); }
 }
 .game-row:hover { border-color: rgba(212, 168, 83, 0.25); transform: translateY(-1px); }
 .game-row .gr-info { display: flex; flex-direction: column; min-width: 0; }
+.game-row .gr-name-row { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; margin-bottom: 0.1rem; }
 .game-row .gr-name { font-weight: 700; color: var(--gold-light); }
-.game-row .gr-meta { font-size: 0.8rem; color: var(--text-muted); }
+.game-row .gr-meta { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.35rem; }
 .game-row .btn { width: auto; padding: 0.5rem 1.2rem; flex-shrink: 0; }
+/* Badges statut */
+.gr-badge { font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 999px; letter-spacing: 0.02em; }
+.gr-badge--open  { background: rgba(61,214,140,0.12); color: #3dd68c; border: 1px solid rgba(61,214,140,0.25); }
+.gr-badge--live  { background: rgba(232,67,147,0.12); color: #e84393; border: 1px solid rgba(232,67,147,0.25); }
+/* Barre de capacité */
+.gr-capacity { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.2rem; }
+.gr-cap-bar { flex: 1; height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; max-width: 80px; }
+.gr-cap-fill { height: 100%; border-radius: 2px; transition: width 0.3s ease; }
+.gr-cap-label { font-size: 0.75rem; color: var(--text-muted); }
+/* Empty state */
+.games-empty { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; padding: 2rem 1rem; text-align: center; color: var(--text-muted); }
+.games-empty-icon { font-size: 2.5rem; opacity: 0.5; }
+.btn-sm { padding: 0.4rem 1rem !important; font-size: 0.85rem !important; }
 
 .nav-tab.active {
   background: linear-gradient(135deg, rgba(212, 168, 83, 0.18), rgba(46, 204, 113, 0.08));

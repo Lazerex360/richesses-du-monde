@@ -71,17 +71,51 @@ function createStaticHandler(publicDir) {
       return res.end('Forbidden');
     }
 
-    fs.readFile(filePath, (err, data) => {
-      if (err) {
+    fs.stat(filePath, (statErr, stat) => {
+      if (statErr || !stat.isFile()) {
         res.writeHead(404);
         return res.end('Not found');
       }
+
       const ext = path.extname(filePath);
-      const headers = { 'Content-Type': MIME[ext] || 'application/octet-stream' };
-      if (ext === '.html') headers['Cache-Control'] = 'no-cache';
-      else if (['.css', '.js'].includes(ext)) headers['Cache-Control'] = 'public, max-age=3600';
-      res.writeHead(200, headers);
-      res.end(data);
+      // Validateurs : ETag faible (taille+mtime) et Last-Modified, pour que les
+      // navigateurs puissent revalider (304) au lieu de garder un asset périmé.
+      const etag = `W/"${stat.size.toString(16)}-${Math.floor(stat.mtimeMs).toString(16)}"`;
+      const headers = {
+        ETag: etag,
+        'Last-Modified': stat.mtime.toUTCString(),
+      };
+      // HTML/CSS/JS non versionnés : no-cache = revalidation systématique,
+      // quasi gratuite grâce au 304 — les joueurs reçoivent le nouveau client
+      // dès le déploiement. Les autres assets (images) gardent 1h de cache,
+      // explicite pour éviter le cache heuristique induit par Last-Modified.
+      if (['.html', '.css', '.js'].includes(ext)) headers['Cache-Control'] = 'no-cache';
+      else headers['Cache-Control'] = 'public, max-age=3600';
+
+      const ifNoneMatch = req.headers['if-none-match'];
+      const ifModifiedSince = req.headers['if-modified-since'];
+      let notModified = false;
+      if (ifNoneMatch) {
+        notModified = ifNoneMatch.split(',').some((t) => t.trim() === etag || t.trim() === '*');
+      } else if (ifModifiedSince) {
+        const since = Date.parse(ifModifiedSince);
+        // Last-Modified est tronqué à la seconde : comparer au même grain.
+        notModified = !Number.isNaN(since) && Math.floor(stat.mtimeMs / 1000) * 1000 <= since;
+      }
+      if (notModified) {
+        res.writeHead(304, headers);
+        return res.end();
+      }
+
+      fs.readFile(filePath, (err, data) => {
+        if (err) {
+          res.writeHead(404);
+          return res.end('Not found');
+        }
+        headers['Content-Type'] = MIME[ext] || 'application/octet-stream';
+        res.writeHead(200, headers);
+        res.end(data);
+      });
     });
   };
 }

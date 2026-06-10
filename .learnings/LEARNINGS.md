@@ -227,3 +227,41 @@ Réinitialiser `boardCells = null` dans `resetGameAnimationState()` pour chaque 
 **Règle générale :** Avant d'investiguer un bug "le moteur calcule mal X", vérifier d'abord si une AUTRE action peut avoir laissé `pendingAction`/`phase` dans un état bloquant qui empêche `endTurn()` pour le reste de la partie. Un freeze de tour (souvent causé par un chemin `{error: ...}` non géré côté client) peut se manifester comme N "bugs fonctionnels" en apparence indépendants. Lister TOUS les retours `{error: ...}` du moteur et vérifier que le client gère chacun sans laisser de modale/état local désynchronisé du serveur.
 
 **Promotion candidate:** oui — heuristique de triage applicable à toute UI synchronisée par état serveur autoritaire (chercher le freeze avant de chercher la feature manquante).
+
+---
+
+### LRN-20260610-014 — Appel orphelin survivant à la suppression d'une fonction : `setLanguage()` cassée silencieusement depuis 852ecde
+- **Date:** 2026-06-10
+- **Priority:** high
+- **Status:** resolved
+- **Area:** client / i18n / qualité
+- **Related files:** `public/js/client.js`, `test/check_integrity.js`
+- **Tags:** dead-reference, refactoring, i18n, runtime-error, test-gap
+
+**Description:** En vérifiant le re-rendu de la carte des richesses au changement de langue (hook `applyLanguage`), `setLanguage('en')` levait `ReferenceError: renderAuthLanguageButtons is not defined`. `git log -S` montre que le commit 852ecde ("Corrige audit complet") a supprimé la DÉFINITION de `renderAuthLanguageButtons()` mais a laissé son APPEL à la fin de `setLanguage()`. Depuis ce commit, tout changement de langue plantait en fin de fonction (les étapes précédentes — saveSettings, applyLanguage, MAJ des selects — s'exécutaient, donc le bug était quasi invisible à l'œil : seule la console révélait l'erreur, et tout code appelant `setLanguage()` puis continuant aurait été interrompu).
+
+**Resolution:** Suppression de l'appel orphelin (1 ligne). Vérifié ensuite : bascule fr→en→ja→fr sans erreur, overlays re-rendus.
+
+**Règle générale :** `node --check` et `test/check_integrity.js` ne détectent PAS les références à des fonctions supprimées (erreur d'exécution, pas de parse). Après suppression d'une fonction dans client.js, toujours grep son nom pour traquer les appels restants. Piste d'amélioration du test d'intégrité : extraire les `nomFonction(` appelés et vérifier qu'une `function nomFonction` existe (faisable car client.js est un script global sans imports).
+
+**Promotion candidate:** non — hygiène de refactoring standard, mais la piste "linter d'appels orphelins dans check_integrity" vaut le coup si ça se reproduit.
+
+---
+
+### LRN-20260610-015 — `max-age=3600` sans ETag/Last-Modified : les clients gardent un JS périmé 1h sans possibilité de revalidation
+- **Date:** 2026-06-10
+- **Priority:** medium
+- **Status:** resolved
+- **Area:** serveur / cache HTTP / déploiement
+- **Related files:** `src/server/` (serveur statique), `public/js/*.js`
+- **Tags:** http-cache, cache-control, etag, deploy, stale-assets
+
+**Description:** Pendant la vérification navigateur de la carte des richesses, le client a continué d'exécuter l'ANCIEN client.js après modification du fichier et reload — `fetch('/js/client.js', {cache:'no-store'})` prouvait pourtant que le serveur servait bien la nouvelle version. Cause : le serveur statique envoie `cache-control: public, max-age=3600` SANS ETag NI Last-Modified. Un reload normal réutilise donc l'entrée de cache pendant 1h sans même une requête conditionnelle (impossible : aucun validateur). En production, après un déploiement, les joueurs peuvent garder un client.js incompatible avec le serveur jusqu'à 1h (ex : nouveaux événements WS non gérés). Un service worker enregistré aggravait le cas en dev.
+
+**Resolution (contournement vérif):** `navigator.serviceWorker.getRegistrations()→unregister()` + `caches.delete()` + `fetch(url, {cache:'reload'})` (force la MAJ de l'entrée de cache HTTP) puis `location.reload()`.
+
+**Resolution (fix serveur, 2026-06-10):** `createStaticHandler` (src/server/httpUtils.js) envoie désormais un ETag faible (taille+mtime en hexa) et `Last-Modified` (fs.stat) sur toutes les réponses statiques, et répond 304 sur `If-None-Match` / `If-Modified-Since`. HTML/CSS/JS passent en `cache-control: no-cache` (revalidation systématique, quasi gratuite via 304) ; les autres assets (images) reçoivent explicitement `public, max-age=3600` pour éviter le cache heuristique induit par Last-Modified. Vérifié par curl : 200 avec validateurs, 304 sur requête conditionnelle (ETag et date), 200 sur ETag périmé.
+
+**Règle générale :** Ne jamais servir des assets mutables (non fingerprintés) avec `max-age` long sans validateur (ETag/Last-Modified) : le navigateur n'a alors AUCUN moyen de revalider avant expiration, même sur F5. `max-age` long = uniquement pour des URLs versionnées/immuables.
+
+**Promotion candidate:** oui — règle de config serveur statique universelle.

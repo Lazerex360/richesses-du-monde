@@ -284,3 +284,32 @@
 #pwa-install-banner .pwa-text { flex: 1; font-size: 0.82rem; line-height: 1.4; }
 #pwa-install-banner .pwa-text strong { display: block; color: var(--gold-light); }
 #pwa-install-banner .pwa-actions { display: flex; gap: 0.4rem; }
+
+/* ══════════════════════════════════════════════════════
+   ACHAT DE TITRES — solde insuffisant (message inline +
+   désactivation des titres hors de portée du joueur)
+   ══════════════════════════════════════════════════════ */
+
+.buy-titles-error {
+  margin: 0.5rem 0 0;
+  padding: 0.6rem 0.9rem;
+  border-radius: 8px;
+  background: rgba(240, 101, 85, 0.12);
+  border: 1px solid var(--danger, #f06555);
+  color: var(--danger, #f06555);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  animation: toastSlideIn 200ms ease-out forwards;
+}
+
+.title-card-select.unaffordable {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.title-card-select.unaffordable .title-card {
+  filter: grayscale(0.6);
+}
+.title-card-select.unaffordable .tc-check {
+  cursor: not-allowed;
+}

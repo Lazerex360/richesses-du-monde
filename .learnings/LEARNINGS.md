@@ -173,3 +173,57 @@ Réinitialiser `boardCells = null` dans `resetGameAnimationState()` pour chaque 
 **Resolution:** Voir LRN-20260609-009. Les fixes CSS temporaires (overflow, padding, contain) masquaient le problème sans le résoudre. Le diagnostic correct était : trouver le premier ancêtre `overflow: hidden` dans la chaîne de parenté de l'élément clippé.
 
 **Règle générale :** Face à du clipping CSS inexpliqué sur un élément 3D, remonter la chaîne `parentElement` jusqu'au premier `overflow: hidden` — c'est toujours lui le coupable. Checker via DevTools : computed style → overflow sur chaque ancêtre.
+
+---
+
+### LRN-20260609-011 — `gameState` global écrasé pendant une animation différée → carte Actualité jamais affichée
+- **Date:** 2026-06-09
+- **Priority:** high
+- **Status:** resolved
+- **Area:** client / animations / synchronisation état
+- **Related files:** `public/js/client.js`
+- **Tags:** race-condition, gameState, websocket, animation, news, bot
+
+**Description:** La carte "Actualité" ne s'affichait jamais (son effet financier était bien appliqué côté serveur, mais aucune carte ne se montrait à l'écran). `socket.on('game_state', ...)` réassigne `gameState = state` à CHAQUE broadcast, même si l'animation du pion (déplacement + pause d'arrivée, ~3-7s avec `PAWN_STEP_MS=380` × N cases + `PAWN_POST_ARRIVE_MS=1200`) déclenchée par le broadcast PRÉCÉDENT tourne encore. Pour une case Actualité, `resolveLanding`/`drawNews` ne pose pas de `pendingAction` → `phase='end_turn'` immédiatement, et pour un bot, `BOT_DELAYS.endTurn=2600ms` (roomHub) est souvent PLUS COURT que l'animation côté client. Un 2e broadcast (avec `currentPlayerIndex` déjà avancé sur le joueur suivant, `endTurn()` exécuté côté serveur) écrase donc `gameState` PENDANT que l'animation du 1er broadcast tourne encore. Quand cette animation se termine et appelle `flushPendingNewsReveal()`, `shouldDeferNewsReveal` re-dérivait "le joueur qui a tiré la carte est-il sur Actualité ?" via `playerLandedOnNews(gameState)` — qui pointe maintenant vers un AUTRE joueur sur une AUTRE case → toujours faux → `pendingNewsReveal` jamais vidé → carte jamais montrée, indéfiniment.
+
+**Resolution:** Suppression de `playerLandedOnNews()` et de la re-dérivation depuis `gameState`. `shouldDeferNewsReveal(nr)` ne dépend plus que de `nr.id > lastNewsRevealId` + `isGameSequenceActive()` (on attend juste la fin des animations). Pour ne pas rejouer une carte déjà ancienne lors d'une (re)connexion en cours de partie, `lastNewsRevealId` est désormais initialisé une seule fois (`newsRevealBaselined`) à l'id de `state.newsReveal` reçu au tout premier `game_state` de la session/partie (réinitialisé dans `resetGameAnimationState()`).
+
+**Règle générale :** Ne jamais re-dériver une condition de timing ("est-ce que X est encore vrai *maintenant* ?") depuis une variable d'état globale mutable, lue à l'intérieur d'un callback différé (`setTimeout`/animation). Cette variable peut avoir été remplacée par un événement plus récent et sans rapport pendant l'attente. Ce qui doit être vérifié au flush, c'est uniquement ce qui était vrai au moment de l'événement original (ici : l'id du tirage) + un flag "animation en cours" — pas un recalcul depuis l'état courant.
+
+**Promotion candidate:** oui — pattern général "stale closure vs. fresh global mutable state pendant une animation différée", applicable à toute UI pilotée par WebSocket avec broadcasts fréquents (bots, autres joueurs) et animations asynchrones.
+
+---
+
+### LRN-20260609-012 — Edit tool refuse "File has not been read yet" même après un Grep sur ce fichier
+- **Date:** 2026-06-09
+- **Priority:** low
+- **Status:** resolved
+- **Area:** outillage / workflow agent
+- **Related files:** `public/js/i18n-de.js`, `i18n-it.js`, `i18n-ja.js`, `i18n-ko.js`, `i18n-pt.js`, `i18n-zh.js`
+- **Tags:** tooling, edit-tool, i18n, workflow
+
+**Description:** Tentative d'`Edit` sur 6 fichiers `i18n-*.js` après les avoir seulement grep-és (pour localiser `'action.no_titles'` et insérer une clé juste après) → erreur "File has not been read yet" sur chacun. `Grep` ne compte pas comme `Read` pour la précondition de l'outil `Edit`.
+
+**Resolution:** Lire (même un petit extrait, ex. les 4 lignes autour du point d'insertion) chaque fichier avec `Read` avant `Edit`, même si son contenu a déjà été vu via `Grep`. Les 6 edits sont passés du premier coup après ce `Read` ciblé.
+
+**Règle générale :** Avant tout `Edit` sur N fichiers similaires (overlays i18n, configs dupliquées...), faire un `Read` ciblé (petite plage de lignes autour du point d'insertion) sur CHAQUE fichier d'abord — ne pas se fier à un `Grep` global précédent.
+
+**Promotion candidate:** non — spécifique au fonctionnement de l'outil Edit.
+
+---
+
+### LRN-20260609-013 — Deux bugs "indépendants" (titres restants / solde insuffisant) = un seul bug racine : modale d'achat figée
+- **Date:** 2026-06-09
+- **Priority:** high
+- **Status:** resolved
+- **Area:** gameplay / achat de titres / gestion d'erreurs
+- **Related files:** `public/js/client.js`, `src/server/wsHandlers.js`, `src/game/GameEngine.js`
+- **Tags:** root-cause, pendingAction, freeze, error-handling, websocket, buy-titles
+
+**Description:** Bug rapporté séparément : "après un achat sur une case, les autres joueurs ne peuvent pas acheter les titres restants de cette même case". Semblait pointer vers le moteur (`getAvailableTitles`/`setupBuyAction`/`buyTitles`). Audit complet de ces 3 fonctions : `getAvailableTitles` recalcule `deck[countryId].filter(t => !t.ownerId)` à CHAQUE atterrissage, sans aucun flag "case visitée" — déjà correct. Le vrai coupable était un autre bug : `buy_titles` avec solde insuffisant renvoie `{error: 'Fonds insuffisants...'}`, transmis au client via `error_msg` (string brute, pas de re-broadcast d'état). Le client fermait la modale immédiatement (`confirmBtn.onclick` appelait `hideBuyTitlesOverlay()` AVANT la réponse serveur), laissant `pendingAction='buy_titles'` bloqué pour toujours côté serveur. Conséquence : `endTurn()` renvoie `'Action en attente'` indéfiniment → `currentPlayerIndex` ne bouge plus jamais → AUCUN joueur (y compris ceux qui voudraient les titres restants de n'importe quelle case) ne rejoue jamais.
+
+**Resolution:** Le fix "solde insuffisant" (modale qui reste ouverte, message inline `action.insufficient_funds`, re-rendu via `renderBuyTitlesOverlay(action, {errorMsg})`, titres inabordables désactivés/grisés côté client, sélection bornée au budget) résout aussi le bug "titres restants" : le tour se termine normalement dès qu'un achat valide ou `skip` est envoyé, donc les titres non vendus (déjà correctement gérés par le moteur) redeviennent accessibles aux joueurs suivants.
+
+**Règle générale :** Avant d'investiguer un bug "le moteur calcule mal X", vérifier d'abord si une AUTRE action peut avoir laissé `pendingAction`/`phase` dans un état bloquant qui empêche `endTurn()` pour le reste de la partie. Un freeze de tour (souvent causé par un chemin `{error: ...}` non géré côté client) peut se manifester comme N "bugs fonctionnels" en apparence indépendants. Lister TOUS les retours `{error: ...}` du moteur et vérifier que le client gère chacun sans laisser de modale/état local désynchronisé du serveur.
+
+**Promotion candidate:** oui — heuristique de triage applicable à toute UI synchronisée par état serveur autoritaire (chercher le freeze avant de chercher la feature manquante).

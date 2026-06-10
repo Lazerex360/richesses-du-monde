@@ -250,6 +250,7 @@
     'action.buy_desc': "최대 <strong>{max}</strong>개 칭호 선택.",
     'action.buy_modal_hint': "위 창에서 칭호를 선택하세요.",
     'action.no_titles': "이 칸에서 구매 가능한 칭호가 없습니다.",
+    'action.insufficient_funds': "잔액이 부족하여 구매할 수 없습니다.",
     'action.total_init': "합계: 0 €",
     'action.total_sum': "합계: <strong>{total}</strong> — {n} {titles}",
     'action.titles_word': "칭호",

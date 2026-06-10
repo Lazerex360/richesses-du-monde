@@ -250,6 +250,7 @@
     'action.buy_desc': "Wähle bis zu <strong>{max}</strong> Titel.",
     'action.buy_modal_hint': "Wähle deine Titel im Fenster oben.",
     'action.no_titles': "Keine Titel für dieses Feld verfügbar.",
+    'action.insufficient_funds': "Unzureichendes Guthaben für diesen Kauf.",
     'action.total_init': "Gesamt: 0 €",
     'action.total_sum': "Gesamt: <strong>{total}</strong> — {n} {titles}",
     'action.titles_word': "Titel",

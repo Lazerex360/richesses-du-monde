@@ -250,6 +250,7 @@
     'action.buy_desc': "最多选择 <strong>{max}</strong> 个称号。",
     'action.buy_modal_hint': "在上方窗口中选择你的称号。",
     'action.no_titles': "此格没有可购买的称号。",
+    'action.insufficient_funds': "余额不足，无法完成此次购买。",
     'action.total_init': "合计：0 €",
     'action.total_sum': "合计：<strong>{total}</strong> — {n} {titles}",
     'action.titles_word': "个称号",

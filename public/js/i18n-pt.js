@@ -250,6 +250,7 @@
     'action.buy_desc': "Escolha até <strong>{max}</strong> títulos.",
     'action.buy_modal_hint': "Selecione os seus títulos na janela acima.",
     'action.no_titles': "Nenhum título disponível para esta casa.",
+    'action.insufficient_funds': "Saldo insuficiente para esta compra.",
     'action.total_init': "Total: 0 €",
     'action.total_sum': "Total: <strong>{total}</strong> — {n} {titles}",
     'action.titles_word': "título(s)",

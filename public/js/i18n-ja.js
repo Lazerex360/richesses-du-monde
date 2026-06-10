@@ -250,6 +250,7 @@
     'action.buy_desc': "最大 <strong>{max}</strong> 個の称号を選択。",
     'action.buy_modal_hint': "上のウィンドウで称号を選択してください。",
     'action.no_titles': "このマスで購入できる称号はありません。",
+    'action.insufficient_funds': "残高不足のため、この購入はできません。",
     'action.total_init': "合計：0 €",
     'action.total_sum': "合計：<strong>{total}</strong> — {n} {titles}",
     'action.titles_word': "称号",

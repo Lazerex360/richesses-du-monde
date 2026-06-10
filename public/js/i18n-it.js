@@ -250,6 +250,7 @@
     'action.buy_desc': "Scegli fino a <strong>{max}</strong> titoli.",
     'action.buy_modal_hint': "Seleziona i tuoi titoli nella finestra sopra.",
     'action.no_titles': "Nessun titolo disponibile per questa casella.",
+    'action.insufficient_funds': "Saldo insufficiente per questo acquisto.",
     'action.total_init': "Totale: 0 €",
     'action.total_sum': "Totale: <strong>{total}</strong> — {n} {titles}",
     'action.titles_word': "titolo/i",

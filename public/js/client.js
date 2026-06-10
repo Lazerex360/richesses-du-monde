@@ -1386,7 +1386,23 @@ socket.on('auth_ok', (d) => {
 });
 socket.on('auth_failed', () => { /* session invalide gérée par HTTP */ });
 socket.on('profile_update', (d) => { profile = d.profile; renderProfileChip(); });
-socket.on('error_msg', (msg) => toast(msg, 'error'));
+socket.on('error_msg', (msg) => {
+  toast(msg, 'error');
+  if (typeof msg === 'string' && msg.startsWith('Fonds insuffisants')) {
+    handleBuyTitlesInsufficientFunds();
+  }
+});
+
+// Solde insuffisant lors d'un achat de titres : la fenêtre reste ouverte,
+// on réaffiche les titres réellement accessibles avec le solde actuel et
+// un message inline (au lieu de fermer la fenêtre et bloquer la partie).
+function handleBuyTitlesInsufficientFunds() {
+  const overlay = $('#buy-titles-overlay');
+  if (!overlay || overlay.classList.contains('hidden')) return;
+  const action = gameState?.pendingAction;
+  if (!action || action.type !== 'buy_titles') return;
+  renderBuyTitlesOverlay(action, { errorMsg: t('action.insufficient_funds') });
+}
 socket.on('left_room', () => {
   clearActiveRoom();
   inActiveGame = false;
@@ -1955,6 +1971,14 @@ socket.on('game_state', (state) => {
     lastGameStartTime = startTime;
     resetGameAnimationState();
   }
+  // Au premier état reçu (connexion ou reconnexion), on prend l'id de
+  // newsReveal courant comme référence pour ne pas rejouer une carte
+  // Actualité déjà ancienne. Toute carte avec un id supérieur, reçue
+  // ENSUITE, est un nouveau tirage de cette session et doit s'afficher.
+  if (!newsRevealBaselined) {
+    newsRevealBaselined = true;
+    lastNewsRevealId = state.newsReveal?.id || 0;
+  }
   preparePawnMoveAnimation(state);
   gameState = state;
   renderGame(state);
@@ -2454,6 +2478,21 @@ function renderMyTitles(state) {
 function hideBuyTitlesOverlay() {
   hide($('#buy-titles-overlay'));
   hide($('#buy-titles-portfolio'));
+  hideBuyTitlesError();
+}
+
+function showBuyTitlesError(msg) {
+  const err = $('#buy-titles-error');
+  if (!err) return;
+  err.textContent = msg;
+  show(err);
+}
+
+function hideBuyTitlesError() {
+  const err = $('#buy-titles-error');
+  if (!err) return;
+  err.textContent = '';
+  hide(err);
 }
 
 function buildBuyPortfolioHtml(me, action) {
@@ -2488,7 +2527,7 @@ function buildBuyPortfolioHtml(me, action) {
     .join('');
 }
 
-function renderBuyTitlesOverlay(action) {
+function renderBuyTitlesOverlay(action, opts = {}) {
   const overlay = $('#buy-titles-overlay');
   if (!overlay) return;
   const max = action.maxTitles || 6;
@@ -2507,6 +2546,10 @@ function renderBuyTitlesOverlay(action) {
     .reduce((s, t) => s + t.percent, 0);
 
   const available = Array.isArray(action.available) ? action.available : [];
+  const myMoney = me?.money ?? Infinity;
+  const sumSelected = () => available
+    .filter((t) => selectedTitles.has(t.id))
+    .reduce((s, t) => s + (t.price || 0), 0);
   if (!available.length) {
     list.innerHTML = `<p class="action-desc muted">${t('action.no_titles')}</p>`;
   } else {
@@ -2529,11 +2572,22 @@ function renderBuyTitlesOverlay(action) {
       });
       const card = wrap.querySelector('.title-card');
       const input = wrap.querySelector('.tc-check');
+      if ((ti.price || 0) > myMoney) {
+        wrap.classList.add('unaffordable');
+        input.disabled = true;
+        input.title = t('action.insufficient_funds');
+      }
       input.addEventListener('change', (e) => {
         if (e.target.checked) {
           if (selectedTitles.size >= max) { e.target.checked = false; return; }
+          if (sumSelected() + (ti.price || 0) > myMoney) {
+            e.target.checked = false;
+            showBuyTitlesError(t('action.insufficient_funds'));
+            return;
+          }
           selectedTitles.add(ti.id);
           card.classList.add('selected');
+          hideBuyTitlesError();
         } else {
           selectedTitles.delete(ti.id);
           card.classList.remove('selected');
@@ -2562,12 +2616,20 @@ function renderBuyTitlesOverlay(action) {
     } else hide(ownedEl);
   } else if (ownedEl) hide(ownedEl);
   show(overlay);
+  if (opts.errorMsg) showBuyTitlesError(opts.errorMsg);
+  else hideBuyTitlesError();
 
   const confirmBtn = $('#btn-confirm-buy-modal');
   const skipBtn = $('#btn-skip-buy-modal');
   if (confirmBtn) {
+    confirmBtn.disabled = false;
     confirmBtn.onclick = () => {
-      hideBuyTitlesOverlay();
+      // On ne ferme pas la fenêtre tout de suite : si le solde est
+      // insuffisant, le serveur répond par error_msg et
+      // handleBuyTitlesInsufficientFunds() rouvre/réaffiche la fenêtre
+      // avec les quantités réellement accessibles. En cas de succès,
+      // pendingAction passe à null et renderActions() referme la fenêtre.
+      confirmBtn.disabled = true;
       socket.emit('buy_titles', { titleIds: [...selectedTitles] });
     };
   }
@@ -2875,6 +2937,7 @@ function resetGameAnimationState() {
   pawnMoveSession = { active: false, waitingDice: false, playerId: null, path: [], pathIndex: -1, displayPos: null, timer: null };
   pendingNewsReveal = null;
   lastNewsRevealId = 0;
+  newsRevealBaselined = false;
   dismissNewsCard();
   hideBuyTitlesOverlay();
   resetDiceDisplay();
@@ -3400,6 +3463,7 @@ function renderSocialOverlay(state) {
 }
 
 let lastNewsRevealId = 0;
+let newsRevealBaselined = false;
 let showingNewsId = 0;
 let newsDismissTimer = null;
 let newsFlipStartTimer = null;
@@ -3421,12 +3485,6 @@ function dismissNewsCard() {
   hide($('#news-overlay'));
   hide($('#news-card-dismiss'));
   $('#news-card-flipper')?.classList.remove('flipped');
-}
-
-function playerLandedOnNews(state) {
-  const roller = state?.players?.[state.currentPlayerIndex];
-  const space = roller != null ? state?.board?.[roller.position] : null;
-  return space?.type === 'news';
 }
 
 function showNewsCardAnimation(nr) {
@@ -3477,16 +3535,20 @@ function revealNewsCard(nr) {
   showNewsCardAnimation(nr);
 }
 
-function shouldDeferNewsReveal(state, nr) {
+function shouldDeferNewsReveal(nr) {
   if (!nr || nr.id <= lastNewsRevealId) return false;
   if (showingNewsId === nr.id) return false;
-  if (isGameSequenceActive()) return true;
-  return !playerLandedOnNews(state);
+  // On attend uniquement la fin des animations en cours (dés, déplacement
+  // du pion...). On ne re-dérive plus "le joueur est-il sur Actualité ?"
+  // depuis gameState : ce dernier peut avoir été remplacé par un état plus
+  // récent (ex. fin de tour auto d'un bot) pendant l'animation, ce qui
+  // empêchait à tort l'affichage de la carte tirée.
+  return isGameSequenceActive();
 }
 
 function flushPendingNewsReveal() {
   if (!pendingNewsReveal || isGameSequenceActive()) return;
-  if (gameState && shouldDeferNewsReveal(gameState, pendingNewsReveal)) return;
+  if (shouldDeferNewsReveal(pendingNewsReveal)) return;
   const nr = pendingNewsReveal;
   pendingNewsReveal = null;
   revealNewsCard(nr);
@@ -3495,7 +3557,7 @@ function flushPendingNewsReveal() {
 function handleNewsReveal(state) {
   const nr = state.newsReveal;
   if (!nr) return;
-  if (shouldDeferNewsReveal(state, nr)) {
+  if (shouldDeferNewsReveal(nr)) {
     pendingNewsReveal = nr;
     return;
   }

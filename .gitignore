@@ -5,3 +5,10 @@ config.json
 .cursor/
 .agents/
 skills-lock.json
+
+# Artefacts de tests E2E Playwright
+test-results/
+playwright-report/
+
+# Sorties générées par le skill graphify
+graphify-out/

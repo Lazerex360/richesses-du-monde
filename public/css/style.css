@@ -2610,7 +2610,7 @@ body.reduce-motion .board-cell.pawn-landing-cell { animation: none; }
 }
 .news-card-scene {
   width: min(72vw, 300px);
-  height: min(88vw, 420px);
+  height: min(88vw, 420px, 70vh);
   perspective: 1200px;
   margin: 0 auto;
 }
@@ -3407,9 +3407,9 @@ body.reduce-motion .skeleton { animation: none; }
   .game-panels {
     grid-template-columns: 1fr;
   }
-  .sidebar.right {
-    display: none; /* Masqué sur mobile — accessible via menu */
-  }
+  /* .sidebar.right (classement + mes titres) reste visible et empilée :
+     aucun autre accès mobile n'existe vers ces panneaux, la masquer
+     les rendait totalement inaccessibles sur petit écran. */
   .game-header h1 {
     font-size: 0.82rem;
   }
@@ -3497,3 +3497,27 @@ body.reduce-motion .skeleton { animation: none; }
   flex-shrink: 0;
 }
 body.reduce-motion .rdm-reconnect-spinner { animation: none; }
+
+/* ── 22. MOBILE — CIBLES TACTILES ≥44px ──────────────────── */
+/* Sur écran tactile, agrandit la zone de tap des petits contrôles
+   sans changer leur apparence visuelle (conserve le design compact). */
+@media (hover: none) {
+  .board-zoom-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .btn-board-resources {
+    position: relative;
+  }
+  .btn-board-resources::after {
+    content: '';
+    position: absolute;
+    inset: 50% auto auto 50%;
+    transform: translate(-50%, -50%);
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+  }
+}
+@media (max-width: 600px) {
+  .lobby-copy-btn { min-height: 44px; }
+}

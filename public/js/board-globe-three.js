@@ -10,7 +10,9 @@ import { UnrealBloomPass } from 'https://cdn.jsdelivr.net/npm/three@0.184.0/exam
 
 const CDN      = 'https://cdn.jsdelivr.net/npm/three-globe/example/img/';
 const EARTH_TEX  = CDN + 'earth-blue-marble.jpg';
-const CLOUDS_TEX = CDN + 'earth-clouds.png';
+/* Le paquet npm three-globe ne contient PAS de texture nuages (404) ;
+   celle du dépôt GitHub (fair clouds 4k) est servie par le même CDN. */
+const CLOUDS_TEX = 'https://cdn.jsdelivr.net/gh/vasturiano/three-globe@master/example/clouds/clouds.png';
 const NORMAL_TEX = CDN + 'earth-topology.png';
 const NIGHT_TEX  = CDN + 'earth-night.jpg';
 const WATER_TEX  = CDN + 'earth-water.png';
@@ -160,18 +162,19 @@ class RdmBoardGlobe {
       this.host.classList.add('has-webgl-globe');
 
       /* ── Renderer ─────────────────────────────────────────── */
-      this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, alpha: true, antialias: true });
+      this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, alpha: true, antialias: !this.lite });
       this.renderer.setSize(size, size, false);
-      this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+      this.renderer.setPixelRatio(this.lite ? 1 : Math.min(devicePixelRatio, 2));
 
       /* ── Scène / caméra ───────────────────────────────────── */
       this.scene  = new THREE.Scene();
       this.camera = new THREE.PerspectiveCamera(35, 1, 0.1, 30);
       this.camera.position.z = 3.6;
 
-      /* ── Étoiles de fond ──────────────────────────────────── */
-      const starPos = new Float32Array(3600);
-      for (let i = 0; i < 3600; i++) starPos[i] = (Math.random() - 0.5) * 40;
+      /* ── Étoiles de fond (3× moins en palier lite) ────────── */
+      const starCount = this.lite ? 1200 : 3600;
+      const starPos = new Float32Array(starCount);
+      for (let i = 0; i < starCount; i++) starPos[i] = (Math.random() - 0.5) * 40;
       const starGeo = new THREE.BufferGeometry();
       starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
       this.stars = new THREE.Points(
@@ -180,9 +183,9 @@ class RdmBoardGlobe {
       );
       this.scene.add(this.stars);
 
-      /* ── Étoiles filantes (pool réutilisable) ─────────────── */
+      /* ── Étoiles filantes (pool réutilisable, désactivées en lite) ── */
       this._shootingStars = [];
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < (this.lite ? 0 : 3); i++) {
         const geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
         const mat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 });
@@ -295,48 +298,62 @@ class RdmBoardGlobe {
       const loadTex  = url => new Promise((ok, ko) => loader.load(url, ok, undefined, ko));
       const maxAniso = this.renderer.capabilities.getMaxAnisotropy();
 
-      Promise.all([
-        loadTex(EARTH_TEX),
-        loadTex(CLOUDS_TEX),
-        loadTex(NORMAL_TEX),
-        loadTex(NIGHT_TEX),
-        loadTex(WATER_TEX),
-      ]).then(([dayTex, cloudTex, normalTex, nightTex, waterTex]) => {
-        dayTex.colorSpace   = THREE.SRGBColorSpace;
-        cloudTex.colorSpace = THREE.SRGBColorSpace;
-        nightTex.colorSpace = THREE.SRGBColorSpace;
-        dayTex.anisotropy   = maxAniso;
-        cloudTex.anisotropy = maxAniso;
-        nightTex.anisotropy = maxAniso;
-        waterTex.anisotropy = maxAniso;
-
+      /* Chaque texture s'applique indépendamment : un seul 404 ou un CDN
+         lent ne doit JAMAIS rabattre tout le globe sur la sphère bleue unie
+         (cause historique de la « planète 2D » : clouds.png absent du
+         paquet npm rejetait le Promise.all entier). */
+      loadTex(EARTH_TEX).then((dayTex) => {
+        dayTex.colorSpace = THREE.SRGBColorSpace;
+        dayTex.anisotropy = maxAniso;
         this.earth.material = new THREE.MeshPhongMaterial({
-          map:         dayTex,
-          normalMap:   normalTex,
-          normalScale: new THREE.Vector2(0.06, 0.06),
-          specularMap: waterTex,          // blanc = océan brillant, noir = terre mate
-          specular:    new THREE.Color(0x4488aa),
-          shininess:   38,
+          map:       dayTex,
+          specular:  new THREE.Color(0x4488aa),
+          shininess: 38,
         });
-
-        this.clouds.material = new THREE.MeshPhongMaterial({
-          map: cloudTex, transparent: true, opacity: 0.45, depthWrite: false,
-        });
-
-        this.nightMesh.material.uniforms.nightMap.value = nightTex;
-        this.nightMesh.visible = true;
+        /* Relief + océans spéculaires : bonus appliqués à leur arrivée */
+        loadTex(NORMAL_TEX).then((normalTex) => {
+          this.earth.material.normalMap = normalTex;
+          this.earth.material.normalScale = new THREE.Vector2(0.06, 0.06);
+          this.earth.material.needsUpdate = true;
+        }).catch(() => {});
+        loadTex(WATER_TEX).then((waterTex) => {
+          waterTex.anisotropy = maxAniso;
+          this.earth.material.specularMap = waterTex; // blanc = océan brillant
+          this.earth.material.needsUpdate = true;
+        }).catch(() => {});
       }).catch(() => {
         this.earth.material = new THREE.MeshPhongMaterial({
           color: 0x1565c0, emissive: 0x0a2540, shininess: 20,
         });
       });
 
-      /* ── Post-processing : halo lumineux (Bloom) ──────────── */
-      this.composer = new EffectComposer(this.renderer);
-      this.composer.addPass(new RenderPass(this.scene, this.camera));
-      this.bloomPass = new UnrealBloomPass(new THREE.Vector2(size, size), 0.5, 0.55, 0.8);
-      this.composer.addPass(this.bloomPass);
-      this.composer.setSize(size, size);
+      /* Nuages : texture 4k (~5 Mo) réservée au palier complet — sur mobile
+         ou petit matériel, on économise la bande passante et le fill-rate. */
+      if (!this.lite) {
+        loadTex(CLOUDS_TEX).then((cloudTex) => {
+          cloudTex.colorSpace = THREE.SRGBColorSpace;
+          cloudTex.anisotropy = maxAniso;
+          this.clouds.material = new THREE.MeshPhongMaterial({
+            map: cloudTex, transparent: true, opacity: 0.45, depthWrite: false,
+          });
+        }).catch(() => {});
+      }
+
+      loadTex(NIGHT_TEX).then((nightTex) => {
+        nightTex.colorSpace = THREE.SRGBColorSpace;
+        nightTex.anisotropy = maxAniso;
+        this.nightMesh.material.uniforms.nightMap.value = nightTex;
+        this.nightMesh.visible = true;
+      }).catch(() => {});
+
+      /* ── Post-processing : halo lumineux (Bloom, palier complet) ── */
+      if (!this.lite) {
+        this.composer = new EffectComposer(this.renderer);
+        this.composer.addPass(new RenderPass(this.scene, this.camera));
+        this.bloomPass = new UnrealBloomPass(new THREE.Vector2(size, size), 0.5, 0.55, 0.8);
+        this.composer.addPass(this.bloomPass);
+        this.composer.setSize(size, size);
+      }
 
       this._startResize();
     } catch (_) {
@@ -414,8 +431,14 @@ class RdmBoardGlobe {
 
   setEnabled(on) {
     this.init();
-    this.enabled = !!on && window.RdmCinematic?.isActive?.();
+    // Le globe se monte pour tout le monde (l'utilisateur ne doit jamais
+    // rester sur le disque CSS 2D) ; le mode cinématique pilote seulement
+    // le palier de qualité. reduce-motion coupe tout (accessibilité).
+    const lite = !window.RdmCinematic?.isActive?.();
+    this.enabled = !!on && !window.RdmCinematic?.reduceMotion?.();
     if (!this.enabled) { this.unmount(); return; }
+    if (this.renderer && this.lite !== lite) this.unmount(); // changement de palier → remontage
+    this.lite = lite;
     this.mount();
     this.start();
   }

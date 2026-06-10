@@ -757,6 +757,17 @@
   <script src="/js/i18n-ja.js"></script>
   <script src="/js/rules.js"></script>
   <script src="/js/dice3d.js"></script>
+  <!-- Import map : les modules examples/jsm de Three.js (EffectComposer,
+       RoundedBoxGeometry…) importent le spécificateur nu "three" ; sans
+       cette table, TOUT le graphe de modules WebGL échoue silencieusement
+       (globe, dés 3D, fond ambiant → fallback CSS 2D). -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.184.0/build/three.module.js"
+      }
+    }
+  </script>
   <script type="module" src="/js/ambient3d.js"></script>
   <script type="module" src="/js/dice-webgl.js"></script>
   <script type="module" src="/js/board-globe-three.js"></script>

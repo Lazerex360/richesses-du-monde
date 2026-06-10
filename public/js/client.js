@@ -35,11 +35,12 @@ function showScreen(id) {
   applyLanguage();
   if (isCinematicActive()) {
     window.RdmAmbient3D?.setMode?.(getAmbientModeForScreen(id));
-    if (id === 'screen-game') window.RdmBoardGlobe?.setEnabled?.(true);
   } else {
     window.RdmAmbient3D?.setMode?.('off');
-    window.RdmBoardGlobe?.setEnabled?.(false);
   }
+  // Globe 3D : actif dès qu'on est sur l'écran jeu, quel que soit le mode
+  // cinématique (il choisit lui-même son palier de qualité).
+  window.RdmBoardGlobe?.setEnabled?.(id === 'screen-game');
 }
 
 function formatMoney(amount) {
@@ -146,7 +147,10 @@ function isCinematicActive() {
   return !!settings.cinematicMode && !settings.reduceMotion;
 }
 
-window.RdmCinematic = { isActive: isCinematicActive };
+window.RdmCinematic = {
+  isActive: isCinematicActive,
+  reduceMotion: () => !!settings.reduceMotion,
+};
 
 function getAmbientModeForScreen(id) {
   if (id === 'screen-auth' || id === 'screen-pseudo') return 'auth';
@@ -176,7 +180,10 @@ function applySettings() {
   document.body.classList.toggle('rdm-cinematic-on', isCinematicActive());
   window.RdmAmbient3D?.setReduceMotion?.(settings.reduceMotion);
   window.RdmDiceWebgl?.setEnabled?.(isCinematicActive());
-  window.RdmBoardGlobe?.setEnabled?.(isCinematicActive());
+  // Le globe 3D n'est plus conditionné au mode cinématique : il se monte
+  // dès que l'écran jeu est actif (qualité allégée hors cinématique,
+  // reduce-motion reste le seul interrupteur d'accessibilité).
+  window.RdmBoardGlobe?.setEnabled?.(!!document.querySelector('#screen-game.active'));
   syncAmbientScreen();
   applyBoardZoom();
 }
@@ -3597,9 +3604,15 @@ function showNewsCardAnimation(nr) {
 
   clearNewsTimers();
   $('#news-card-player').textContent = t('news.drawn_by', { name: nr.playerName });
-  $('#news-card-text').textContent = nr.text;
+  $('#news-card-text').textContent = nr.text || '';
 
+  // Remet la carte côté dos SANS transition : si une carte précédente était
+  // encore flippée, le dé-flip 180°→0° jouerait visiblement à la
+  // réapparition de l'overlay et montrerait le dos en miroir.
+  flipper.style.transition = 'none';
   flipper.classList.remove('flipped');
+  void flipper.offsetWidth;
+  flipper.style.transition = '';
   hide(dismiss);
   show(overlay);
 

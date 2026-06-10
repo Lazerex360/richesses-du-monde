@@ -21,6 +21,103 @@
   --ease-snap: cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --dur-fast: 180ms;
   --dur-med: 280ms;
+
+  /* Thème "Sombre doré" (défaut) — fond, voile et scrollbars */
+  --bg-gradient:
+    radial-gradient(ellipse 120% 80% at 15% 0%, rgba(61, 214, 140, 0.07) 0%, transparent 55%),
+    radial-gradient(ellipse 90% 60% at 85% 10%, rgba(201, 160, 74, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse 70% 50% at 50% 100%, rgba(77, 181, 255, 0.05) 0%, transparent 45%);
+  --noise-opacity: 0.035;
+  --overlay-bg: rgba(4, 10, 20, 0.82);
+  --scrollbar-thumb: rgba(201, 160, 74, 0.3);
+  --scrollbar-thumb-hover: rgba(201, 160, 74, 0.55);
+}
+
+/* ══════════════════════════════════════════════════════
+   THÈMES ALTERNATIFS — sélecteur dans Paramètres ▸ Affichage
+   Chaque thème ne redéfinit que les custom properties :
+   tous les composants existants (var(--bg-card) etc.) suivent.
+   ══════════════════════════════════════════════════════ */
+
+/* ── Clair ─────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg-deep: #eef1f7;
+  --bg-card: #ffffff;
+  --bg-panel: #f3f5fb;
+  --bg-elevated: #e8edf7;
+  --gold: #9a6c12;
+  --gold-light: #7a5510;
+  --gold-glow: rgba(154, 108, 18, 0.22);
+  --accent: #157a4a;
+  --accent-blue: #1d6fb8;
+  --danger: #d23c33;
+  --purple: #7c5cd6;
+  --text: #16233b;
+  --text-muted: #57617a;
+  --border: rgba(22, 35, 59, 0.14);
+  --shadow: 0 12px 32px rgba(20, 30, 55, 0.10);
+  --bg-gradient:
+    radial-gradient(ellipse 120% 80% at 15% 0%, rgba(21, 122, 74, 0.06) 0%, transparent 55%),
+    radial-gradient(ellipse 90% 60% at 85% 10%, rgba(154, 108, 18, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 70% 50% at 50% 100%, rgba(29, 111, 184, 0.05) 0%, transparent 45%);
+  --noise-opacity: 0.02;
+  --overlay-bg: rgba(22, 35, 59, 0.45);
+  --scrollbar-thumb: rgba(154, 108, 18, 0.3);
+  --scrollbar-thumb-hover: rgba(154, 108, 18, 0.5);
+}
+
+/* ── Émeraude royale ───────────────────────────────────── */
+[data-theme="emerald"] {
+  --bg-deep: #061712;
+  --bg-card: #0d251d;
+  --bg-panel: #123427;
+  --bg-elevated: #184432;
+  --gold: #d4af37;
+  --gold-light: #f3dd8e;
+  --gold-glow: rgba(212, 175, 55, 0.35);
+  --accent: #4ce0a0;
+  --accent-blue: #5ad1c4;
+  --danger: #ff6f5e;
+  --purple: #b8a4ff;
+  --text: #eef9f1;
+  --text-muted: #8fb8a4;
+  --border: rgba(212, 175, 55, 0.22);
+  --shadow: 0 12px 40px rgba(0, 10, 6, 0.55);
+  --bg-gradient:
+    radial-gradient(ellipse 120% 80% at 15% 0%, rgba(76, 224, 160, 0.08) 0%, transparent 55%),
+    radial-gradient(ellipse 90% 60% at 85% 10%, rgba(212, 175, 55, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse 70% 50% at 50% 100%, rgba(90, 209, 196, 0.05) 0%, transparent 45%);
+  --noise-opacity: 0.035;
+  --overlay-bg: rgba(3, 12, 9, 0.82);
+  --scrollbar-thumb: rgba(212, 175, 55, 0.3);
+  --scrollbar-thumb-hover: rgba(212, 175, 55, 0.55);
+}
+
+/* ── Améthyste nocturne ────────────────────────────────── */
+[data-theme="amethyst"] {
+  --bg-deep: #100a22;
+  --bg-card: #1c1538;
+  --bg-panel: #261d4c;
+  --bg-elevated: #312662;
+  --gold: #e0b35c;
+  --gold-light: #f6d68a;
+  --gold-glow: rgba(224, 179, 92, 0.35);
+  --accent: #5fe6c9;
+  --accent-blue: #8d8bff;
+  --danger: #ff6e8e;
+  --purple: #c79bff;
+  --text: #f1edfb;
+  --text-muted: #a698c9;
+  --border: rgba(224, 179, 92, 0.22);
+  --shadow: 0 12px 40px rgba(8, 4, 20, 0.55);
+  --bg-gradient:
+    radial-gradient(ellipse 120% 80% at 15% 0%, rgba(95, 230, 201, 0.07) 0%, transparent 55%),
+    radial-gradient(ellipse 90% 60% at 85% 10%, rgba(224, 179, 92, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse 70% 50% at 50% 100%, rgba(141, 139, 255, 0.06) 0%, transparent 45%);
+  --noise-opacity: 0.035;
+  --overlay-bg: rgba(8, 5, 18, 0.82);
+  --scrollbar-thumb: rgba(224, 179, 92, 0.3);
+  --scrollbar-thumb-hover: rgba(224, 179, 92, 0.55);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -49,10 +146,7 @@ body.high-contrast {
 body {
   font-family: 'Source Sans 3', sans-serif;
   background: var(--bg-deep);
-  background-image:
-    radial-gradient(ellipse 120% 80% at 15% 0%, rgba(61, 214, 140, 0.07) 0%, transparent 55%),
-    radial-gradient(ellipse 90% 60% at 85% 10%, rgba(201, 160, 74, 0.1) 0%, transparent 50%),
-    radial-gradient(ellipse 70% 50% at 50% 100%, rgba(77, 181, 255, 0.05) 0%, transparent 45%);
+  background-image: var(--bg-gradient);
   color: var(--text);
   min-height: 100dvh;
   overflow-x: hidden;
@@ -64,7 +158,7 @@ body::before {
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.035;
+  opacity: var(--noise-opacity);
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 #app { position: relative; z-index: 1; width: 100%; min-height: 100dvh; }
@@ -2473,7 +2567,7 @@ body.reduce-motion .board-cell.pawn-landing-cell { animation: none; }
 .monopoly-badge { display: inline-block; font-size: 0.65rem; padding: 0.1rem 0.35rem; background: rgba(212,168,83,0.3); color: var(--gold-light); border-radius: 4px; margin-left: 0.25rem; }
 
 .overlay {
-  position: fixed; inset: 0; background: rgba(4, 10, 20, 0.82);
+  position: fixed; inset: 0; background: var(--overlay-bg);
   backdrop-filter: blur(6px);
   display: flex; align-items: center; justify-content: center; z-index: 100;
   padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
@@ -3008,15 +3102,15 @@ body.reduce-motion .screen.active { animation: none; }
 /* ── 2. SCROLLBARS PERSONNALISÉES ─────────────────────────── */
 :root {
   scrollbar-width: thin;
-  scrollbar-color: rgba(201,160,74,0.35) transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(201,160,74,0.3);
+  background: var(--scrollbar-thumb);
   border-radius: 999px;
 }
-::-webkit-scrollbar-thumb:hover { background: rgba(201,160,74,0.55); }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
 
 /* ── 3. HUB — INDICATEUR D'ONGLET ANIMÉ ──────────────────── */
 .hub-nav {

@@ -128,9 +128,11 @@ function detectDefaultCinematic() {
 
 const DEFAULT_SETTINGS = {
   volume: 50, sfx: true, textSize: 100, reduceMotion: false, highContrast: false,
-  cinematicMode: detectDefaultCinematic(), lang: 'fr',
+  cinematicMode: detectDefaultCinematic(), lang: 'fr', theme: 'dark',
 };
 let settings = loadSettings();
+// Appliqué tout de suite (avant le 1er paint) pour éviter un flash du thème par défaut.
+document.documentElement.dataset.theme = settings.theme || 'dark';
 
 function loadSettings() {
   try {
@@ -167,6 +169,7 @@ window.syncAmbientScreen = syncAmbientScreen;
 function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
 
 function applySettings() {
+  document.documentElement.dataset.theme = settings.theme || 'dark';
   document.documentElement.style.setProperty('--font-scale', settings.textSize / 100);
   document.body.classList.toggle('reduce-motion', settings.reduceMotion);
   document.body.classList.toggle('high-contrast', settings.highContrast);
@@ -280,6 +283,7 @@ function renderSettingsUI() {
   $('#set-reduce-motion').checked = settings.reduceMotion;
   $('#set-cinematic-mode').checked = settings.cinematicMode;
   $('#set-high-contrast').checked = settings.highContrast;
+  $('#set-theme').value = settings.theme || 'dark';
 }
 function openSettings() { renderSettingsUI(); show($('#settings-overlay')); }
 function closeSettings() { hide($('#settings-overlay')); }
@@ -439,6 +443,7 @@ $('#set-cinematic-mode').addEventListener('change', (e) => {
   if (settings.cinematicMode) toast(t('settings.cinematic_on'), 'success');
 });
 $('#set-high-contrast').addEventListener('change', (e) => { settings.highContrast = e.target.checked; applySettings(); saveSettings(); });
+$('#set-theme').addEventListener('change', (e) => { settings.theme = e.target.value; applySettings(); saveSettings(); });
 $('#settings-reset').addEventListener('click', () => {
   settings = { ...DEFAULT_SETTINGS };
   applySettings(); applyLanguage(); saveSettings(); renderSettingsUI();

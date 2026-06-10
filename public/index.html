@@ -673,6 +673,15 @@
         <div class="setting-group">
           <h3 data-i18n="settings.display">🖥️ Affichage</h3>
           <div class="setting-row">
+            <label for="set-theme" data-i18n="settings.theme">Thème</label>
+            <select id="set-theme">
+              <option value="dark" data-i18n="settings.theme_dark">Sombre doré</option>
+              <option value="light" data-i18n="settings.theme_light">Clair</option>
+              <option value="emerald" data-i18n="settings.theme_emerald">Émeraude royale</option>
+              <option value="amethyst" data-i18n="settings.theme_amethyst">Améthyste nocturne</option>
+            </select>
+          </div>
+          <div class="setting-row">
             <label for="set-textsize" data-i18n="settings.textsize">Taille du texte</label>
             <input type="range" id="set-textsize" min="85" max="140" step="5">
             <span id="set-textsize-val" class="setting-val">100%</span>

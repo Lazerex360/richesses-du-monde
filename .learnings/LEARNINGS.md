@@ -265,3 +265,21 @@ Réinitialiser `boardCells = null` dans `resetGameAnimationState()` pour chaque 
 **Règle générale :** Ne jamais servir des assets mutables (non fingerprintés) avec `max-age` long sans validateur (ETag/Last-Modified) : le navigateur n'a alors AUCUN moyen de revalider avant expiration, même sur F5. `max-age` long = uniquement pour des URLs versionnées/immuables.
 
 **Promotion candidate:** oui — règle de config serveur statique universelle.
+
+---
+
+### LRN-20260610-016 — E2E Playwright sans téléchargement Chromium : channel msedge + données isolées + toggles WS à confirmer
+- **Date:** 2026-06-10
+- **Priority:** medium
+- **Status:** resolved
+- **Area:** tests E2E / infrastructure
+- **Related files:** `playwright.config.js`, `test/e2e/partie.spec.js`, `src/data/accounts.js`
+- **Tags:** playwright, e2e, msedge, websocket, flaky, isolation
+
+**Description:** Trois obstacles en montant les E2E : (1) `npx playwright install chromium` bloqué à 0 Mo pendant 8+ min — CDN joignable (HEAD répond) mais le GET volumineux ne démarre jamais sur ce réseau ; (2) `RDM_USER_DATA` seul ne suffit PAS à isoler les données de test : config.js rabat `RDM_BUNDLE_DATA` sur `data/` réel et `seedDataFile` aurait COPIÉ les vrais comptes dans test-results/ ; (3) deux flakes successifs dans le parcours lobby : l'overlay tutoriel (premier lancement invité) intercepte tous les clics du hub, puis un `toggle_ready` d'un des deux clients s'est perdu (bouton resté « En attente » côté serveur) alors que le `click()` Playwright avait réussi.
+
+**Resolution:** (1) `channel: process.env.E2E_CHANNEL || 'msedge'` — Edge est toujours présent sous Windows, zéro téléchargement ; (2) pointer `RDM_BUNDLE_DATA` explicitement sur le même dossier de test (vide) → seed `{}` ; (3) helper `setReady()` : clic puis attente de la classe `is-ready` (posée uniquement au retour du broadcast `room_update`), avec retry via `expect(...).toPass()` — et skip systématique du tutoriel dans le helper de login.
+
+**Règle générale :** Pour des E2E sur UI synchronisée par WebSocket, ne JAMAIS considérer qu'un `click()` réussi = action appliquée : cliquer puis attendre l'indicateur d'état que seul le serveur peut produire (classe/texte issu du broadcast), avec retry. Et pour tout flux « premier lancement », chercher d'abord les overlays d'onboarding qui interceptent les clics (`aria-modal`) avant de déboguer le reste.
+
+**Promotion candidate:** oui — patterns applicables à tout projet E2E temps-réel (clic-confirmé-par-état + onboarding + channel système).

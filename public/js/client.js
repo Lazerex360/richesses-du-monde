@@ -214,7 +214,6 @@ function setLanguage(code) {
   $('#set-language') && ($('#set-language').value = code);
   const authSel = $('#auth-language');
   if (authSel) authSel.value = code;
-  renderAuthLanguageButtons();
 }
 
 function applyLanguage() {
@@ -223,6 +222,7 @@ function applyLanguage() {
   updateDocumentTitle();
   if ($('#rules-overlay') && !$('#rules-overlay').classList.contains('hidden')) renderRules();
   if ($('#resources-overlay') && !$('#resources-overlay').classList.contains('hidden')) renderResourcesGuide();
+  if ($('#worldmap-overlay') && !$('#worldmap-overlay').classList.contains('hidden')) renderWorldMap();
   document.querySelectorAll('[data-i18n-ph]').forEach((el) => { el.placeholder = t(el.getAttribute('data-i18n-ph')); });
   document.querySelectorAll('[data-i18n-title]').forEach((el) => { el.title = t(el.getAttribute('data-i18n-title')); });
   const authGroup = $('#auth-language-group');
@@ -332,6 +332,10 @@ $('#hub-menu').addEventListener('click', async (e) => {
 $('#resources-close').addEventListener('click', () => hide($('#resources-overlay')));
 $('#resources-overlay').addEventListener('click', (e) => { if (e.target.id === 'resources-overlay') hide($('#resources-overlay')); });
 $('#btn-board-resources')?.addEventListener('click', openResourcesGuide);
+
+$('#worldmap-close')?.addEventListener('click', () => hide($('#worldmap-overlay')));
+$('#worldmap-overlay')?.addEventListener('click', (e) => { if (e.target.id === 'worldmap-overlay') hide($('#worldmap-overlay')); });
+$('#btn-world-map')?.addEventListener('click', openWorldMap);
 
 function handleTitlesPanelClick(e, container) {
   const header = e.target.closest('.resource-group-header');
@@ -1925,6 +1929,99 @@ async function openResourcesGuide() {
 function getResourceInfo(resourceId) {
   if (!resourceId) return null;
   return resourcesData[resourceId] || null;
+}
+
+// ── Carte des richesses (qui possède quoi) ─────────────────────────────
+// Vue alternative au guide #resources-overlay : pour chacun des 144 titres,
+// affiche le pays, le % et le propriétaire actuel (joueur ou disponible).
+// Utilise des classes dédiées (wm-*) pour ne jamais toucher aux sélecteurs
+// globaux .resource-accordion-* utilisés par le guide des richesses.
+function buildTitleOwnerMap(state) {
+  const map = {};
+  (state?.players || []).forEach((p) => {
+    (p.titles || []).forEach((ti) => { if (ti?.id) map[ti.id] = p; });
+  });
+  return map;
+}
+
+function buildWorldMapItemHtml(resId, res, ownerMap) {
+  const rows = (res.titles || []).map((ti, idx) => {
+    const owner = ownerMap[`${resId}_${idx}`];
+    const ownerHtml = owner
+      ? `<span class="wm-owner" style="--owner-color:${owner.color || '#c9a04a'}"><span class="wm-owner-dot"></span>${escapeHtml(owner.name)}</span>`
+      : `<span class="wm-owner wm-owner-free">${t('worldmap.available')}</span>`;
+    return `<tr>
+      <td>${escapeHtml(ti.country)}</td>
+      <td class="pct-cell">${ti.percent}%</td>
+      <td class="wm-owner-cell">${ownerHtml}</td>
+    </tr>`;
+  }).join('');
+  return `
+    <div class="wm-item" data-res-id="${resId}" style="--res-color:${res.color}">
+      <div class="wm-item-head">
+        <span class="res-dot-lg" style="background:${res.color}"></span>
+        <span class="wm-item-title">${escapeHtml(res.name)}</span>
+      </div>
+      <div class="wm-item-body">
+        <table class="resource-ref-table">
+          <thead>
+            <tr>
+              <th>${t('resources.country')}</th>
+              <th>${t('resources.percent')}</th>
+              <th>${t('worldmap.owner')}</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function updateWorldMapCount() {
+  const countEl = $('#worldmap-count');
+  if (!countEl) return;
+  const total = $$('#worldmap-body .wm-item').length;
+  const visible = $$('#worldmap-body .wm-item:not(.filtered-out)').length;
+  countEl.textContent = visible < total
+    ? t('resources.meta_filtered', { visible, total })
+    : t('resources.meta_count', { count: total });
+}
+
+function filterWorldMap(query) {
+  const q = query.trim().toLowerCase();
+  $$('#worldmap-body .wm-item').forEach((item) => {
+    const match = !q || item.textContent.toLowerCase().includes(q);
+    item.classList.toggle('filtered-out', !match);
+  });
+  const visible = $$('#worldmap-body .wm-item:not(.filtered-out)').length;
+  const emptyEl = $('#worldmap-empty');
+  const list = $('#worldmap-body .wm-list');
+  if (emptyEl) emptyEl.classList.toggle('hidden', visible > 0);
+  if (list) list.classList.toggle('hidden', visible === 0 && q.length > 0);
+  updateWorldMapCount();
+}
+
+function renderWorldMap() {
+  const body = $('#worldmap-body');
+  if (!body) return;
+  const ownerMap = buildTitleOwnerMap(gameState);
+  const items = RESOURCE_ORDER
+    .filter((id) => resourcesData[id])
+    .map((id) => buildWorldMapItemHtml(id, resourcesData[id], ownerMap));
+  body.innerHTML = `
+    <div id="worldmap-empty" class="resources-empty hidden">${t('resources.no_results')}</div>
+    <div class="wm-list">${items.join('')}</div>`;
+  const searchEl = $('#worldmap-search');
+  if (searchEl && searchEl.value) filterWorldMap(searchEl.value);
+  else updateWorldMapCount();
+}
+
+$('#worldmap-search')?.addEventListener('input', (e) => filterWorldMap(e.target.value));
+
+async function openWorldMap() {
+  await loadResourcesData();
+  renderWorldMap();
+  show($('#worldmap-overlay'));
 }
 
 function getZoneForSpace(space) {
@@ -3592,6 +3689,7 @@ function renderGame(state) {
   renderBoard(state);
   renderPlayersPanel(state);
   renderLeaderboard(state);
+  if ($('#worldmap-overlay') && !$('#worldmap-overlay').classList.contains('hidden')) renderWorldMap();
   renderAlliancePanel(state);
   renderLog(state);
   renderMyTitles(state);

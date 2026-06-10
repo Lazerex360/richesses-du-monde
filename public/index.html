@@ -416,6 +416,7 @@
                           <span class="legend-inner">●</span> <span data-i18n="board.loop_inner">Petite boucle</span>
                         </p>
                         <button type="button" id="btn-board-resources" class="btn-board-resources" data-i18n="resources.open">Voir toutes les richesses</button>
+                        <button type="button" id="btn-world-map" class="btn-board-resources" data-i18n="worldmap.open">🗺️ Carte des richesses</button>
                       </div>
                     </div>
                     <!-- Zone dés hors du board-center : évite le clipping overflow:hidden -->
@@ -589,6 +590,24 @@
           </div>
         </div>
         <div id="resources-body" class="resources-body"></div>
+      </div>
+    </div>
+
+    <!-- CARTE DES RICHESSES (qui possède quoi) -->
+    <div id="worldmap-overlay" class="overlay hidden">
+      <div class="card resources-card">
+        <button id="worldmap-close" class="btn-mini back" data-i18n="trade.close">← Fermer</button>
+        <h2 data-i18n="worldmap.title">Carte des richesses</h2>
+        <div class="resources-toolbar">
+          <div class="resources-toolbar-top">
+            <p class="resources-intro" data-i18n="worldmap.intro">Qui possède quoi : chaque pays, sa richesse et son propriétaire actuel.</p>
+            <span id="worldmap-count" class="resources-count" aria-live="polite"></span>
+          </div>
+          <div class="resources-toolbar-actions">
+            <input type="search" id="worldmap-search" class="resources-search" data-i18n-ph="worldmap.search_ph" placeholder="Rechercher une richesse, un pays ou un joueur…" autocomplete="off">
+          </div>
+        </div>
+        <div id="worldmap-body" class="resources-body"></div>
       </div>
     </div>
 

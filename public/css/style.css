@@ -2046,6 +2046,54 @@ body.reduce-motion .board-cell.pawn-landing-cell { animation: none; }
 .resource-ref-table-full .roy-cell { text-align: right; color: #7bed9f; font-weight: 600; font-size: 0.7rem; white-space: nowrap; }
 .resource-ref-table-full thead tr:first-child th:last-child { text-align: center; }
 
+/* ── CARTE DES RICHESSES — propriétaires ──────────────────────
+   Vue alternative au guide #resources-overlay : chaque ressource reste
+   toujours dépliée, avec le propriétaire actuel de chaque titre.
+   Classes wm-* dédiées (ne pas réutiliser .resource-accordion-* :
+   bindResourceAccordion/filterResourceAccordions opèrent sur des
+   sélecteurs globaux et entreraient en collision avec ce panneau). */
+.wm-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.wm-item {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--res-color, var(--gold));
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+  overflow: hidden;
+}
+.wm-item.filtered-out { display: none; }
+.wm-item-head {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 0.85rem;
+}
+.wm-item-title {
+  flex: 1;
+  font-family: 'Playfair Display', serif;
+  font-size: 1rem;
+  color: var(--gold-light);
+  font-weight: 600;
+}
+.wm-item-body { padding: 0 0.85rem 0.7rem; }
+.wm-owner-cell { text-align: right; white-space: nowrap; }
+.wm-owner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  font-weight: 600;
+  color: var(--owner-color, var(--text));
+}
+.wm-owner-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--owner-color, var(--gold));
+  box-shadow: 0 0 6px color-mix(in srgb, var(--owner-color, var(--gold)) 60%, transparent);
+}
+.wm-owner-free { color: var(--text-muted); font-weight: 400; font-style: italic; }
+
 .rules-card { max-width: 560px; width: 100%; max-height: 88vh; overflow-y: auto; }
 .rules-body { font-size: 0.86rem; line-height: 1.55; color: var(--text-muted); text-align: left; }
 .rules-body h3 { color: var(--gold); font-size: 0.95rem; margin: 1rem 0 0.4rem; font-family: 'Playfair Display', serif; }

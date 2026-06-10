@@ -1,9 +1,12 @@
 /**
  * Planète Terre 3D — Globe cinématique.
  * Shader Rayleigh + texture nuit + normal map + specular océans
- * + étoiles filantes + marqueurs de richesses (pays).
+ * + étoiles filantes + marqueurs de richesses (pays) + bloom (halo lumineux).
  */
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.184.0/build/three.module.js';
+import { EffectComposer } from 'https://cdn.jsdelivr.net/npm/three@0.184.0/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass }     from 'https://cdn.jsdelivr.net/npm/three@0.184.0/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'https://cdn.jsdelivr.net/npm/three@0.184.0/examples/jsm/postprocessing/UnrealBloomPass.js';
 
 const CDN      = 'https://cdn.jsdelivr.net/npm/three-globe/example/img/';
 const EARTH_TEX  = CDN + 'earth-blue-marble.jpg';
@@ -130,6 +133,8 @@ class RdmBoardGlobe {
     this.visible = true;
     this._shootingStars = [];
     this._nextStarAt = 0;
+    this.composer  = null;
+    this.bloomPass = null;
   }
 
   init() {
@@ -326,6 +331,13 @@ class RdmBoardGlobe {
         });
       });
 
+      /* ── Post-processing : halo lumineux (Bloom) ──────────── */
+      this.composer = new EffectComposer(this.renderer);
+      this.composer.addPass(new RenderPass(this.scene, this.camera));
+      this.bloomPass = new UnrealBloomPass(new THREE.Vector2(size, size), 0.5, 0.55, 0.8);
+      this.composer.addPass(this.bloomPass);
+      this.composer.setSize(size, size);
+
       this._startResize();
     } catch (_) {
       this.unmount();
@@ -337,6 +349,7 @@ class RdmBoardGlobe {
       if (!this.renderer || !this.host) return;
       const s = Math.max(this.host.clientWidth || 120, 80);
       this.renderer.setSize(s, s, false);
+      if (this.composer) this.composer.setSize(s, s);
     });
     ro.observe(this.host);
     this._ro = ro;
@@ -387,6 +400,8 @@ class RdmBoardGlobe {
   unmount() {
     this.stop();
     this._ro?.disconnect();
+    if (this.composer) { this.composer.dispose(); this.composer = null; }
+    this.bloomPass = null;
     if (this.renderer) { this.renderer.dispose(); this.renderer = null; }
     this.canvas?.remove();
     this.canvas = null;
@@ -442,9 +457,11 @@ class RdmBoardGlobe {
       const dpr = this.renderer.getPixelRatio();
       if (this.renderer.domElement.width !== Math.floor(s * dpr)) {
         this.renderer.setSize(s, s, false);
+        if (this.composer) this.composer.setSize(s, s);
       }
 
-      this.renderer.render(this.scene, this.camera);
+      if (this.composer) this.composer.render();
+      else this.renderer.render(this.scene, this.camera);
     };
     tick();
   }

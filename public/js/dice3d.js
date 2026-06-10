@@ -137,7 +137,7 @@
       if (scene) {
         scene.classList.remove('dice-scene-rolling');
         scene.classList.add('dice-scene-landed');
-        setTimeout(() => scene.classList.remove('dice-scene-landed'), 520);
+        setTimeout(() => scene.classList.remove('dice-scene-landed'), 600);
       }
       if (onDone) onDone();
     };

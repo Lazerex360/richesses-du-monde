@@ -2279,12 +2279,15 @@ body.reduce-motion .board-cell.pawn-landing-cell { animation: none; }
   transition: filter 0.25s, transform 0.25s;
 }
 .dice-scene.dice-scene-rolling { filter: drop-shadow(0 10px 16px rgba(0,0,0,0.55)); }
-.dice-scene.dice-scene-landed { animation: dice-scene-bounce 0.48s cubic-bezier(0.34, 1.45, 0.64, 1); }
+.dice-scene.dice-scene-landed { animation: dice-scene-bounce 0.56s cubic-bezier(0.22, 1, 0.36, 1); }
 @keyframes dice-scene-bounce {
-  0% { transform: translateY(0) scale(1); }
-  35% { transform: translateY(-5px) scale(1.04); }
-  70% { transform: translateY(2px) scale(0.98); }
-  100% { transform: translateY(0) scale(1); }
+  0%   { transform: translateY(0) scale(1, 1) rotateZ(0deg); }
+  16%  { transform: translateY(3px) scale(1.09, 0.89) rotateZ(-1.2deg); }
+  38%  { transform: translateY(-9px) scale(0.94, 1.08) rotateZ(1.6deg); }
+  56%  { transform: translateY(1.5px) scale(1.05, 0.96) rotateZ(-0.8deg); }
+  74%  { transform: translateY(-3.5px) scale(0.98, 1.03) rotateZ(0.4deg); }
+  90%  { transform: translateY(0.5px) scale(1.012, 0.99) rotateZ(-0.15deg); }
+  100% { transform: translateY(0) scale(1, 1) rotateZ(0deg); }
 }
 
 .dice-scene--preview {
@@ -2391,6 +2394,7 @@ body.reduce-motion .board-cell.pawn-landing-cell { animation: none; }
 @media (prefers-reduced-motion: reduce) {
   .dice-cube.dice-wild { animation: none; }
   .dice-cube { transition-duration: 0.01ms !important; }
+  .dice-scene.dice-scene-landed { animation: none; }
 }
 
 .player-card {

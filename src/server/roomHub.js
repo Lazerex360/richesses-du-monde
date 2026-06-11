@@ -176,11 +176,18 @@ class RoomHub {
     }
   }
 
-  startGame(room, auto = false) {
+  startGame(room, auto = false, snapshot = null) {
     if (!room || room.started) return { error: 'Déjà commencée' };
     if (room.players.length < 2) return { error: 'Minimum 2 joueurs' };
     if (!auto && !room.players.every((p) => p.ready)) {
       return { error: 'Tous les joueurs doivent être prêts' };
+    }
+    if (snapshot) {
+      const saved = Array.isArray(snapshot.players) ? snapshot.players.length : 0;
+      if (saved < 2) return { error: 'Sauvegarde invalide' };
+      if (room.players.length !== saved) {
+        return { error: `La sauvegarde compte ${saved} joueurs — ajustez le salon (bots) pour correspondre` };
+      }
     }
 
     room.started = true;
@@ -188,12 +195,26 @@ class RoomHub {
     room.countdownEnd = null;
     this.syncAllRoomPlayersFromAccounts(room);
 
-    // Ordre de jeu aléatoire à chaque partie (Fisher-Yates). On mélange
-    // room.players AVANT de créer le moteur pour que room.players et
-    // room.game.players restent alignés par index lors du remappage des id.
-    for (let i = room.players.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [room.players[i], room.players[j]] = [room.players[j], room.players[i]];
+    if (snapshot) {
+      // Import : pas de tirage au sort — chaque siège du salon reprend le
+      // siège correspondant de la sauvegarde. Les joueurs dont le nom
+      // figure dans la sauvegarde retrouvent leur place, les autres
+      // (humains ou bots) comblent les sièges restants dans l'ordre.
+      const remaining = [...room.players];
+      const ordered = snapshot.players.map((sp) => {
+        const k = remaining.findIndex((p) => p.name === sp.name);
+        return k >= 0 ? remaining.splice(k, 1)[0] : null;
+      });
+      ordered.forEach((slot, i) => { if (!slot) ordered[i] = remaining.shift(); });
+      room.players = ordered;
+    } else {
+      // Ordre de jeu aléatoire à chaque partie (Fisher-Yates). On mélange
+      // room.players AVANT de créer le moteur pour que room.players et
+      // room.game.players restent alignés par index lors du remappage des id.
+      for (let i = room.players.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [room.players[i], room.players[j]] = [room.players[j], room.players[i]];
+      }
     }
 
     room.game = new GameEngine(
@@ -209,7 +230,11 @@ class RoomHub {
     room.players.forEach((p, i) => {
       if (room.game.players[i]) room.game.players[i].id = p.id;
     });
-    room.game.addLog(`🎲 Ordre tiré au sort : ${room.players.map((p) => p.name).join(' → ')}`);
+    if (snapshot) {
+      room.game.restoreFromSnapshot(snapshot);
+    } else {
+      room.game.addLog(`🎲 Ordre tiré au sort : ${room.players.map((p) => p.name).join(' → ')}`);
+    }
     this.broadcastRoom(room);
     this.broadcastLobbyList();
     return { success: true };

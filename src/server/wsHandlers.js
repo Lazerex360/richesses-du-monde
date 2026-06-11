@@ -236,6 +236,19 @@ function createWsHandlers(hub, accounts, uuidv4) {
         break;
       }
 
+      case 'import_game': {
+        const room = hub.rooms.get(ctx.roomCode);
+        if (!room || room.started || room.hostId !== ctx.playerId) return;
+        // Accepte l'export complet du bouton 💾 ({exportedAt, state}) ou l'état seul.
+        const snap = data.snapshot?.state || data.snapshot;
+        if (!snap || !Array.isArray(snap.players)) {
+          return send(ws, 'error_msg', 'Fichier de sauvegarde invalide');
+        }
+        const r = hub.startGame(room, true, snap);
+        if (r.error) return send(ws, 'error_msg', r.error);
+        break;
+      }
+
       case 'add_bot': {
         const room = hub.rooms.get(ctx.roomCode);
         if (!room || room.started || room.hostId !== ctx.playerId) return;

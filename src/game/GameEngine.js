@@ -61,6 +61,44 @@ class GameEngine {
     return `${amount} €`;
   }
 
+  /**
+   * Restaure l'état d'une partie depuis un export client (💾) : argent,
+   * positions, titres, tours. Le siège i du salon reprend le siège i de la
+   * sauvegarde. Les actions transitoires (enchère, achat en cours, dés) ne
+   * sont pas restaurées : la partie reprend proprement au début du tour.
+   */
+  restoreFromSnapshot(snap) {
+    (snap.players || []).forEach((sp, i) => {
+      const p = this.players[i];
+      if (!p) return;
+      p.money = Number(sp.money) || 0;
+      p.position = Number(sp.position) || 0;
+      p.laps = Number(sp.laps) || 0;
+      p.joker = !!sp.joker;
+      p.bankrupt = !!sp.bankrupt;
+      p.team = sp.team || null;
+      p.titles = [];
+      (sp.titles || []).forEach((st) => {
+        const title = this.getTitleById(st.id);
+        if (title && !title.ownerId) {
+          title.ownerId = p.id;
+          p.titles.push(title);
+        }
+      });
+    });
+    const idx = Number(snap.currentPlayerIndex);
+    this.currentPlayerIndex = Number.isInteger(idx) && idx >= 0 && idx < this.players.length ? idx : 0;
+    let guard = this.players.length;
+    while (this.players[this.currentPlayerIndex]?.bankrupt && guard-- > 0) {
+      this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
+    }
+    this.phase = 'rolling';
+    this.pendingAction = null;
+    this.auction = null;
+    this.diceResult = null;
+    this.addLog('💾 Partie restaurée depuis une sauvegarde.');
+  }
+
   addLog(message) {
     this.log.unshift({ time: Date.now(), message });
     if (this.log.length > 50) this.log.pop();

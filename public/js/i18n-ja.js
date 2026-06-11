@@ -137,6 +137,8 @@
     'lobby.add_bot': "🤖 ボットを追加",
     'lobby.remove_bot': "− ボットを削除",
     'lobby.bot_hint': "ソロプレイ用にボットを追加",
+    'lobby.import': "📂 セーブデータを読み込む",
+    'lobby.import_invalid': "無効なセーブファイル",
     'lobby.ready': "準備完了",
     'lobby.unready': "準備取消",
     'lobby.waiting': "待機中",

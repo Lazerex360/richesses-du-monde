@@ -137,6 +137,8 @@
     'lobby.add_bot': "🤖 봇 추가",
     'lobby.remove_bot': "− 봇 제거",
     'lobby.bot_hint': "솔로 플레이를 위해 봇 추가",
+    'lobby.import': "📂 저장된 게임 불러오기",
+    'lobby.import_invalid': "잘못된 저장 파일",
     'lobby.ready': "준비",
     'lobby.unready': "준비 취소",
     'lobby.waiting': "대기 중",

@@ -137,6 +137,8 @@
     'lobby.add_bot': "🤖 添加机器人",
     'lobby.remove_bot': "− 移除机器人",
     'lobby.bot_hint': "添加机器人以单人游玩",
+    'lobby.import': "📂 导入存档",
+    'lobby.import_invalid': "存档文件无效",
     'lobby.ready': "准备",
     'lobby.unready': "取消准备",
     'lobby.waiting': "等待中",

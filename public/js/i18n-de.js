@@ -137,6 +137,8 @@
     'lobby.add_bot': "🤖 Bot hinzufügen",
     'lobby.remove_bot': "− Bot entfernen",
     'lobby.bot_hint': "Bots hinzufügen, um solo zu spielen",
+    'lobby.import': "📂 Spielstand importieren",
+    'lobby.import_invalid': "Ungültige Speicherdatei",
     'lobby.ready': "Bereit",
     'lobby.unready': "Bereit abbrechen",
     'lobby.waiting': "Warten",

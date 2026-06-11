@@ -137,6 +137,8 @@
     'lobby.add_bot': "🤖 Aggiungi bot",
     'lobby.remove_bot': "− Rimuovi bot",
     'lobby.bot_hint': "Aggiungi bot per giocare da solo",
+    'lobby.import': "📂 Importa una partita",
+    'lobby.import_invalid': "File di salvataggio non valido",
     'lobby.ready': "Pronto",
     'lobby.unready': "Annulla pronto",
     'lobby.waiting': "In attesa",

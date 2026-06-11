@@ -1612,6 +1612,22 @@ $('#btn-leave-lobby').addEventListener('click', () => socket.emit('leave_room'))
 $('#btn-add-bot').addEventListener('click', () => socket.emit('add_bot'));
 $('#btn-remove-bot').addEventListener('click', () => socket.emit('remove_bot', {}));
 
+/* ── Import d'une sauvegarde 💾 (hôte uniquement) ───────────── */
+$('#btn-import-game')?.addEventListener('click', () => $('#import-game-file')?.click());
+$('#import-game-file')?.addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    const snapshot = JSON.parse(await file.text());
+    const st = snapshot?.state || snapshot;
+    if (!st || !Array.isArray(st.players) || st.players.length < 2) throw new Error('format');
+    socket.emit('import_game', { snapshot });
+  } catch {
+    toast(t('lobby.import_invalid'), 'error');
+  }
+});
+
 // ===================== Récompenses de fin =====================
 socket.on('match_reward', ({ isWinner, reward, profile: newProfile }) => {
   profile = newProfile;

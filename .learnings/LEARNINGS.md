@@ -283,3 +283,57 @@ Réinitialiser `boardCells = null` dans `resetGameAnimationState()` pour chaque 
 **Règle générale :** Pour des E2E sur UI synchronisée par WebSocket, ne JAMAIS considérer qu'un `click()` réussi = action appliquée : cliquer puis attendre l'indicateur d'état que seul le serveur peut produire (classe/texte issu du broadcast), avec retry. Et pour tout flux « premier lancement », chercher d'abord les overlays d'onboarding qui interceptent les clics (`aria-modal`) avant de déboguer le reste.
 
 **Promotion candidate:** oui — patterns applicables à tout projet E2E temps-réel (clic-confirmé-par-état + onboarding + channel système).
+
+---
+
+### LRN-20260611-017 — Modules examples/jsm de Three.js via CDN : sans import map, TOUT le graphe de modules meurt en silence
+- **Date:** 2026-06-11
+- **Priority:** high
+- **Status:** resolved
+- **Area:** client / ES modules / Three.js
+- **Related files:** `public/index.html`, `public/js/board-globe-three.js`, `public/js/dice-webgl.js`, `public/js/ambient-3d.js`
+- **Tags:** importmap, three.js, es-modules, cdn, silent-failure
+
+**Description:** Le globe 3D, les dés WebGL et le fond ambiant étaient tous morts (aucun canvas, `RdmBoardGlobe`/`RdmAmbient3D`/`RdmDiceWebgl` undefined) depuis le commit qui avait introduit le bloom. Aucune erreur visible dans la console au moment des captures. Cause : les fichiers `three/examples/jsm/*` du CDN (EffectComposer, UnrealBloomPass, RoundedBoxGeometry…) font `import ... from 'three'` — un spécificateur nu. Sans `<script type="importmap">` qui mappe `"three"` vers l'URL CDN, la résolution échoue et le navigateur rejette TOUT le graphe d'import : le module entrant ne s'exécute jamais, donc aucun global n'est posé. Diagnostic obtenu seulement via `import('/js/board-globe-three.js')` dynamique qui a fait remonter `Failed to resolve module specifier "three"`.
+
+**Resolution:** Import map ajouté avant les scripts module dans index.html : `{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.184.0/build/three.module.js" } }`.
+
+**Règle générale :** Dès qu'un module ES importe un paquet par nom (spécificateur nu) côté navigateur, un import map est obligatoire — et une erreur de résolution tue silencieusement tout le graphe, pas seulement le fichier fautif. Pour diagnostiquer un module « mort sans erreur », faire un `import()` dynamique dans la console : lui remonte l'exception.
+
+**Promotion candidate:** oui — piège universel des apps no-bundler qui consomment des CDN ESM.
+
+---
+
+### LRN-20260611-018 — `Promise.all` sur des textures CDN : un seul 404 annule toutes les autres ; le paquet npm three-globe ne contient pas earth-clouds.png
+- **Date:** 2026-06-11
+- **Priority:** medium
+- **Status:** resolved
+- **Area:** client / Three.js / assets CDN
+- **Related files:** `public/js/board-globe-three.js`
+- **Tags:** three.js, textures, cdn, promise-all, 404, graceful-degradation
+
+**Description:** Le globe restait une sphère bleue unie : `texturesLoaded` ne passait jamais à true. Les 5 textures étaient chargées dans un `Promise.all`, et `earth-clouds.png` renvoyait 404 sur le CDN npm (`cdn.jsdelivr.net/npm/three-globe/...`) — le PAQUET npm ne distribue pas cette image, seul le dépôt GitHub l'a (`cdn.jsdelivr.net/gh/vasturiano/three-globe@master/example/clouds/clouds.png`, ~5 Mo). Le rejet unique a donc jeté les 4 textures valides déjà téléchargées.
+
+**Resolution:** Chargement indépendant par texture avec `.then()` individuels et catch propres : la Terre s'affiche dès que sa diffuse arrive, normal/specular/night s'appliquent en bonus, les nuages sont optionnels (et sautés en palier « lite »).
+
+**Règle générale :** Pour des assets visuels optionnels, ne jamais agréger avec `Promise.all` (sémantique tout-ou-rien) : charger indépendamment et dégrader gracieusement. Et vérifier qu'un fichier d'exemple existe bien dans le PAQUET npm avant de pointer le CDN npm — beaucoup de repos excluent leurs exemples du paquet publié.
+
+**Promotion candidate:** oui — pattern de dégradation gracieuse applicable à tout chargement d'assets.
+
+---
+
+### LRN-20260611-019 — preview_screenshot qui timeout à répétition : le viewport du panneau preview peut faire 2 px de large
+- **Date:** 2026-06-11
+- **Priority:** medium
+- **Status:** resolved
+- **Area:** outillage / Claude preview
+- **Related files:** (outillage, pas le projet)
+- **Tags:** preview, viewport, screenshot-timeout, elementFromPoint
+
+**Description:** Tous les `preview_screenshot` expiraient à 30 s, et `elementFromPoint` renvoyait null partout, sur plusieurs sessions. Cause découverte via `innerWidth` : le viewport du panneau preview faisait 2 px de large (`{w:2,h:730}`) — la fenêtre n'avait jamais été dimensionnée. Rien ne « plantait » : la page rendait dans 2 pixels.
+
+**Resolution:** `preview_resize {width:1280, height:800}` explicite en début de session de vérification, puis re-tester. Quand les captures échouent malgré tout, les preuves texte (`preview_eval` sur computed styles, `elementFromPoint`, `scrollWidth`) suffisent.
+
+**Règle générale :** Avant de déboguer une page « cassée » dans le preview, vérifier `innerWidth/innerHeight` : un viewport dégénéré mime parfaitement un bug de rendu. Toujours `preview_resize` explicite avant toute vérification visuelle.
+
+**Promotion candidate:** non — spécifique à l'outillage preview, mais à retenir pour ce poste de travail.

@@ -309,6 +309,7 @@
     'settings.sound': "🔊 サウンド",
     'settings.volume': "音量",
     'settings.sfx': "効果音",
+    'settings.music': "アンビエント音楽",
     'settings.display': "🖥️ 表示",
     'settings.language_group': "🌍 言語",
     'settings.language': "言語",

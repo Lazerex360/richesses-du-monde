@@ -309,6 +309,7 @@
     'settings.sound': "🔊 Som",
     'settings.volume': "Volume",
     'settings.sfx': "Efeitos sonoros",
+    'settings.music': "Música ambiente",
     'settings.display': "🖥️ Ecrã",
     'settings.language_group': "🌍 Idioma",
     'settings.language': "Idioma",

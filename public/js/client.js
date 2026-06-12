@@ -128,7 +128,7 @@ function detectDefaultCinematic() {
 }
 
 const DEFAULT_SETTINGS = {
-  volume: 50, sfx: true, textSize: 100, reduceMotion: false, highContrast: false,
+  volume: 50, sfx: true, music: false, textSize: 100, reduceMotion: false, highContrast: false,
   cinematicMode: detectDefaultCinematic(), lang: 'fr', theme: 'dark',
 };
 let settings = loadSettings();
@@ -280,11 +280,100 @@ function sfx(kind = 'click') {
   } catch (_) {}
 }
 
+/* ── Musique d'ambiance générative (WebAudio, aucun asset) ──────
+   Nappe d'accords lente : 3 oscillateurs + LFO de respiration,
+   reliés à un gain maître piloté par le volume des réglages.
+   Opt-in (off par défaut) car le son non sollicité est intrusif. */
+const music = { nodes: null, timer: null, step: 0 };
+const MUSIC_CHORDS = [
+  [220.0, 261.63, 329.63],   // Am
+  [174.61, 220.0, 261.63],   // F
+  [196.0, 246.94, 293.66],   // G
+  [164.81, 220.0, 261.63],   // C/E
+];
+
+function musicGainTarget() { return (settings.volume / 100) * 0.05; }
+
+function startMusic() {
+  if (music.nodes) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const master = audioCtx.createGain();
+    master.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+    master.gain.exponentialRampToValueAtTime(Math.max(musicGainTarget(), 0.0001), audioCtx.currentTime + 2);
+    // LFO très lent pour faire « respirer » la nappe et éviter la monotonie.
+    const lfo = audioCtx.createOscillator();
+    const lfoGain = audioCtx.createGain();
+    lfo.frequency.value = 0.08;
+    lfoGain.gain.value = 0.35;
+    lfo.connect(lfoGain); lfoGain.connect(master.gain);
+    lfo.start();
+    master.connect(audioCtx.destination);
+    const oscs = MUSIC_CHORDS[0].map((f) => {
+      const o = audioCtx.createOscillator();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(f, audioCtx.currentTime);
+      o.connect(master);
+      o.start();
+      return o;
+    });
+    music.nodes = { master, oscs, lfo };
+    music.step = 0;
+    music.timer = setInterval(() => {
+      if (!music.nodes) return;
+      music.step = (music.step + 1) % MUSIC_CHORDS.length;
+      const chord = MUSIC_CHORDS[music.step];
+      const now = audioCtx.currentTime;
+      // Glissement doux (4 s) vers l'accord suivant plutôt qu'un saut sec.
+      music.nodes.oscs.forEach((o, i) => {
+        o.frequency.cancelScheduledValues(now);
+        o.frequency.setTargetAtTime(chord[i], now, 1.4);
+      });
+    }, 9000);
+  } catch (_) { music.nodes = null; }
+}
+
+function stopMusic() {
+  if (!music.nodes) return;
+  try {
+    const { master, oscs, lfo } = music.nodes;
+    const now = audioCtx.currentTime;
+    master.gain.cancelScheduledValues(now);
+    master.gain.setTargetAtTime(0.0001, now, 0.4);
+    setTimeout(() => { try { oscs.forEach((o) => o.stop()); lfo.stop(); master.disconnect(); } catch (_) {} }, 1500);
+  } catch (_) {}
+  clearInterval(music.timer);
+  music.timer = null;
+  music.nodes = null;
+}
+
+function syncMusic() {
+  const wanted = !!settings.music && settings.volume > 0;
+  if (wanted && !music.nodes) startMusic();
+  else if (!wanted && music.nodes) stopMusic();
+  else if (wanted && music.nodes) {
+    try {
+      music.nodes.master.gain.setTargetAtTime(Math.max(musicGainTarget(), 0.0001), audioCtx.currentTime, 0.2);
+    } catch (_) {}
+  }
+}
+
+// L'autoplay est bloqué tant qu'aucun geste utilisateur n'a eu lieu :
+// si la musique est activée dans les réglages, on la (re)lance au
+// premier clic de la session.
+document.addEventListener('click', function musicKickstart() {
+  if (settings.music) syncMusic();
+  document.removeEventListener('click', musicKickstart);
+}, { once: true });
+
 function renderSettingsUI() {
   syncLanguageSelectors();
   $('#set-volume').value = settings.volume;
   $('#set-volume-val').textContent = `${settings.volume}%`;
   $('#set-sfx').checked = settings.sfx;
+  const setMusic = $('#set-music');
+  if (setMusic) setMusic.checked = !!settings.music;
   $('#set-textsize').value = settings.textSize;
   $('#set-textsize-val').textContent = `${settings.textSize}%`;
   $('#set-reduce-motion').checked = settings.reduceMotion;
@@ -435,11 +524,13 @@ $('#set-volume').addEventListener('input', (e) => {
   settings.volume = +e.target.value;
   $('#set-volume-val').textContent = `${settings.volume}%`;
   saveSettings();
+  syncMusic();
 });
 $('#set-volume').addEventListener('change', () => sfx('dice'));
 $('#set-language').addEventListener('change', (e) => setLanguage(e.target.value));
 $('#auth-language')?.addEventListener('change', (e) => setLanguage(e.target.value));
 $('#set-sfx').addEventListener('change', (e) => { settings.sfx = e.target.checked; saveSettings(); if (settings.sfx) sfx('success'); });
+$('#set-music')?.addEventListener('change', (e) => { settings.music = e.target.checked; saveSettings(); syncMusic(); });
 $('#set-textsize').addEventListener('input', (e) => {
   settings.textSize = +e.target.value;
   $('#set-textsize-val').textContent = `${settings.textSize}%`;

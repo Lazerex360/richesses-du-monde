@@ -309,6 +309,7 @@
     'settings.sound': "🔊 사운드",
     'settings.volume': "볼륨",
     'settings.sfx': "효과음",
+    'settings.music': "배경 음악",
     'settings.display': "🖥️ 화면",
     'settings.language_group': "🌍 언어",
     'settings.language': "언어",

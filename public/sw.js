@@ -2,8 +2,10 @@
  * Service Worker — Richesses du Monde
  * Stratégie : network-first + cache fallback pour assets statiques.
  */
-const CACHE = 'rdm-v2';
+const CACHE = 'rdm-v3';
 
+/* Tout ce qu'il faut pour ouvrir l'appli ET jouer hors ligne (mode local
+   contre bots) dès le premier lancement — pas seulement après navigation. */
 const PRECACHE = [
   '/',
   '/css/style.css',
@@ -11,8 +13,18 @@ const PRECACHE = [
   '/css/improvements.css',
   '/js/client.js',
   '/js/i18n.js',
+  '/js/i18n-de.js',
+  '/js/i18n-it.js',
+  '/js/i18n-pt.js',
+  '/js/i18n-ko.js',
+  '/js/i18n-zh.js',
+  '/js/i18n-ja.js',
   '/js/rules.js',
   '/js/dice3d.js',
+  '/js/vendor/matter.min.js',
+  '/js/dice-physics.js',
+  '/js/offline-engine.js',
+  '/js/offline-game.js',
   '/icon.svg',
   '/manifest.json',
 ];

@@ -630,6 +630,7 @@ class GameSocket {
     };
   }
   _showReconnectBanner() {
+    if (window.RdmOffline?.active) return; // hors-ligne : la reconnexion n'est pas un problème
     let el = document.getElementById('rdm-reconnect-banner');
     if (!el) {
       el = document.createElement('div');
@@ -649,10 +650,18 @@ class GameSocket {
     (this.handlers[event] = this.handlers[event] || []).push(fn);
   }
   emit(event, data = {}) {
+    // Mode hors-ligne : les événements sont traités par le serveur local
+    // (même protocole), le WebSocket n'est pas sollicité.
+    if (window.RdmOffline?.active) { window.RdmOffline.handle(event, data); return; }
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify({ event, data }));
   }
 }
 const socket = new GameSocket();
+// Permet au serveur local (offline-game.js) d'injecter des événements
+// comme s'ils venaient du WebSocket.
+window.RdmDispatch = (event, data) => {
+  (socket.handlers[event] || []).forEach((fn) => fn(data));
+};
 
 // ===================== Authentification =====================
 function showAuthError(msg) {
@@ -823,6 +832,21 @@ async function tryRestoreSession() {
 
 $('#btn-google-fallback').addEventListener('click', startGoogleOAuth);
 $('#btn-guest').addEventListener('click', loginGuest);
+
+/* ── Mode hors-ligne : partie locale contre bots, sans compte ───── */
+let wasOfflineSession = false;
+$('#btn-offline')?.addEventListener('click', () => {
+  if (!window.RdmOffline || !window.RdmEngine) {
+    toast(t('auth.offline_unavailable'), 'error');
+    return;
+  }
+  const name = ($('#auth-pseudo')?.value || localStorage.getItem('rdm_pseudo') || '').trim()
+    || t('auth.offline_default_name');
+  // Profil minimal local : aucun appel serveur, aucune persistance compte.
+  profile = profile || { displayName: name, avatar: '🧭', level: 1 };
+  wasOfflineSession = true;
+  if (window.RdmOffline.start({ name })) sfx('success');
+});
 $('#btn-pseudo-confirm').addEventListener('click', confirmPseudoSetup);
 $('#pseudo-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmPseudoSetup(); });
 $('#btn-email-login').addEventListener('click', emailLoginFromForm);
@@ -1515,6 +1539,13 @@ socket.on('left_room', () => {
   inActiveGame = false;
   lastGameStartTime = 0;
   resetGameAnimationState();
+  // En partie locale il n'y a pas de hub utilisable (pas de compte) :
+  // retour à l'écran d'accueil.
+  if (wasOfflineSession) {
+    wasOfflineSession = false;
+    showScreen('screen-auth');
+    return;
+  }
   showScreen('screen-hub');
   switchTab('play');
 });
@@ -1522,7 +1553,9 @@ socket.on('left_room', () => {
 socket.on('joined', ({ roomCode, playerId, isHost: host }) => {
   myGameId = playerId;
   isHost = host;
-  saveActiveRoom(roomCode, playerId);
+  // Une partie locale ne doit pas être proposée en reprise à la prochaine
+  // session en ligne : elle n'existe que dans cet onglet.
+  if (roomCode !== 'LOCAL') saveActiveRoom(roomCode, playerId);
   hide($('#quick-status'));
 });
 
@@ -3381,21 +3414,27 @@ function ensureDiceCubes() {
    lib est chargée. d1/d2 peuvent être null (résultat serveur pas encore
    arrivé) — la simulation tourne et sera figée via setResult. */
 function startDicePhysics(d1, d2) {
-  if (settings.reduceMotion || !window.RdmDicePhysics?.available?.()) return;
-  const arena = $('.dice-roll-arena');
-  if (!arena) return;
-  const roller = gameState?.players?.[gameState.currentPlayerIndex];
-  const skin = roller?.diceStyle || profile?.equippedDiceStyle
-    || { bg: '#ffffff', color: '#1a1a2e', border: 'transparent' };
-  if (window.RdmDicePhysics.roll(arena, skin)) {
-    arena.classList.add('dice-physics-on');
-    if (d1) window.RdmDicePhysics.setResult(d1, d2);
-  }
+  // Purement cosmétique : aucun échec ici ne doit pouvoir interrompre le
+  // flux de jeu (les handlers WS avalent les exceptions silencieusement).
+  try {
+    if (settings.reduceMotion || !window.RdmDicePhysics?.available?.()) return;
+    const arena = $('.dice-roll-arena');
+    if (!arena) return;
+    const roller = gameState?.players?.[gameState.currentPlayerIndex];
+    const skin = roller?.diceStyle || profile?.equippedDiceStyle
+      || { bg: '#ffffff', color: '#1a1a2e', border: 'transparent' };
+    if (window.RdmDicePhysics.roll(arena, skin)) {
+      arena.classList.add('dice-physics-on');
+      if (d1) window.RdmDicePhysics.setResult(d1, d2);
+    }
+  } catch (_) {}
 }
 
 function stopDicePhysics() {
-  $('.dice-roll-arena')?.classList.remove('dice-physics-on');
-  window.RdmDicePhysics?.stop?.();
+  try {
+    $('.dice-roll-arena')?.classList.remove('dice-physics-on');
+    window.RdmDicePhysics?.stop?.();
+  } catch (_) {}
 }
 
 function applyDiceSkin() {
@@ -3902,7 +3941,9 @@ function renderGame(state) {
   if (restored) {
     await finishLogin();
   } else {
-    showScreen('screen-auth');
+    // Si l'utilisateur a déjà lancé une partie hors ligne pendant que la
+    // restauration de session se terminait, ne pas écraser son écran.
+    if (!window.RdmOffline?.active) showScreen('screen-auth');
     await setupGoogleAuth();
     if (gerr) showAuthError(googleErrorMessage(gerr));
   }

@@ -66,6 +66,7 @@
           <p class="auth-note" data-i18n="auth.note">La connexion Google utilise votre compte Google réel. La connexion par e-mail est une alternative séparée.</p>
 
           <button id="btn-guest" class="auth-guest-link" data-i18n="auth.guest">Jouer en invité</button>
+          <button id="btn-offline" class="auth-guest-link" data-i18n="auth.offline">🤖 Jouer hors ligne (contre des bots)</button>
         </div>
       </div>
       <div class="auth-features" aria-hidden="false">
@@ -765,6 +766,8 @@
   <script src="/js/dice3d.js"></script>
   <script src="/js/vendor/matter.min.js" defer></script>
   <script src="/js/dice-physics.js" defer></script>
+  <script src="/js/offline-engine.js" defer></script>
+  <script src="/js/offline-game.js" defer></script>
   <!-- Import map : les modules examples/jsm de Three.js (EffectComposer,
        RoundedBoxGeometry…) importent le spécificateur nu "three" ; sans
        cette table, TOUT le graphe de modules WebGL échoue silencieusement

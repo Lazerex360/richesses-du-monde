@@ -2251,6 +2251,12 @@ body.reduce-motion .board-cell.pawn-landing-cell { animation: none; }
 .dice-roll-arena.dice-arena-landed {
   border-color: rgba(201, 160, 74, 0.5);
 }
+/* Dés physiques matter.js : le canvas remplace visuellement les cubes CSS
+   pendant la simulation (ils restent dans le DOM pour le fallback/repos). */
+.dice-roll-arena.dice-physics-on #die1,
+.dice-roll-arena.dice-physics-on #die2 {
+  visibility: hidden;
+}
 .dice-arena-glow {
   position: absolute; inset: 0; border-radius: 14px; pointer-events: none;
   background: radial-gradient(ellipse 60% 50% at 50% 40%, rgba(212, 168, 83, 0.12), transparent 70%);

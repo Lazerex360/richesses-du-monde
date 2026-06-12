@@ -3377,6 +3377,27 @@ function ensureDiceCubes() {
   Dice3D.initCube($('#die2'), 1);
 }
 
+/* Dés physiques matter.js : remplace visuellement le lancer CSS quand la
+   lib est chargée. d1/d2 peuvent être null (résultat serveur pas encore
+   arrivé) — la simulation tourne et sera figée via setResult. */
+function startDicePhysics(d1, d2) {
+  if (settings.reduceMotion || !window.RdmDicePhysics?.available?.()) return;
+  const arena = $('.dice-roll-arena');
+  if (!arena) return;
+  const roller = gameState?.players?.[gameState.currentPlayerIndex];
+  const skin = roller?.diceStyle || profile?.equippedDiceStyle
+    || { bg: '#ffffff', color: '#1a1a2e', border: 'transparent' };
+  if (window.RdmDicePhysics.roll(arena, skin)) {
+    arena.classList.add('dice-physics-on');
+    if (d1) window.RdmDicePhysics.setResult(d1, d2);
+  }
+}
+
+function stopDicePhysics() {
+  $('.dice-roll-arena')?.classList.remove('dice-physics-on');
+  window.RdmDicePhysics?.stop?.();
+}
+
 function applyDiceSkin() {
   const roller = gameState?.players?.[gameState.currentPlayerIndex];
   const s = roller?.diceStyle || profile?.equippedDiceStyle || { bg: '#ffffff', color: '#1a1a2e', border: 'transparent' };
@@ -3472,6 +3493,7 @@ function showDiceResult(d1, d2, opts = {}) {
 
   if (diceRollSession.active) {
     diceRollSession.result = { d1, d2, rollId, rollerName };
+    window.RdmDicePhysics?.setResult?.(d1, d2);
     const minMs = settings.reduceMotion ? 200 : DICE_ROLL_MIN_MS;
     if (Date.now() - diceRollSession.start >= minMs) finishDiceRoll();
     else scheduleDiceLanding();
@@ -3494,6 +3516,7 @@ function showDiceResult(d1, d2, opts = {}) {
     $('.dice-roll-arena')?.classList.add('dice-arena-rolling');
     Dice3D.startWildRoll($('#die1'));
     Dice3D.startWildRoll($('#die2'), 140);
+    startDicePhysics(d1, d2);
     scheduleDiceLanding();
     return;
   }
@@ -3541,6 +3564,7 @@ function finishDiceRoll() {
     diceLandingRollId = 0;
     if (settlingRollId) diceSettledRollId = settlingRollId;
     settleDiceCubes(d1, d2);
+    stopDicePhysics();
     updateDiceScores(d1, d2, rollerName);
     const btn = $('#btn-roll');
     if (btn) btn.disabled = false;
@@ -3582,6 +3606,7 @@ function animateDice() {
   if (btn) btn.disabled = true;
   Dice3D.startWildRoll($('#die1'));
   Dice3D.startWildRoll($('#die2'), 140);
+  startDicePhysics(null, null);
   scheduleDiceLanding();
 }
 

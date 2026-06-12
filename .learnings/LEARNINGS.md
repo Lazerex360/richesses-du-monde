@@ -337,3 +337,39 @@ Réinitialiser `boardCells = null` dans `resetGameAnimationState()` pour chaque 
 **Règle générale :** Avant de déboguer une page « cassée » dans le preview, vérifier `innerWidth/innerHeight` : un viewport dégénéré mime parfaitement un bug de rendu. Toujours `preview_resize` explicite avant toute vérification visuelle.
 
 **Promotion candidate:** non — spécifique à l'outillage preview, mais à retenir pour ce poste de travail.
+
+---
+
+### LRN-20260611-020 — `ws.onmessage` avec try/catch global : toute exception d'un handler de jeu est avalée, le tour se fige sans AUCUNE erreur visible
+- **Date:** 2026-06-11
+- **Priority:** high
+- **Status:** resolved
+- **Area:** client / WebSocket / robustesse
+- **Related files:** `public/js/client.js` (GameSocket.onmessage, startDicePhysics)
+- **Tags:** websocket, error-swallowing, silent-failure, defensive-coding, e2e
+
+**Description:** Après l'ajout des dés matter.js, l'E2E « deux joueurs » échouait de façon reproductible : le tour ne se terminait jamais, sans la moindre erreur console. Cause structurelle : `ws.onmessage` enveloppe TOUT le dispatch dans `try { ... } catch (_) {}` — si un handler (ici la chaîne game_state → showDiceResult → startDicePhysics) jette, le reste du handler (rendu des panneaux d'action) est silencieusement abandonné. Le jeu paraît « gelé » alors qu'une seule frame de logique a été perdue.
+
+**Resolution:** Tout code cosmétique appelé depuis un handler WS (physique des dés, FX) est isolé dans son propre try/catch : un échec d'animation ne peut plus interrompre la logique de jeu. E2E redevenu vert immédiatement.
+
+**Règle générale :** Quand un bus d'événements avale les exceptions globalement, chaque effet « optionnel » (visuel, son, analytics) appelé dans un handler doit attraper ses propres erreurs — sinon le premier échec cosmétique sacrifie la logique critique qui le suit, sans laisser de trace. Symptôme typique : « ça se fige sans erreur ».
+
+**Promotion candidate:** oui — vaut pour tout client temps-réel avec dispatch try/catché.
+
+---
+
+### LRN-20260611-021 — showScreen est asynchrone (setTimeout 80 ms) : lire `.screen.active` juste après une action donne l'ANCIEN écran
+- **Date:** 2026-06-11
+- **Priority:** medium
+- **Status:** resolved
+- **Area:** client / vérification automatisée
+- **Related files:** `public/js/client.js` (showScreen)
+- **Tags:** async-ui, verification, false-negative, preview
+
+**Description:** En vérifiant le mode hors-ligne, `RdmOffline.start()` semblait échouer « au premier appel seulement » : lecture de `document.querySelector('.screen.active')` immédiatement après → toujours l'ancien écran. Faux bug : la transition d'écran pose la classe `active` dans un `setTimeout(…, 80)` (cross-fade). Toute assertion synchrone juste après l'action est donc fausse par construction. Un vrai bug distinct existait aussi : l'init asynchrone (`tryRestoreSession`) ré-affichait screen-auth par-dessus la partie locale lancée entre-temps (corrigé par un garde `RdmOffline.active`).
+
+**Resolution:** Vérifier l'état d'écran après un délai (>150 ms) ou via polling ; et garder l'init d'auth de ne pas écraser un écran de jeu local déjà actif.
+
+**Règle générale :** Avant de conclure qu'une action UI « ne fait rien », vérifier si le changement d'état est différé (transitions, rAF, setTimeout). Lire l'état tout de suite après l'action mesure l'implémentation de la transition, pas le résultat.
+
+**Promotion candidate:** non — mais réflexe utile pour toute vérification preview/E2E.

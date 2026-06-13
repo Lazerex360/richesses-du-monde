@@ -230,8 +230,12 @@ body.rdm-cinematic-on .winner-card {
 body.rdm-cinematic-on .news-card-scene {
   perspective: 1200px;
 }
-body.rdm-cinematic-on .news-card-flipper.flipped {
-  filter: drop-shadow(0 16px 40px rgba(0, 0, 0, 0.5));
+/* ⚠️ Ne JAMAIS poser de filter/backdrop-filter sur .news-card-flipper :
+   filter force transform-style:flat et aplatit le preserve-3d → la carte
+   flippée montre son DOS en miroir au lieu de la face avant. L'ombre va
+   sur les faces, qui ne portent pas la 3D. */
+body.rdm-cinematic-on .news-card-face {
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 body.rdm-cinematic-on .landing-card {
   box-shadow: 0 0 40px rgba(201, 160, 74, 0.12), var(--shadow);

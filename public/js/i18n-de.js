@@ -24,6 +24,7 @@
     'auth.offline': "🤖 Offline spielen (gegen Bots)",
     'auth.offline_unavailable': "Offline-Modus nicht verfügbar (Dateien nicht geladen)",
     'auth.offline_default_name': "Entdecker",
+    'offline.auto_switch': "📡 Keine Verbindung — Offline-Spiel gegen Bots gestartet",
     'auth.note': "Die Google-Anmeldung nutzt dein echtes Google-Konto. Die E-Mail-Anmeldung ist eine separate Alternative.",
     'auth.or': "ODER",
     'auth.email_ph': "E-Mail eingeben",

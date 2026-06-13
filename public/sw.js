@@ -2,7 +2,7 @@
  * Service Worker — Richesses du Monde
  * Stratégie : network-first + cache fallback pour assets statiques.
  */
-const CACHE = 'rdm-v3';
+const CACHE = 'rdm-v4';
 
 /* Tout ce qu'il faut pour ouvrir l'appli ET jouer hors ligne (mode local
    contre bots) dès le premier lancement — pas seulement après navigation. */
@@ -25,6 +25,8 @@ const PRECACHE = [
   '/js/dice-physics.js',
   '/js/offline-engine.js',
   '/js/offline-game.js',
+  '/textures/earth-day.jpg',
+  '/textures/earth-night.jpg',
   '/icon.svg',
   '/manifest.json',
 ];
@@ -54,10 +56,13 @@ self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
   /* Ignorer : WebSocket, API, POST, cross-origin CDN */
+  /* CDN (three.js, textures bonus) : network-first + cache fallback aussi,
+     pour que le globe 3D survive hors ligne après une première visite. */
+  const isCdn = url.host === 'cdn.jsdelivr.net';
   if (
     e.request.method !== 'GET'
     || url.pathname.startsWith('/api/')
-    || url.host !== self.location.host
+    || (url.host !== self.location.host && !isCdn)
   ) return;
 
   e.respondWith(

@@ -24,6 +24,7 @@
     'auth.offline': "🤖 オフラインでプレイ（ボット対戦）",
     'auth.offline_unavailable': "オフラインモードは利用できません（ファイル未読み込み）",
     'auth.offline_default_name': "探検家",
+    'offline.auto_switch': "📡 接続なし — ボット対戦のオフラインゲームを開始しました",
     'auth.note': "Googleログインは実際のGoogleアカウントを使用します。メールログインは別の方法です。",
     'auth.or': "または",
     'auth.email_ph': "メールアドレスを入力",

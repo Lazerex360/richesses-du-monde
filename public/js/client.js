@@ -607,10 +607,12 @@ class GameSocket {
     this.ws = new WebSocket(`${proto}://${location.host}`);
     this.ws.onopen = () => {
       this._retryDelay = 1500; // reset backoff
+      this._fails = 0;
       if (this._reconnecting) {
         this._reconnecting = false;
         this._hideReconnectBanner();
       }
+      this._fails = 0; // serveur retrouvé : le compteur de bascule repart de zéro
       if (token) this.emit('auth', { token });
     };
     this.ws.onmessage = (e) => {
@@ -622,7 +624,13 @@ class GameSocket {
     this.ws.onclose = () => {
       this.authed = false;
       this._reconnecting = true;
-      this._showReconnectBanner();
+      this._fails = (this._fails || 0) + 1;
+      // Pas de réseau (ou serveur injoignable de façon répétée) : on bascule
+      // automatiquement en partie locale plutôt que de laisser l'utilisateur
+      // face à une bannière de reconnexion sans fin. La reconnexion continue
+      // en arrière-plan pour retrouver le serveur dès que possible.
+      maybeAutoOffline(this._fails);
+      this._showReconnectBanner(); // no-op si le mode hors ligne est actif
       clearTimeout(this._retryTimer);
       this._retryTimer = setTimeout(() => this.connect(), this._retryDelay);
       // Exponential backoff : 1.5s → 3s → 6s → 12s → 30s max
@@ -835,6 +843,29 @@ $('#btn-guest').addEventListener('click', loginGuest);
 
 /* ── Mode hors-ligne : partie locale contre bots, sans compte ───── */
 let wasOfflineSession = false;
+
+/**
+ * Bascule automatique en partie locale quand le réseau est coupé
+ * (navigator.onLine) ou que le serveur est injoignable 3 fois de suite.
+ * Jamais pendant une partie EN LIGNE en cours : on ne détruit pas l'état
+ * du joueur, la bannière de reconnexion garde alors tout son sens.
+ */
+function maybeAutoOffline(fails = 0) {
+  if (window.RdmOffline?.active) return true;
+  if (!window.RdmOffline || !window.RdmEngine) return false;
+  if (inActiveGame) return false;
+  const noNetwork = navigator.onLine === false;
+  if (!noNetwork && fails < 3) return false;
+  const name = (profile?.displayName || localStorage.getItem('rdm_pseudo') || '').trim()
+    || t('auth.offline_default_name');
+  profile = profile || { displayName: name, avatar: '🧭', level: 1 };
+  wasOfflineSession = true;
+  if (!window.RdmOffline.start({ name })) return false;
+  document.getElementById('rdm-reconnect-banner')?.classList.remove('visible');
+  toast(t('offline.auto_switch'), 'info');
+  return true;
+}
+window.addEventListener('offline', () => maybeAutoOffline(99));
 $('#btn-offline')?.addEventListener('click', () => {
   if (!window.RdmOffline || !window.RdmEngine) {
     toast(t('auth.offline_unavailable'), 'error');

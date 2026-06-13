@@ -24,6 +24,7 @@
     'auth.offline': "🤖 离线游玩（对战机器人）",
     'auth.offline_unavailable': "离线模式不可用（文件未加载）",
     'auth.offline_default_name': "探险家",
+    'offline.auto_switch': "📡 无网络连接 — 已开始对战机器人的离线游戏",
     'auth.note': "Google 登录使用你的真实 Google 账号。邮箱登录是另一种独立方式。",
     'auth.or': "或",
     'auth.email_ph': "输入你的邮箱",

@@ -223,6 +223,12 @@
 #rdm-reconnect-banner {
   position: fixed;
   top: 0; left: 0; right: 0;
+  /* style.css ancre aussi bottom:1.5rem + border-radius 999px : sans ces
+     resets la bannière s'étire sur toute la hauteur en bulle géante. */
+  bottom: auto;
+  border-radius: 0;
+  opacity: 1;
+  pointer-events: auto;
   z-index: 10000;
   background: rgba(240, 101, 85, 0.92);
   color: #fff;

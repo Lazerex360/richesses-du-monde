@@ -24,6 +24,7 @@
     'auth.offline': "🤖 Gioca offline (contro i bot)",
     'auth.offline_unavailable': "Modalità offline non disponibile (file non caricati)",
     'auth.offline_default_name': "Esploratore",
+    'offline.auto_switch': "📡 Nessuna connessione — partita offline contro i bot avviata",
     'auth.note': "L'accesso Google usa il tuo account Google reale. L'accesso via e-mail è un'alternativa separata.",
     'auth.or': "OPPURE",
     'auth.email_ph': "Inserisci la tua e-mail",

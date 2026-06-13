@@ -373,3 +373,23 @@ Réinitialiser `boardCells = null` dans `resetGameAnimationState()` pour chaque 
 **Règle générale :** Avant de conclure qu'une action UI « ne fait rien », vérifier si le changement d'état est différé (transitions, rAF, setTimeout). Lire l'état tout de suite après l'action mesure l'implémentation de la transition, pas le résultat.
 
 **Promotion candidate:** non — mais réflexe utile pour toute vérification preview/E2E.
+
+---
+
+### LRN-20260612-017 — Faux négatif sur la carte Actualité : pollution d'état via appels manuels `revealNewsCard()` en debug
+- **Date:** 2026-06-12
+- **Priority:** medium
+- **Status:** resolved
+- **Area:** debug / preview testing
+- **Related files:** `public/js/client.js`
+- **Tags:** debug, false-positive, news, preview_eval, state-pollution
+
+**Description:** Pour auditer un signalement « la carte Actualité ne s'affiche plus », j'ai appelé directement `window.revealNewsCard({id: 9999, ...})` plusieurs fois via `preview_eval` pour vérifier l'affichage hors contexte de jeu. Ça fonctionnait visuellement, MAIS ces appels font `lastNewsRevealId = 9999/10001/.../20001` (variable globale partagée avec la vraie logique de jeu). En jouant ensuite une vraie partie et en tirant une carte réelle (`id: 1`), `handleNewsReveal` faisait `if (nr.id <= lastNewsRevealId) return;` → toujours vrai (1 ≤ 20001) → carte jamais affichée. Résultat : un faux « bug reproduit » alors que c'était un artefact de mes propres tests.
+
+**Resolution:** `window.location.reload()` avant de rejouer une vraie partie, pour réinitialiser tous les `let` de session (`lastNewsRevealId`, `newsRevealBaselined`, etc.) — après reload, `newsRevealBaselined` se rebaseline sur l'id réel du `state.newsReveal` courant, donc le test redevient valide.
+
+**Règle générale :** Quand on appelle manuellement des fonctions de rendu/affichage qui mettent à jour un compteur "déjà vu" (anti-replay, dédup, curseur), TOUJOURS recharger la page avant de tester le flux réel — sinon le compteur pollué masque silencieusement le vrai comportement.
+
+**Conclusion de l'audit:** la carte Actualité fonctionne correctement avec le code actuel (testé en partie réelle, 2 tirages distincts affichés correctement). Si le bug persiste côté utilisateur, cause probable = cache navigateur/SW d'un `client.js` antérieur aux correctifs (`0144a8b`, `b9fc7e5`, `3ac5af8`) — cf. LRN-015.
+
+**Promotion candidate:** oui — pattern réutilisable pour tout debug via `preview_eval` touchant des compteurs anti-replay/session.

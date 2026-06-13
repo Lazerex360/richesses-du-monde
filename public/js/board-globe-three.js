@@ -9,12 +9,15 @@ import { RenderPass }     from 'https://cdn.jsdelivr.net/npm/three@0.184.0/examp
 import { UnrealBloomPass } from 'https://cdn.jsdelivr.net/npm/three@0.184.0/examples/jsm/postprocessing/UnrealBloomPass.js';
 
 const CDN      = 'https://cdn.jsdelivr.net/npm/three-globe/example/img/';
-const EARTH_TEX  = CDN + 'earth-blue-marble.jpg';
+/* Jour et nuit sont servies en LOCAL (vendorisées + précachées par le SW) :
+   sans réseau, la Terre bleue avec ses continents doit rester visible.
+   Les couches bonus (relief, specular, nuages) restent sur le CDN. */
+const EARTH_TEX  = '/textures/earth-day.jpg';
+const NIGHT_TEX  = '/textures/earth-night.jpg';
 /* Le paquet npm three-globe ne contient PAS de texture nuages (404) ;
    celle du dépôt GitHub (fair clouds 4k) est servie par le même CDN. */
 const CLOUDS_TEX = 'https://cdn.jsdelivr.net/gh/vasturiano/three-globe@master/example/clouds/clouds.png';
 const NORMAL_TEX = CDN + 'earth-topology.png';
-const NIGHT_TEX  = CDN + 'earth-night.jpg';
 const WATER_TEX  = CDN + 'earth-water.png';
 
 /* Direction normalisée vers le soleil (world-space, fixe) */
@@ -210,8 +213,10 @@ class RdmBoardGlobe {
       this.earth = new THREE.Mesh(
         new THREE.SphereGeometry(1.0, 64, 64),
         new THREE.MeshPhongMaterial({
-          color: 0x1a5276, emissive: 0x0d2b40,
-          emissiveIntensity: 0.4, shininess: 18,
+          // Bleu océan clair : même avant le chargement de la texture,
+          // la planète doit lire « Terre », pas « sphère noire ».
+          color: 0x2e6fae, emissive: 0x13406e,
+          emissiveIntensity: 0.5, shininess: 18,
         })
       );
       this.earthGroup.add(this.earth);

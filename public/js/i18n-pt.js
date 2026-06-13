@@ -24,6 +24,7 @@
     'auth.offline': "🤖 Jogar offline (contra bots)",
     'auth.offline_unavailable': "Modo offline indisponível (ficheiros não carregados)",
     'auth.offline_default_name': "Explorador",
+    'offline.auto_switch': "📡 Sem ligação — partida offline contra bots iniciada",
     'auth.note': "O início de sessão Google usa a sua conta Google real. O início por e-mail é uma alternativa separada.",
     'auth.or': "OU",
     'auth.email_ph': "Introduza o seu e-mail",

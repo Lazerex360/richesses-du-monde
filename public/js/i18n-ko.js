@@ -24,6 +24,7 @@
     'auth.offline': "🤖 오프라인 플레이 (봇 상대)",
     'auth.offline_unavailable': "오프라인 모드를 사용할 수 없습니다 (파일 미로드)",
     'auth.offline_default_name': "탐험가",
+    'offline.auto_switch': "📡 연결 없음 — 봇 상대 오프라인 게임을 시작했습니다",
     'auth.note': "Google 로그인은 실제 Google 계정을 사용합니다. 이메일 로그인은 별도의 방법입니다.",
     'auth.or': "또는",
     'auth.email_ph': "이메일 입력",

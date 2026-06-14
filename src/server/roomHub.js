@@ -256,12 +256,23 @@ class RoomHub {
     const opponents = Math.max(1, room.players.length - 1);
     const hasBots = room.players.some((p) => p.isBot);
 
+    const sorted = [...room.game.players].sort((a, b) => (b.money || 0) - (a.money || 0));
+    const standings = sorted.map((p) => ({ name: p.name, money: p.money, isBot: !!p.isBot }));
+
     for (const rp of room.players) {
       if (rp.isBot) continue;
       const acc = rp.userId ? this.accounts.getById(rp.userId) : null;
       if (!acc) continue;
       const isWinner = rp.id === winnerGameId;
-      const reward = this.accounts.applyMatchResult(acc, { isWinner, opponents, hasBots });
+      const rank = sorted.findIndex((p) => p.id === rp.id) + 1;
+      const reward = this.accounts.applyMatchResult(acc, {
+        isWinner,
+        opponents,
+        hasBots,
+        rank: rank || null,
+        totalPlayers: sorted.length,
+        standings,
+      });
       const ws = this.clients.get(rp.socketId);
       if (ws) {
         this.send(ws, 'match_reward', {

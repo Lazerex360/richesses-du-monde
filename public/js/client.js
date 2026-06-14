@@ -858,7 +858,7 @@ function maybeAutoOffline(fails = 0) {
   if (!noNetwork && fails < 3) return false;
   const name = (profile?.displayName || localStorage.getItem('rdm_pseudo') || '').trim()
     || t('auth.offline_default_name');
-  profile = profile || { displayName: name, avatar: '🧭', level: 1 };
+  profile = profile || { displayName: name, avatar: '🧭', level: 1, stats: { wins: 0, played: 0, streak: 0, bestStreak: 0 }, ownedPawns: [], xpIntoLevel: 0, xpForNext: 1, matchHistory: [] };
   wasOfflineSession = true;
   if (!window.RdmOffline.start({ name })) return false;
   document.getElementById('rdm-reconnect-banner')?.classList.remove('visible');
@@ -874,7 +874,7 @@ $('#btn-offline')?.addEventListener('click', () => {
   const name = ($('#auth-pseudo')?.value || localStorage.getItem('rdm_pseudo') || '').trim()
     || t('auth.offline_default_name');
   // Profil minimal local : aucun appel serveur, aucune persistance compte.
-  profile = profile || { displayName: name, avatar: '🧭', level: 1 };
+  profile = profile || { displayName: name, avatar: '🧭', level: 1, stats: { wins: 0, played: 0, streak: 0, bestStreak: 0 }, ownedPawns: [], xpIntoLevel: 0, xpForNext: 1, matchHistory: [] };
   wasOfflineSession = true;
   if (window.RdmOffline.start({ name })) sfx('success');
 });
@@ -1483,6 +1483,73 @@ function renderProfileTab() {
     hint.classList.toggle('rename-limit-zero', remaining <= 0);
   }
   if (btnRename) btnRename.disabled = remaining <= 0;
+  renderMatchHistory();
+}
+
+const OFFLINE_HISTORY_KEY = 'rdm_offline_history';
+const MATCH_HISTORY_DISPLAY_LIMIT = 20;
+
+function loadOfflineHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(OFFLINE_HISTORY_KEY) || '[]');
+  } catch (_) {
+    return [];
+  }
+}
+
+function recordOfflineMatch(state) {
+  const standings = [...state.players]
+    .sort((a, b) => (b.money || 0) - (a.money || 0))
+    .map((p) => ({ name: p.name, money: p.money, isBot: !!p.isBot }));
+  const rank = standings.findIndex((p) => p.name === state.players.find((p2) => p2.id === myGameId)?.name) + 1;
+  const iWon = state.winningTeam ? state.winningTeam.includes(myGameId) : state.winner.id === myGameId;
+  const entry = {
+    date: Date.now(),
+    isWinner: iWon,
+    rank: rank || null,
+    totalPlayers: standings.length,
+    hasBots: true,
+    standings,
+    offline: true,
+  };
+  const history = loadOfflineHistory();
+  history.unshift(entry);
+  if (history.length > MATCH_HISTORY_DISPLAY_LIMIT) history.length = MATCH_HISTORY_DISPLAY_LIMIT;
+  localStorage.setItem(OFFLINE_HISTORY_KEY, JSON.stringify(history));
+}
+
+function renderMatchHistory() {
+  const container = $('#match-history-list');
+  if (!container) return;
+  const online = profile?.matchHistory || [];
+  const offline = loadOfflineHistory();
+  const all = [...online, ...offline]
+    .sort((a, b) => (b.date || 0) - (a.date || 0))
+    .slice(0, MATCH_HISTORY_DISPLAY_LIMIT);
+
+  if (!all.length) {
+    container.innerHTML = `<p class="match-history-empty">${t('profile.history_empty')}</p>`;
+    return;
+  }
+
+  const localeMap = { fr: 'fr-FR', en: 'en-US', es: 'es-ES', de: 'de-DE', it: 'it-IT', pt: 'pt-PT', ko: 'ko-KR', zh: 'zh-CN', ja: 'ja-JP' };
+  const locale = localeMap[settings.lang] || 'fr-FR';
+
+  container.innerHTML = all.map((m) => {
+    const date = new Date(m.date).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: '2-digit' });
+    const opponents = (m.standings || []).filter((_, i) => i !== (m.rank - 1)).map((p) => p.name);
+    const meta = opponents.length ? t('profile.history_vs', { names: opponents.slice(0, 3).join(', ') }) : '';
+    const rankLabel = m.isWinner ? t('profile.history_win') : t('profile.history_rank', { rank: m.rank || '?', total: m.totalPlayers || '?' });
+    return `
+      <div class="match-history-row ${m.isWinner ? 'win' : ''}">
+        <span class="match-history-result" aria-hidden="true">${m.isWinner ? '🏆' : '🎲'}</span>
+        <div class="match-history-info">
+          <span class="match-history-rank">${escapeHtml(rankLabel)}</span>
+          ${meta ? `<span class="match-history-meta">${escapeHtml(meta)}</span>` : ''}
+        </div>
+        <span class="match-history-date">${date}</span>
+      </div>`;
+  }).join('');
 }
 
 $('#btn-promo').addEventListener('click', async () => {
@@ -1524,6 +1591,7 @@ $('#btn-rename').addEventListener('click', async () => {
 // ===================== Salon =====================
 let myGameId = null;
 let isHost = false;
+let offlineHistoryRecorded = false;
 const ACTIVE_ROOM_KEY = 'rdm_active_room';
 
 function saveActiveRoom(code, playerId) {
@@ -3210,6 +3278,7 @@ function startAuctionCountdown() {
 function resetGameAnimationState() {
   lastAnimatedRollId = '';
   localSurrendered = false;
+  offlineHistoryRecorded = false;
   boardCells = null;
   stopAuctionCountdown();
   clearPawnMoveTimer();
@@ -3922,6 +3991,10 @@ function renderGame(state) {
         window.RdmAmbient3D?.celebrate?.();
         window.RdmFx?.confetti?.();
       }
+    }
+    if (window.RdmOffline?.active && !offlineHistoryRecorded) {
+      offlineHistoryRecorded = true;
+      recordOfflineMatch(state);
     }
     const iWon = state.winningTeam ? state.winningTeam.includes(myGameId) : state.winner.id === myGameId;
     $('#winner-text').textContent = iWon

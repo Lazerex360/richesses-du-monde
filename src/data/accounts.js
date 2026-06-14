@@ -274,6 +274,7 @@ function getProfile(account) {
       claimedPremium: account.battlePass.claimedPremium,
     },
     stats: account.stats,
+    matchHistory: account.matchHistory || [],
     renamesRemaining: getRenamesRemaining(account),
     renamesLimit: RENAME_LIMIT_PER_MONTH,
   };
@@ -399,7 +400,9 @@ function redeemPromo(account, code) {
   };
 }
 
-function applyMatchResult(account, { isWinner, opponents, hasBots = false }) {
+const MATCH_HISTORY_LIMIT = 20;
+
+function applyMatchResult(account, { isWinner, opponents, hasBots = false, rank = null, totalPlayers = null, standings = null }) {
   if (typeof account.stats.streak !== 'number') account.stats.streak = 0;
   if (typeof account.stats.bestStreak !== 'number') account.stats.bestStreak = 0;
 
@@ -423,6 +426,18 @@ function applyMatchResult(account, { isWinner, opponents, hasBots = false }) {
   account.seasonXp += reward.xp;
   account.stats.played += 1;
   if (isWinner) account.stats.wins += 1;
+
+  if (!account.matchHistory) account.matchHistory = [];
+  account.matchHistory.unshift({
+    date: Date.now(),
+    isWinner,
+    rank,
+    totalPlayers,
+    hasBots,
+    standings,
+  });
+  if (account.matchHistory.length > MATCH_HISTORY_LIMIT) account.matchHistory.length = MATCH_HISTORY_LIMIT;
+
   save();
   return { ...reward, currentStreak: account.stats.streak, bestStreak: account.stats.bestStreak };
 }

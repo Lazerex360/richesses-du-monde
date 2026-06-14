@@ -322,6 +322,8 @@
     'settings.cinematic_mode': "电影级3D模式",
     'settings.cinematic_hint': "WebGL背景、3D骰子和视觉效果。移动端默认关闭。",
     'settings.cinematic_on': "电影模式已启用",
+    'settings.show_stars': "动态星空背景",
+    'settings.show_globe': "旋转地球仪",
     'settings.high_contrast': "高对比度",
     'settings.theme': "主题",
     'settings.theme_dark': "暗金",

@@ -322,6 +322,8 @@
     'settings.cinematic_mode': "시네마틱 3D 모드",
     'settings.cinematic_hint': "WebGL 배경, 3D 주사위 및 시각 효과. 모바일에서는 기본 꺼짐.",
     'settings.cinematic_on': "시네마틱 모드 활성화",
+    'settings.show_stars': "애니메이션 별 배경",
+    'settings.show_globe': "회전하는 지구본",
     'settings.high_contrast': "고대비",
     'settings.theme': "테마",
     'settings.theme_dark': "골드 다크",

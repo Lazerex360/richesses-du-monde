@@ -33,14 +33,15 @@ function showScreen(id) {
 
   updateDocumentTitle();
   applyLanguage();
-  if (isCinematicActive()) {
+  if (isCinematicActive() && settings.showStars) {
     window.RdmAmbient3D?.setMode?.(getAmbientModeForScreen(id));
   } else {
     window.RdmAmbient3D?.setMode?.('off');
   }
-  // Globe 3D : actif dès qu'on est sur l'écran jeu, quel que soit le mode
-  // cinématique (il choisit lui-même son palier de qualité).
-  window.RdmBoardGlobe?.setEnabled?.(id === 'screen-game');
+  // Globe 3D : actif dès qu'on est sur l'écran jeu (sauf désactivation
+  // explicite dans les paramètres), quel que soit le mode cinématique
+  // (il choisit lui-même son palier de qualité).
+  window.RdmBoardGlobe?.setEnabled?.(id === 'screen-game' && settings.showGlobe);
 }
 
 function formatMoney(amount) {
@@ -130,6 +131,7 @@ function detectDefaultCinematic() {
 const DEFAULT_SETTINGS = {
   volume: 50, sfx: true, music: false, textSize: 100, reduceMotion: false, highContrast: false,
   cinematicMode: detectDefaultCinematic(), lang: 'fr', theme: 'dark',
+  showStars: true, showGlobe: true,
 };
 let settings = loadSettings();
 // Appliqué tout de suite (avant le 1er paint) pour éviter un flash du thème par défaut.
@@ -161,7 +163,7 @@ function getAmbientModeForScreen(id) {
 }
 
 function syncAmbientScreen() {
-  if (!isCinematicActive()) {
+  if (!isCinematicActive() || !settings.showStars) {
     window.RdmAmbient3D?.setMode?.('off');
     return;
   }
@@ -182,8 +184,9 @@ function applySettings() {
   window.RdmDiceWebgl?.setEnabled?.(isCinematicActive());
   // Le globe 3D n'est plus conditionné au mode cinématique : il se monte
   // dès que l'écran jeu est actif (qualité allégée hors cinématique,
-  // reduce-motion reste le seul interrupteur d'accessibilité).
-  window.RdmBoardGlobe?.setEnabled?.(!!document.querySelector('#screen-game.active'));
+  // reduce-motion reste le seul interrupteur d'accessibilité), sauf si
+  // l'utilisateur l'a désactivé explicitement dans les paramètres.
+  window.RdmBoardGlobe?.setEnabled?.(!!document.querySelector('#screen-game.active') && settings.showGlobe);
   syncAmbientScreen();
   applyBoardZoom();
 }
@@ -378,6 +381,8 @@ function renderSettingsUI() {
   $('#set-textsize-val').textContent = `${settings.textSize}%`;
   $('#set-reduce-motion').checked = settings.reduceMotion;
   $('#set-cinematic-mode').checked = settings.cinematicMode;
+  $('#set-show-stars').checked = settings.showStars;
+  $('#set-show-globe').checked = settings.showGlobe;
   $('#set-high-contrast').checked = settings.highContrast;
   $('#set-theme').value = settings.theme || 'dark';
 }
@@ -544,6 +549,8 @@ $('#set-cinematic-mode').addEventListener('change', (e) => {
   saveSettings();
   if (settings.cinematicMode) toast(t('settings.cinematic_on'), 'success');
 });
+$('#set-show-stars').addEventListener('change', (e) => { settings.showStars = e.target.checked; applySettings(); saveSettings(); });
+$('#set-show-globe').addEventListener('change', (e) => { settings.showGlobe = e.target.checked; applySettings(); saveSettings(); });
 $('#set-high-contrast').addEventListener('change', (e) => { settings.highContrast = e.target.checked; applySettings(); saveSettings(); });
 $('#set-theme').addEventListener('change', (e) => { settings.theme = e.target.value; applySettings(); saveSettings(); });
 $('#settings-reset').addEventListener('click', () => {

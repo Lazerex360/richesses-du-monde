@@ -322,6 +322,8 @@
     'settings.cinematic_mode': "シネマティック3Dモード",
     'settings.cinematic_hint': "WebGL背景、3Dサイコロ、視覚効果。モバイルではデフォルトでオフ。",
     'settings.cinematic_on': "シネマティックモードを有効にしました",
+    'settings.show_stars': "アニメーション星空背景",
+    'settings.show_globe': "回転する地球儀",
     'settings.high_contrast': "ハイコントラスト",
     'settings.theme': "テーマ",
     'settings.theme_dark': "ゴールドダーク",

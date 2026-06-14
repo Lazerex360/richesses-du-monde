@@ -4,6 +4,22 @@ Format : `LRN-YYYYMMDD-NNN`
 
 ---
 
+### LRN-20260614-023 — `git commit` peut atterrir sur `main` malgré `checkout -b` antérieur
+- **Date:** 2026-06-14
+- **Priority:** medium
+- **Status:** resolved
+- **Area:** workflow git
+- **Related files:** `src/game/bot.js`, `feature/bots-difficulte`
+- **Tags:** git, branches, pr
+
+**Description:** Après un `git checkout -b feature/bots-difficulte` et un premier commit/push (PR #2 créée), un revert silencieux de `bot.js` (cf. LRN précédent) a nécessité de ré-appliquer les modifications. Le commit final a atterri sur `main` (`[main 8a98454]`) au lieu de la branche feature — `git status --porcelain` ne montrait alors aucun diff sur `bot.js` pour `main` car le fichier avait bien la version pristine d'origine, mais HEAD avait dérivé sur `main` entre-temps sans que je vérifie `git branch --show-current`.
+
+**Fix:** Plutôt que de force-push (réécriture d'historique sur une branche déjà poussée avec PR ouverte), j'ai calculé le diff entre l'ancien commit de la feature branch et le commit erroné sur `main` (`git diff <ancien> <main_HEAD>`), appliqué ce diff comme nouveau commit sur la feature branch (`git apply` + commit + push normal, fast-forward), puis `git reset --hard origin/main` pour nettoyer `main`. Aucune réécriture d'historique, PR existante mise à jour proprement.
+
+**Prévention:** Avant tout commit qui suit une série d'éditions longues/complexes (surtout après un "revert silencieux" ou une reconstruction), vérifier `git branch --show-current` immédiatement avant `git commit`, pas seulement avant `git checkout -b`.
+
+---
+
 ### LRN-20260608-001 — renderBoard rebuildait le DOM entier à chaque frame
 - **Date:** 2026-06-08
 - **Priority:** high

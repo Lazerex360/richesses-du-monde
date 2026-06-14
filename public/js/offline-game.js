@@ -29,6 +29,13 @@
 
   function error(msg) { dispatch('error_msg', msg); }
 
+  function currentBotDifficulty() {
+    try {
+      const s = JSON.parse(localStorage.getItem('rdm_settings') || '{}');
+      return window.RdmEngine.bot.normalizeDifficulty(s.botDifficulty);
+    } catch (_) { return 'normal'; }
+  }
+
   function getRoomPublic(room) {
     return {
       code: room.code,
@@ -145,7 +152,7 @@
       room.players.map((p) => ({
         name: p.name, pawn: p.pawn,
         equippedDice: p.equippedDice || 'classic_dice',
-        isBot: p.isBot, honorTitle: p.honorTitle || '',
+        isBot: p.isBot, difficulty: p.difficulty, honorTitle: p.honorTitle || '',
       }))
     );
     room.players.forEach((p, i) => {
@@ -177,6 +184,7 @@
       id: uuid(), userId: null, isBot: true,
       name: randomBotName(room.players.map((p) => p.name)),
       pawn: randomBotPawn(), avatar: '🤖', level: 0, ready: true, socketId: null,
+      difficulty: currentBotDifficulty(),
     });
     broadcast();
   }

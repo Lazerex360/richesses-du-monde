@@ -36,6 +36,7 @@ class GameEngine {
       diceStyle,
       honorTitle: def.honorTitle || '',
       isBot: !!def.isBot,
+      difficulty: ['easy', 'hard'].includes(def.difficulty) ? def.difficulty : 'normal',
       team: null,
       color: PLAYER_COLORS[i],
       money: startingMoney,

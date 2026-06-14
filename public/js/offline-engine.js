@@ -946,10 +946,22 @@ function randomBotPawn() {
   return BOT_PAWNS[Math.floor(Math.random() * BOT_PAWNS.length)];
 }
 
+// Profils de difficulté : ajustent la prudence (réserve de cash), l'appétit
+// pour les jokers et les enchères, et le nombre de titres achetés par tour.
+const BOT_PROFILES = {
+  easy: { reserve: 7000000, maxTitles: 3, jokerMoneyMin: 16000000, jokerBuyChance: 0.25, auctionMargin: 9000000, auctionBidChance: 0.30 },
+  normal: { reserve: 4000000, maxTitles: 6, jokerMoneyMin: 12000000, jokerBuyChance: 0.60, auctionMargin: 6000000, auctionBidChance: 0.45 },
+  hard: { reserve: 1500000, maxTitles: 8, jokerMoneyMin: 9000000, jokerBuyChance: 0.85, auctionMargin: 3000000, auctionBidChance: 0.70 },
+};
+
+function getBotProfile(player) {
+  return BOT_PROFILES[player?.difficulty] || BOT_PROFILES.normal;
+}
+
 // Choisit les titres à acheter : priorise les richesses déjà détenues, garde une réserve de cash.
 function chooseTitlesToBuy(game, player, action) {
-  const reserve = 4000000; // garde un coussin de sécurité
-  const budget = Math.max(0, player.money - reserve);
+  const profile = getBotProfile(player);
+  const budget = Math.max(0, player.money - profile.reserve);
   const owned = new Set(player.titles.map((t) => t.resourceId));
 
   const sorted = [...action.available].sort((a, b) => {
@@ -959,10 +971,11 @@ function chooseTitlesToBuy(game, player, action) {
     return b.percent - a.percent; // puis le plus gros pourcentage
   });
 
+  const maxTitles = Math.min(action.maxTitles || 6, profile.maxTitles);
   const chosen = [];
   let spent = 0;
   for (const t of sorted) {
-    if (chosen.length >= (action.maxTitles || 6)) break;
+    if (chosen.length >= maxTitles) break;
     if (spent + t.price <= budget) {
       chosen.push(t.id);
       spent += t.price;
@@ -998,7 +1011,8 @@ function playBotStep(game) {
     }
     if (a.type === 'joker_buy') {
       // Achète un joker si confortable
-      if (player.money > 12000000 && Math.random() > 0.4) game.buyJoker(player.id);
+      const profile = getBotProfile(player);
+      if (player.money > profile.jokerMoneyMin && Math.random() < profile.jokerBuyChance) game.buyJoker(player.id);
       else game.skipJoker(player.id);
       return true;
     }
@@ -1023,9 +1037,10 @@ function botAuctionBids(game) {
   let acted = false;
   for (const p of game.getActivePlayers()) {
     if (p.isBot && p.id !== game.auction.sellerId) {
+      const profile = getBotProfile(p);
       const bid = game.auction.currentBid + 100000;
       // Enchérit si le lot reste bon marché et qu'il a de la marge
-      if (p.money > bid + 6000000 && Math.random() > 0.55) {
+      if (p.money > bid + profile.auctionMargin && Math.random() < profile.auctionBidChance) {
         const r = game.placeBid(p.id, bid);
         if (r.success) acted = true;
       }
@@ -1034,7 +1049,11 @@ function botAuctionBids(game) {
   return acted;
 }
 
-module.exports = { playBotStep, botAuctionBids, randomBotName, randomBotPawn };
+function normalizeDifficulty(value) {
+  return BOT_PROFILES[value] ? value : 'normal';
+}
+
+module.exports = { playBotStep, botAuctionBids, randomBotName, randomBotPawn, BOT_PROFILES, normalizeDifficulty };
 
 };
 
@@ -1078,6 +1097,7 @@ class GameEngine {
       diceStyle,
       honorTitle: def.honorTitle || '',
       isBot: !!def.isBot,
+      difficulty: ['easy', 'hard'].includes(def.difficulty) ? def.difficulty : 'normal',
       team: null,
       color: PLAYER_COLORS[i],
       money: startingMoney,

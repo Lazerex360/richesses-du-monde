@@ -1,4 +1,4 @@
-const { randomBotName, randomBotPawn } = require('../game/bot');
+const { randomBotName, randomBotPawn, normalizeDifficulty } = require('../game/bot');
 
 function createWsHandlers(hub, accounts, uuidv4) {
   const { send, broadcastRoom, broadcastLobbyList } = {
@@ -264,6 +264,7 @@ function createWsHandlers(hub, accounts, uuidv4) {
           level: 0,
           ready: true,
           socketId: null,
+          difficulty: normalizeDifficulty(data.difficulty),
         });
         broadcastRoom(room);
         broadcastLobbyList();

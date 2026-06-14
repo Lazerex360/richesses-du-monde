@@ -120,8 +120,4 @@ function botAuctionBids(game) {
   return acted;
 }
 
-function normalizeDifficulty(value) {
-  return BOT_PROFILES[value] ? value : 'normal';
-}
-
-module.exports = { playBotStep, botAuctionBids, randomBotName, randomBotPawn, BOT_PROFILES, normalizeDifficulty };
+module.exports = { playBotStep, botAuctionBids, randomBotName, randomBotPawn, BOT_PROFILES, getBotProfile };

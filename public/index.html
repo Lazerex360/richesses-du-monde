@@ -697,19 +697,6 @@
         </div>
 
         <div class="setting-group">
-          <h3 data-i18n="settings.gameplay">🎲 Jeu</h3>
-          <div class="setting-row">
-            <label for="set-bot-difficulty" data-i18n="settings.bot_difficulty">Difficulté des bots</label>
-            <select id="set-bot-difficulty">
-              <option value="easy" data-i18n="settings.bot_difficulty_easy">Facile</option>
-              <option value="normal" data-i18n="settings.bot_difficulty_normal">Normal</option>
-              <option value="hard" data-i18n="settings.bot_difficulty_hard">Difficile</option>
-            </select>
-          </div>
-          <p class="setting-hint" data-i18n="settings.bot_difficulty_hint">S'applique aux bots ajoutés en partie hors ligne ou dans un salon.</p>
-        </div>
-
-        <div class="setting-group">
           <h3 data-i18n="settings.display">🖥️ Affichage</h3>
           <div class="setting-row">
             <label for="set-theme" data-i18n="settings.theme">Thème</label>
@@ -738,6 +725,19 @@
             <label for="set-high-contrast" data-i18n="settings.high_contrast">Contraste élevé</label>
             <input type="checkbox" id="set-high-contrast">
           </div>
+        </div>
+
+        <div class="setting-group">
+          <h3 data-i18n="settings.gameplay">🎮 Jeu</h3>
+          <div class="setting-row">
+            <label for="set-bot-difficulty" data-i18n="settings.bot_difficulty">Difficulté des bots</label>
+            <select id="set-bot-difficulty">
+              <option value="easy" data-i18n="settings.bot_difficulty_easy">Facile</option>
+              <option value="normal" data-i18n="settings.bot_difficulty_normal">Normale</option>
+              <option value="hard" data-i18n="settings.bot_difficulty_hard">Difficile</option>
+            </select>
+          </div>
+          <p class="setting-hint" data-i18n="settings.bot_difficulty_hint">S'applique aux bots ajoutés en partie hors ligne ou en salon privé.</p>
         </div>
 
         <button id="settings-reset" class="btn-mini" data-i18n="settings.reset">Réinitialiser les paramètres</button>

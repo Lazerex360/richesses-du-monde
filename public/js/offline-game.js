@@ -29,13 +29,6 @@
 
   function error(msg) { dispatch('error_msg', msg); }
 
-  function currentBotDifficulty() {
-    try {
-      const s = JSON.parse(localStorage.getItem('rdm_settings') || '{}');
-      return window.RdmEngine.bot.normalizeDifficulty(s.botDifficulty);
-    } catch (_) { return 'normal'; }
-  }
-
   function getRoomPublic(room) {
     return {
       code: room.code,
@@ -181,10 +174,9 @@
     if (room.players.length >= room.maxPlayers) return error('Salon complet');
     const { randomBotName, randomBotPawn } = window.RdmEngine.bot;
     room.players.push({
-      id: uuid(), userId: null, isBot: true,
+      id: uuid(), userId: null, isBot: true, difficulty: S.botDifficulty || 'normal',
       name: randomBotName(room.players.map((p) => p.name)),
       pawn: randomBotPawn(), avatar: '🤖', level: 0, ready: true, socketId: null,
-      difficulty: currentBotDifficulty(),
     });
     broadcast();
   }
@@ -193,6 +185,7 @@
   function start(opts = {}) {
     stop();
     if (!window.RdmEngine) { error('Moteur hors-ligne indisponible'); return false; }
+    S.botDifficulty = ['easy', 'hard'].includes(opts.botDifficulty) ? opts.botDifficulty : 'normal';
     const me = {
       id: uuid(), userId: null, isBot: false,
       name: (opts.name || 'Explorateur').slice(0, 20),

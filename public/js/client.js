@@ -380,7 +380,8 @@ function renderSettingsUI() {
   $('#set-cinematic-mode').checked = settings.cinematicMode;
   $('#set-high-contrast').checked = settings.highContrast;
   $('#set-theme').value = settings.theme || 'dark';
-  $('#set-bot-difficulty').value = settings.botDifficulty || 'normal';
+  const setBotDiff = $('#set-bot-difficulty');
+  if (setBotDiff) setBotDiff.value = settings.botDifficulty || 'normal';
 }
 function openSettings() { renderSettingsUI(); show($('#settings-overlay')); }
 function closeSettings() { hide($('#settings-overlay')); }
@@ -547,7 +548,7 @@ $('#set-cinematic-mode').addEventListener('change', (e) => {
 });
 $('#set-high-contrast').addEventListener('change', (e) => { settings.highContrast = e.target.checked; applySettings(); saveSettings(); });
 $('#set-theme').addEventListener('change', (e) => { settings.theme = e.target.value; applySettings(); saveSettings(); });
-$('#set-bot-difficulty').addEventListener('change', (e) => { settings.botDifficulty = e.target.value; saveSettings(); });
+$('#set-bot-difficulty')?.addEventListener('change', (e) => { settings.botDifficulty = e.target.value; saveSettings(); });
 $('#settings-reset').addEventListener('click', () => {
   settings = { ...DEFAULT_SETTINGS };
   applySettings(); applyLanguage(); saveSettings(); renderSettingsUI();
@@ -862,7 +863,7 @@ function maybeAutoOffline(fails = 0) {
     || t('auth.offline_default_name');
   profile = profile || { displayName: name, avatar: '🧭', level: 1 };
   wasOfflineSession = true;
-  if (!window.RdmOffline.start({ name })) return false;
+  if (!window.RdmOffline.start({ name, botDifficulty: settings.botDifficulty })) return false;
   document.getElementById('rdm-reconnect-banner')?.classList.remove('visible');
   toast(t('offline.auto_switch'), 'info');
   return true;
@@ -878,7 +879,7 @@ $('#btn-offline')?.addEventListener('click', () => {
   // Profil minimal local : aucun appel serveur, aucune persistance compte.
   profile = profile || { displayName: name, avatar: '🧭', level: 1 };
   wasOfflineSession = true;
-  if (window.RdmOffline.start({ name })) sfx('success');
+  if (window.RdmOffline.start({ name, botDifficulty: settings.botDifficulty })) sfx('success');
 });
 $('#btn-pseudo-confirm').addEventListener('click', confirmPseudoSetup);
 $('#pseudo-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmPseudoSetup(); });

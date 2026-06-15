@@ -66,6 +66,8 @@
     'play.refresh': "↻ Aktualisieren",
     'play.loading': "Laden…",
     'play.no_games': "Derzeit keine öffentlichen Spiele. Erstelle eines!",
+    'play.no_games_filtered': "Kein Spiel entspricht deiner Suche.",
+    'play.search_ph': "Nach Name oder Gastgeber suchen…",
     'play.host': "Gastgeber",
     'play.players': "Spieler",
     'play.join': "Beitreten",

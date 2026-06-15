@@ -66,6 +66,8 @@
     'play.refresh': "↻ 새로고침",
     'play.loading': "로딩 중…",
     'play.no_games': "공개 게임이 없습니다. 하나 만드세요!",
+    'play.no_games_filtered': "검색과 일치하는 게임이 없습니다.",
+    'play.search_ph': "이름 또는 호스트로 검색…",
     'play.host': "호스트",
     'play.players': "플레이어",
     'play.join': "참가",

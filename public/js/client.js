@@ -1136,16 +1136,30 @@ $('#join-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#
 
 $('#btn-refresh-games').addEventListener('click', () => socket.emit('browse_games'));
 
-socket.on('public_games', (list) => {
+let lastPublicGames = [];
+
+function renderPublicGames() {
   const c = $('#public-games');
-  if (!list || list.length === 0) {
+  const search = $('#games-search');
+  const query = (search?.value || '').trim().toLowerCase();
+  const list = query
+    ? lastPublicGames.filter((g) => g.name.toLowerCase().includes(query) || g.host.toLowerCase().includes(query))
+    : lastPublicGames;
+
+  if (lastPublicGames.length === 0) {
     c.innerHTML = `<div class="games-empty"><span class="games-empty-icon" aria-hidden="true">🌍</span><p>${t('play.no_games')}</p><button class="btn btn-secondary btn-sm" id="btn-create-from-empty" data-i18n="play.create_btn">Créer une partie</button></div>`;
     c.querySelector('#btn-create-from-empty')?.addEventListener('click', () => {
       $('#create-name').focus();
     });
     return;
   }
-  c.innerHTML = list
+  if (list.length === 0) {
+    c.innerHTML = `<div class="games-empty"><span class="games-empty-icon" aria-hidden="true">🔍</span><p>${t('play.no_games_filtered')}</p></div>`;
+    return;
+  }
+
+  const sorted = [...list].sort((a, b) => (b.players / b.maxPlayers) - (a.players / a.maxPlayers));
+  c.innerHTML = sorted
     .map((g) => {
       const fillPct = Math.round((g.players / g.maxPlayers) * 100);
       const fillColor = fillPct >= 80 ? '#e84393' : fillPct >= 50 ? '#c9a04a' : '#3dd68c';
@@ -1169,6 +1183,13 @@ socket.on('public_games', (list) => {
   c.querySelectorAll('button[data-code]').forEach((b) =>
     b.addEventListener('click', () => socket.emit('join_room', { roomCode: b.dataset.code }))
   );
+}
+
+$('#games-search').addEventListener('input', renderPublicGames);
+
+socket.on('public_games', (list) => {
+  lastPublicGames = list || [];
+  renderPublicGames();
 });
 
 // Auto-refresh liste des parties toutes les 15s quand l'onglet Jouer est visible

@@ -606,6 +606,13 @@ select option { background: var(--bg-card); color: var(--text); }
 .games-list-title { display: flex; align-items: center; gap: 0.5rem; }
 .games-list-header h3 { color: var(--gold); font-family: 'Source Sans 3'; font-size: 1rem; margin: 0; }
 .btn-refresh-games { border-color: rgba(212, 168, 83, 0.35); color: var(--gold-light); }
+.games-search {
+  width: 100%; margin-bottom: 0.75rem; padding: 0.6rem 0.85rem;
+  background: var(--bg-panel); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px; color: var(--text); font-size: 0.9rem;
+}
+.games-search:focus { outline: none; border-color: rgba(212, 168, 83, 0.4); }
+.games-search::placeholder { color: var(--text-muted); }
 .public-games { display: flex; flex-direction: column; gap: 0.55rem; min-height: 3.5rem; }
 .empty-hint { color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 1.35rem 1rem; border: 1px dashed rgba(255,255,255,0.1); border-radius: 10px; }
 .game-row {

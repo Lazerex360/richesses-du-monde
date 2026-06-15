@@ -1,5 +1,7 @@
 const { randomBotName, randomBotPawn } = require('../game/bot');
 
+const REACTION_EMOJIS = ['👍', '😂', '😮', '😡', '❤️', '🎉'];
+
 function createWsHandlers(hub, accounts, uuidv4) {
   const { send, broadcastRoom, broadcastLobbyList } = {
     send: (...args) => hub.send(...args),
@@ -447,6 +449,22 @@ function createWsHandlers(hub, accounts, uuidv4) {
         const result = room.game.surrender(ctx.playerId);
         if (result.error) return send(ws, 'error_msg', result.error);
         broadcastRoom(room);
+        break;
+      }
+
+      case 'send_reaction': {
+        const room = hub.rooms.get(ctx.roomCode);
+        if (!room?.game) return;
+        const player = room.players.find((p) => p.id === ctx.playerId);
+        if (!player || !REACTION_EMOJIS.includes(data.emoji)) return;
+        // Anti-spam : une réaction toutes les 1,5s par joueur.
+        const now = Date.now();
+        if (player._lastReactionAt && now - player._lastReactionAt < 1500) return;
+        player._lastReactionAt = now;
+        for (const p of room.players) {
+          const s = hub.clients.get(p.socketId);
+          if (s) send(s, 'reaction', { playerId: ctx.playerId, emoji: data.emoji });
+        }
         break;
       }
 

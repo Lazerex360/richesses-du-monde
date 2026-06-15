@@ -482,6 +482,12 @@ $('#players-panel')?.addEventListener('keydown', (e) => {
   e.preventDefault();
   openPlayerTitles(card.dataset.playerId);
 });
+$('#reaction-bar')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('.reaction-btn');
+  if (!btn) return;
+  socket.emit('send_reaction', { emoji: btn.dataset.emoji });
+});
+
 $('#btn-game-resources').addEventListener('click', openResourcesGuide);
 $('#btn-game-settings')?.addEventListener('click', openSettings);
 $('#btn-game-rules')?.addEventListener('click', openRules);
@@ -2244,6 +2250,16 @@ function getGameStartTime(state) {
   }
   return 0;
 }
+
+socket.on('reaction', ({ playerId, emoji }) => {
+  const card = document.querySelector(`.player-card[data-player-id="${playerId}"]`);
+  if (!card) return;
+  const el = document.createElement('span');
+  el.className = 'reaction-float';
+  el.textContent = emoji;
+  el.addEventListener('animationend', () => el.remove());
+  card.appendChild(el);
+});
 
 socket.on('game_state', (state) => {
   const startTime = getGameStartTime(state);

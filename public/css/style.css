@@ -1394,6 +1394,20 @@ select option { background: var(--bg-card); color: var(--text); }
   font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em;
   color: var(--gold); margin: 0 0 0.65rem; font-family: 'Source Sans 3', sans-serif;
 }
+.quick-bar-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.5rem; flex-wrap: wrap;
+}
+.quick-bar-head .game-quick-bar-title { margin: 0; }
+.reaction-bar { display: flex; gap: 0.35rem; margin-bottom: 0.65rem; }
+.reaction-btn {
+  font-size: 1.1rem; line-height: 1; padding: 0.4rem 0.55rem; min-width: 40px; min-height: 40px;
+  border-radius: 8px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer; transition: transform 0.15s, background 0.15s, border-color 0.15s;
+}
+.reaction-btn:hover { background: rgba(212, 168, 83, 0.15); border-color: rgba(212, 168, 83, 0.35); transform: translateY(-2px); }
+.reaction-btn:active { transform: scale(0.92); }
+.reaction-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .action-area-quick .action-desc { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.75rem; }
 .action-area-quick .action-buttons {
   display: grid; grid-template-columns: 1fr; gap: 0.55rem;
@@ -2452,10 +2466,20 @@ body.reduce-motion .board-cell.pawn-landing-cell { animation: none; }
 }
 
 .player-card {
+  position: relative;
   display: flex; align-items: center; gap: 0.55rem; padding: 0.6rem 0.65rem;
   border-radius: 10px; margin-bottom: 0.45rem; font-size: 0.85rem;
   background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06);
   transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+.reaction-float {
+  position: absolute; right: 0.6rem; top: 0.3rem; font-size: 1.5rem;
+  pointer-events: none; animation: reactionFloat 1.6s ease-out forwards;
+}
+@keyframes reactionFloat {
+  0% { opacity: 0; transform: translateY(0) scale(0.5); }
+  15% { opacity: 1; transform: translateY(-6px) scale(1.2); }
+  100% { opacity: 0; transform: translateY(-46px) scale(1); }
 }
 .player-card-clickable { cursor: pointer; }
 .player-card-clickable:hover { background: rgba(255, 255, 255, 0.06); border-color: rgba(212, 168, 83, 0.25); }

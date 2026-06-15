@@ -12,8 +12,9 @@
     "app": "electron .",
     "dist": "electron-builder --win",
     "dist:portable": "electron-builder --win portable",
-    "test": "node test/check_integrity.js && node test/board_layout.js && node test/board_titles.js",
-    "test:e2e": "playwright test"
+    "test": "node test/check_integrity.js && node test/board_layout.js && node test/board_titles.js && node test/check_offline_engine.js",
+    "test:e2e": "playwright test",
+    "build:offline": "node tools/build-offline.js"
   },
   "dependencies": {
     "localtunnel": "^2.0.2",

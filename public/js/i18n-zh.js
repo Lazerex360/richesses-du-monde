@@ -169,6 +169,7 @@
     'titles.buy_price': "购买价格",
     'menu.resources': "资源",
     'menu.rules': "规则",
+    'menu.tutorial': "重新查看教程",
     'menu.settings': "设置",
     'resources.title': "世界资源",
     'resources.intro': "Lansay 参考：点击 + 展开每种资源（国家、价格、版税等级）。",

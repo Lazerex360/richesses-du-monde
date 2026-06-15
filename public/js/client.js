@@ -421,6 +421,7 @@ $('#hub-menu').addEventListener('click', async (e) => {
   const action = item.dataset.menu;
   if (action === 'resources') openResourcesGuide();
   else if (action === 'rules') { renderRules(); show($('#rules-overlay')); }
+  else if (action === 'tutorial') startTutorial();
   else if (action === 'settings') openSettings();
   else if (action === 'logout') $('#btn-logout').click();
 });
@@ -1061,7 +1062,7 @@ function renderTutorialStep() {
   if (progressLabel) progressLabel.textContent = t('tutorial.progress', { n, total: TUTORIAL_STEPS });
   if (dotsEl) {
     dotsEl.innerHTML = Array.from({ length: TUTORIAL_STEPS }, (_, i) =>
-      `<span class="tutorial-dot${i === tutorialStep ? ' active' : ''}"></span>`
+      `<button type="button" class="tutorial-dot${i === tutorialStep ? ' active' : ''}" data-step="${i}" aria-label="${t('tutorial.progress', { n: i + 1, total: TUTORIAL_STEPS })}" aria-current="${i === tutorialStep ? 'true' : 'false'}"></button>`
     ).join('');
   }
 }
@@ -1071,11 +1072,15 @@ function closeTutorial() {
   localStorage.setItem(TUTORIAL_KEY, '1');
 }
 
-function maybeShowTutorial() {
-  if (localStorage.getItem(TUTORIAL_KEY)) return;
+function startTutorial() {
   tutorialStep = 0;
   renderTutorialStep();
   show($('#tutorial-overlay'));
+}
+
+function maybeShowTutorial() {
+  if (localStorage.getItem(TUTORIAL_KEY)) return;
+  startTutorial();
 }
 
 $('#tutorial-skip')?.addEventListener('click', closeTutorial);
@@ -1088,6 +1093,17 @@ $('#tutorial-next')?.addEventListener('click', () => {
 });
 $('#tutorial-overlay')?.addEventListener('click', (e) => {
   if (e.target.id === 'tutorial-overlay') closeTutorial();
+  const dot = e.target.closest('.tutorial-dot');
+  if (dot) { tutorialStep = Number(dot.dataset.step); renderTutorialStep(); }
+});
+document.addEventListener('keydown', (e) => {
+  if ($('#tutorial-overlay')?.classList.contains('hidden')) return;
+  if (e.key === 'Escape') closeTutorial();
+  else if (e.key === 'ArrowRight') {
+    if (tutorialStep < TUTORIAL_STEPS - 1) { tutorialStep += 1; renderTutorialStep(); }
+  } else if (e.key === 'ArrowLeft') {
+    if (tutorialStep > 0) { tutorialStep -= 1; renderTutorialStep(); }
+  }
 });
 
 function renderProfileChip() {

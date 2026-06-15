@@ -1132,6 +1132,11 @@ $('#btn-join').addEventListener('click', () => {
   if (!code) return toast(t('profile.promo_empty'), 'error');
   socket.emit('join_room', { roomCode: code });
 });
+$('#btn-spectate').addEventListener('click', () => {
+  const code = $('#join-code').value.trim();
+  if (!code) return toast(t('profile.promo_empty'), 'error');
+  socket.emit('spectate_room', { roomCode: code });
+});
 $('#join-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#btn-join').click(); });
 
 $('#btn-refresh-games').addEventListener('click', () => socket.emit('browse_games'));
@@ -1524,6 +1529,7 @@ $('#btn-rename').addEventListener('click', async () => {
 // ===================== Salon =====================
 let myGameId = null;
 let isHost = false;
+let isSpectating = false;
 const ACTIVE_ROOM_KEY = 'rdm_active_room';
 
 function saveActiveRoom(code, playerId) {
@@ -1567,6 +1573,7 @@ function handleBuyTitlesInsufficientFunds() {
 }
 socket.on('left_room', () => {
   clearActiveRoom();
+  isSpectating = false;
   inActiveGame = false;
   lastGameStartTime = 0;
   resetGameAnimationState();
@@ -1581,12 +1588,14 @@ socket.on('left_room', () => {
   switchTab('play');
 });
 
-socket.on('joined', ({ roomCode, playerId, isHost: host }) => {
+socket.on('joined', ({ roomCode, playerId, isHost: host, spectator }) => {
   myGameId = playerId;
   isHost = host;
+  isSpectating = !!spectator;
   // Une partie locale ne doit pas être proposée en reprise à la prochaine
   // session en ligne : elle n'existe que dans cet onglet.
-  if (roomCode !== 'LOCAL') saveActiveRoom(roomCode, playerId);
+  // Un spectateur n'a pas de playerId : rien à reprendre à la reconnexion.
+  if (roomCode !== 'LOCAL' && !isSpectating) saveActiveRoom(roomCode, playerId);
   hide($('#quick-status'));
 });
 
@@ -1601,6 +1610,7 @@ socket.on('room_update', (room) => {
     initBoardZoom();
     requestAnimationFrame(() => applyBoardZoom());
     $('#room-label').textContent = room.code;
+    if (isSpectating) show($('#spectator-badge')); else hide($('#spectator-badge'));
   } else {
     inActiveGame = false;
     lastGameStartTime = 0;
@@ -1720,8 +1730,15 @@ function renderLobby(room) {
 
   const me = room.players.find((p) => p.id === myGameId);
   const btnReady = $('#btn-ready');
-  btnReady.textContent = me?.ready ? t('lobby.unready') : t('lobby.ready');
-  btnReady.className = me?.ready ? 'btn btn-danger is-ready' : 'btn btn-secondary';
+  if (isSpectating) {
+    hide(btnReady);
+    show($('#lobby-spectator-badge'));
+  } else {
+    show(btnReady);
+    hide($('#lobby-spectator-badge'));
+    btnReady.textContent = me?.ready ? t('lobby.unready') : t('lobby.ready');
+    btnReady.className = me?.ready ? 'btn btn-danger is-ready' : 'btn btn-secondary';
+  }
 
   const botControls = $('#bot-controls');
   const btnStart = $('#btn-start');
@@ -2923,6 +2940,11 @@ function renderBuyTitlesOverlay(action, opts = {}) {
 
 function renderActions(state) {
   const area = $('#action-area');
+  if (isSpectating) {
+    area.innerHTML = `<p class="action-desc action-wait">${t('game.spectating_action')}</p>`;
+    hideBuyTitlesOverlay();
+    return;
+  }
   const me = state.players.find((p) => p.id === myGameId);
   const current = state.players[state.currentPlayerIndex];
   const isMyTurn = current?.id === myGameId && !me?.bankrupt;

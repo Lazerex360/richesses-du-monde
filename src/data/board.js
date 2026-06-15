@@ -326,6 +326,18 @@ const NEWS_CARDS = [
   { text: 'Innovation solaire : +1 500 000 € si vous possédez Solaire ou Éolien', effect: { type: 'receive_if_any', resources: ['solaire', 'eolien'], amount: 1500000 } },
   { text: 'Inondations : perdez 1 000 000 €', effect: { type: 'pay_bank', amount: 1000000 } },
   { text: 'Prix Nobel économique : recevez 3 500 000 €', effect: { type: 'receive_bank', amount: 3500000 } },
+  { text: 'Pénurie de blé : payez 1 200 000 € si vous possédez du Blé', effect: { type: 'pay_if_resource', resource: 'ble', amount: 1200000 } },
+  { text: 'Exportations de café en hausse : +1 800 000 € si vous possédez du Café', effect: { type: 'receive_if_resource', resource: 'cafe', amount: 1800000 } },
+  { text: 'Krach boursier mineur : payez 800 000 €', effect: { type: 'pay_bank', amount: 800000 } },
+  { text: 'Don caritatif : tous les joueurs reçoivent 500 000 €', effect: { type: 'all_receive_bank', amount: 500000 } },
+  { text: 'Pénurie de métaux : +2 000 000 € si vous possédez Cuivre ou Aluminium', effect: { type: 'receive_if_any', resources: ['cuivre', 'aluminium'], amount: 2000000 } },
+  { text: 'Marée noire : payez 1 800 000 € si vous possédez Pétrole ou Gaz', effect: { type: 'pay_if_any', resources: ['petrole', 'gaz'], amount: 1800000 } },
+  { text: 'Récolte exceptionnelle de thé : +1 200 000 € si vous possédez du Thé', effect: { type: 'receive_if_resource', resource: 'the', amount: 1200000 } },
+  { text: 'Nouvelle réglementation textile : payez 1 000 000 € si vous possédez du Coton ou de la Laine', effect: { type: 'pay_if_any', resources: ['coton', 'laine'], amount: 1000000 } },
+  { text: 'Ruée vers l\'or : recevez 3 000 000 €', effect: { type: 'receive_bank', amount: 3000000 } },
+  { text: 'Crise de l\'uranium : payez 2 200 000 € si vous possédez de l\'Uranium', effect: { type: 'pay_if_resource', resource: 'uranium', amount: 2200000 } },
+  { text: 'Barrage hydraulique inauguré : +1 700 000 € si vous possédez de l\'Hydraulique', effect: { type: 'receive_if_resource', resource: 'hydraulique', amount: 1700000 } },
+  { text: 'Incendie industriel : tous les joueurs perdent 700 000 €', effect: { type: 'all_pay_bank', amount: 700000 } },
 ];
 
 const PLAYER_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c'];

@@ -46,11 +46,23 @@ function chooseTitlesToBuy(game, player, action) {
 function playBotStep(game) {
   if (!game || game.winner) return false;
   const player = game.getCurrentPlayer();
-  if (!player || !player.isBot || player.bankrupt) return false;
+  if (!player || !player.isBot) return false;
+
+  // Si le bot courant vient de faire faillite (double pénalisé, carte actualité…),
+  // personne d'autre n'appelle endTurn() — on le fait ici pour débloquer le jeu.
+  if (player.bankrupt) {
+    if (!game.winner && game.phase === 'end_turn') {
+      game.endTurn();
+      return true;
+    }
+    return false;
+  }
 
   // Phase de lancer
   if (game.phase === 'rolling' && !game.pendingAction && !game.auction) {
     game.rollDice();
+    // Le bot peut faire faillite sur un double : avancer au joueur suivant.
+    if (player.bankrupt && !game.winner && game.phase === 'end_turn') game.endTurn();
     return true;
   }
 
@@ -58,7 +70,10 @@ function playBotStep(game) {
   if (a && a.playerId === player.id) {
     if (a.type === 'royalty_due') {
       const res = game.payLandRoyalties(player.id);
-      if (res.error) game.handleBankruptcy(player);
+      if (res.error) {
+        game.handleBankruptcy(player);
+        if (!game.winner && game.phase === 'end_turn') game.endTurn();
+      }
       return true;
     }
     if (a.type === 'buy_titles') {

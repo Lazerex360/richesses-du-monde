@@ -8,6 +8,8 @@
  * fichier précachable par le service worker.
  *
  * Usage : node tools/build-offline.js   (relancer après toute modif moteur)
+ *         test/check_offline_engine.js réutilise generate() pour vérifier
+ *         que le bundle committé est à jour (voir npm test).
  */
 const fs = require('fs');
 const path = require('path');
@@ -21,7 +23,8 @@ const FILES = [
   ['GameEngine', 'src/game/GameEngine.js'],
 ];
 
-let out = `/* GÉNÉRÉ par tools/build-offline.js — NE PAS ÉDITER À LA MAIN.
+function generate() {
+  let out = `/* GÉNÉRÉ par tools/build-offline.js — NE PAS ÉDITER À LA MAIN.
    Moteur de jeu serveur empaqueté pour le mode hors-ligne navigateur. */
 (function () {
 'use strict';
@@ -46,13 +49,13 @@ function __require(name) {
 }
 `;
 
-for (const [key, rel] of FILES) {
-  const src = fs.readFileSync(path.join(ROOT, rel), 'utf8');
-  out += `\n/* ── ${rel} ─────────────────────────────── */\n`;
-  out += `__modules[${JSON.stringify(key)}] = function (module, exports, require) {\n${src}\n};\n`;
-}
+  for (const [key, rel] of FILES) {
+    const src = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+    out += `\n/* ── ${rel} ─────────────────────────────── */\n`;
+    out += `__modules[${JSON.stringify(key)}] = function (module, exports, require) {\n${src}\n};\n`;
+  }
 
-out += `
+  out += `
 window.RdmEngine = {
   GameEngine: __require('GameEngine'),
   bot: __require('bot'),
@@ -61,6 +64,14 @@ window.RdmEngine = {
 })();
 `;
 
-const dest = path.join(ROOT, 'public/js/offline-engine.js');
-fs.writeFileSync(dest, out);
-console.log(`offline-engine.js généré (${(out.length / 1024).toFixed(1)} Ko)`);
+  return out;
+}
+
+if (require.main === module) {
+  const out = generate();
+  const dest = path.join(ROOT, 'public/js/offline-engine.js');
+  fs.writeFileSync(dest, out);
+  console.log(`offline-engine.js généré (${(out.length / 1024).toFixed(1)} Ko)`);
+}
+
+module.exports = { generate, FILES };

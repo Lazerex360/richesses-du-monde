@@ -535,9 +535,19 @@ class GameEngine {
           player.money += effect.amount;
         }
         break;
+      case 'pay_if_any':
+        if (effect.resources.some((r) => this.playerOwnsResource(player.id, r))) {
+          player.money -= effect.amount;
+        }
+        break;
       case 'all_pay_bank':
         for (const p of this.players) {
           if (!p.bankrupt) p.money -= effect.amount;
+        }
+        break;
+      case 'all_receive_bank':
+        for (const p of this.players) {
+          if (!p.bankrupt) p.money += effect.amount;
         }
         break;
     }

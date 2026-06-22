@@ -845,6 +845,38 @@ $('#btn-guest').addEventListener('click', loginGuest);
 let wasOfflineSession = false;
 
 /**
+ * Profil minimal pour le mode hors-ligne : aucun appel serveur, aucune
+ * persistance compte. Doit reprendre la forme complète du profil serveur
+ * (voir accounts.js toPublicProfile) pour que renderProfileChip/Tab, qui
+ * lisent profile.stats, profile.ownedPawns, etc. sans garde, ne plantent pas.
+ */
+function makeOfflineProfile(name) {
+  return {
+    displayName: name,
+    avatar: '🧭',
+    provider: 'offline',
+    level: 1,
+    xp: 0,
+    xpIntoLevel: 0,
+    xpForNext: 380,
+    coins: 0,
+    ownedPawns: ['classic'],
+    equippedPawn: 'classic',
+    equippedPawnEmoji: '🧭',
+    ownedDice: ['classic_dice'],
+    equippedDice: 'classic_dice',
+    equippedDiceStyle: null,
+    ownedTitles: ['title_none'],
+    equippedTitle: 'title_none',
+    equippedTitleLabel: '',
+    stats: { wins: 0, played: 0, streak: 0, bestStreak: 0 },
+    renamesRemaining: 0,
+    renamesLimit: 2,
+    battlePass: { premium: false, tier: 0, xpIntoTier: 0, xpPerTier: 1000, maxTier: 1, claimedFree: [], claimedPremium: [] },
+  };
+}
+
+/**
  * Bascule automatique en partie locale quand le réseau est coupé
  * (navigator.onLine) ou que le serveur est injoignable 3 fois de suite.
  * Jamais pendant une partie EN LIGNE en cours : on ne détruit pas l'état
@@ -858,7 +890,7 @@ function maybeAutoOffline(fails = 0) {
   if (!noNetwork && fails < 3) return false;
   const name = (profile?.displayName || localStorage.getItem('rdm_pseudo') || '').trim()
     || t('auth.offline_default_name');
-  profile = profile || { displayName: name, avatar: '🧭', level: 1 };
+  profile = profile || makeOfflineProfile(name);
   wasOfflineSession = true;
   if (!window.RdmOffline.start({ name })) return false;
   document.getElementById('rdm-reconnect-banner')?.classList.remove('visible');
@@ -873,8 +905,7 @@ $('#btn-offline')?.addEventListener('click', () => {
   }
   const name = ($('#auth-pseudo')?.value || localStorage.getItem('rdm_pseudo') || '').trim()
     || t('auth.offline_default_name');
-  // Profil minimal local : aucun appel serveur, aucune persistance compte.
-  profile = profile || { displayName: name, avatar: '🧭', level: 1 };
+  profile = profile || makeOfflineProfile(name);
   wasOfflineSession = true;
   if (window.RdmOffline.start({ name })) sfx('success');
 });

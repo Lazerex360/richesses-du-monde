@@ -596,8 +596,8 @@ select option { background: var(--bg-card); color: var(--text); }
 .inline { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-muted); flex: 1; min-width: 0; }
 .inline select { margin-bottom: 0; width: auto; flex: 1; min-width: 3.5rem; }
 .switch-label { cursor: pointer; }
-.join-row { display: flex; gap: 0.5rem; }
-.join-row input { margin-bottom: 0; text-transform: uppercase; letter-spacing: 0.15em; font-weight: 700; }
+.join-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.join-row input { margin-bottom: 0; text-transform: uppercase; letter-spacing: 0.15em; font-weight: 700; flex: 1 1 6rem; }
 .join-row .btn { width: auto; min-width: 4.5rem; padding: 0.75rem 1.1rem; }
 .quick-status { padding: 0.65rem; background: rgba(46, 204, 113, 0.1); border: 1px solid rgba(46, 204, 113, 0.3); border-radius: 8px; text-align: center; font-size: 0.9rem; color: var(--accent); }
 
@@ -1164,6 +1164,15 @@ select option { background: var(--bg-card); color: var(--text); }
   background: rgba(26, 48, 85, 0.85);
   color: var(--text-muted);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.spectator-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(61, 214, 140, 0.12);
+  color: #3dd68c;
+  border: 1px solid rgba(61, 214, 140, 0.3);
 }
 .visibility-badge.is-public {
   color: #7bed9f;

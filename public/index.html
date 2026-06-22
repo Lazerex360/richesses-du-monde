@@ -190,6 +190,7 @@
                 <div class="join-row">
                   <input type="text" id="join-code" placeholder="CODE" data-i18n-ph="play.join_code_ph" maxlength="5">
                   <button id="btn-join" class="btn btn-secondary">OK</button>
+                  <button id="btn-spectate" class="btn btn-dark" data-i18n="play.spectate_btn">👁 Observer</button>
                 </div>
               </div>
             </div>
@@ -323,6 +324,7 @@
           <div class="lobby-header-text">
             <h2 id="lobby-title">Salon</h2>
             <span id="lobby-visibility" class="visibility-badge"></span>
+            <span id="lobby-spectator-badge" class="spectator-badge hidden" data-i18n="lobby.spectating">👁 Mode observateur</span>
           </div>
         </header>
 
@@ -387,6 +389,7 @@
         <div class="header-left">
           <h1 data-i18n="game.title">Richesses du Monde</h1>
           <span id="room-label" class="code-badge small"></span>
+          <span id="spectator-badge" class="spectator-badge hidden" data-i18n="game.spectating">👁 Spectateur</span>
         </div>
         <div class="game-header-right">
           <button id="btn-game-resources" class="btn-mini game-resources-btn" data-i18n="menu.resources">Richesses</button>

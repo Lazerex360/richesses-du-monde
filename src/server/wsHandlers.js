@@ -135,6 +135,28 @@ function createWsHandlers(hub, accounts, uuidv4) {
         break;
       }
 
+      case 'spectate_room': {
+        if (!ctx.userId) return send(ws, 'error_msg', 'Connexion requise');
+        const code = (data.roomCode || '').toUpperCase().trim();
+        const room = hub.rooms.get(code);
+        if (!room) return send(ws, 'error_msg', 'Salon introuvable');
+
+        hub.leaveRoom(ws);
+        refreshCtxFromAccount(ws);
+        ctx.roomCode = code;
+        ctx.playerId = null;
+        ctx.spectating = true;
+        ctx.browsing = false;
+        ws._ctx = ctx;
+        room.spectators = room.spectators || [];
+        if (!room.spectators.includes(ws._id)) room.spectators.push(ws._id);
+        send(ws, 'joined', { roomCode: code, playerId: null, isHost: false, spectator: true });
+        send(ws, 'room_update', hub.getRoomPublic(room));
+        if (room.game) send(ws, 'game_state', room.game.getPublicState(null));
+        broadcastLobbyList();
+        break;
+      }
+
       case 'rejoin_room': {
         if (!ctx.userId) return send(ws, 'error_msg', 'Connexion requise');
         const code = (data.roomCode || '').toUpperCase().trim();

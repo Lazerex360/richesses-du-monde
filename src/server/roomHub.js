@@ -27,6 +27,7 @@ class RoomHub {
       maxPlayers: room.maxPlayers,
       started: room.started,
       countdownEnd: room.countdownEnd || null,
+      spectatorCount: room.spectators?.length || 0,
       players: room.players.map((p) => ({
         id: p.id,
         name: p.name,
@@ -74,10 +75,18 @@ class RoomHub {
       const ws = this.clients.get(player.socketId);
       if (ws) this.send(ws, 'room_update', this.getRoomPublic(room));
     }
+    for (const socketId of room.spectators || []) {
+      const ws = this.clients.get(socketId);
+      if (ws) this.send(ws, 'room_update', this.getRoomPublic(room));
+    }
     if (room.game) {
       for (const player of room.players) {
         const ws = this.clients.get(player.socketId);
         if (ws) this.send(ws, 'game_state', room.game.getPublicState(player.id));
+      }
+      for (const socketId of room.spectators || []) {
+        const ws = this.clients.get(socketId);
+        if (ws) this.send(ws, 'game_state', room.game.getPublicState(null));
       }
       this.awardRewards(room);
       this.maybeScheduleBot(room);
@@ -279,7 +288,9 @@ class RoomHub {
     const room = this.rooms.get(ctx.roomCode);
     ctx.roomCode = null;
     ctx.playerId = null;
+    ctx.spectating = false;
     if (!room) return;
+    if (room.spectators) room.spectators = room.spectators.filter((id) => id !== ws._id);
     if (room.started) {
       const p = room.players.find((pl) => pl.socketId === ws._id);
       if (p) p.socketId = null;
@@ -287,6 +298,13 @@ class RoomHub {
     }
     room.players = room.players.filter((p) => p.socketId !== ws._id);
     if (room.players.length === 0) {
+      for (const socketId of room.spectators || []) {
+        const sws = this.clients.get(socketId);
+        if (sws) {
+          if (sws._ctx) { sws._ctx.roomCode = null; sws._ctx.spectating = false; }
+          this.send(sws, 'left_room', {});
+        }
+      }
       this.rooms.delete(room.code);
     } else {
       if (room.hostId && !room.players.find((p) => p.id === room.hostId)) {

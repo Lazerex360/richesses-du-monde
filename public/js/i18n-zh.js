@@ -66,6 +66,8 @@
     'play.refresh': "↻ 刷新",
     'play.loading': "加载中…",
     'play.no_games': "目前没有公开对局。创建一个吧！",
+    'play.no_games_filtered': "没有符合搜索条件的对局。",
+    'play.search_ph': "按名称或房主搜索…",
     'play.host': "房主",
     'play.players': "玩家",
     'play.join': "加入",

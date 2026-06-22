@@ -66,6 +66,8 @@
     'play.refresh': "↻ Aggiorna",
     'play.loading': "Caricamento…",
     'play.no_games': "Nessuna partita pubblica al momento. Creane una!",
+    'play.no_games_filtered': "Nessuna partita corrisponde alla tua ricerca.",
+    'play.search_ph': "Cerca per nome o host…",
     'play.host': "Host",
     'play.players': "giocatori",
     'play.join': "Unisciti",

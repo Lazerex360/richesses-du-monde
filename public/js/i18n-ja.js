@@ -66,6 +66,8 @@
     'play.refresh': "↻ 更新",
     'play.loading': "読み込み中…",
     'play.no_games': "公開対戦はありません。作成しましょう！",
+    'play.no_games_filtered': "検索条件に一致する対戦がありません。",
+    'play.search_ph': "名前またはホストで検索…",
     'play.host': "ホスト",
     'play.players': "プレイヤー",
     'play.join': "参加",

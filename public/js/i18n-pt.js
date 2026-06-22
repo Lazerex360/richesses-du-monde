@@ -322,6 +322,8 @@
     'settings.cinematic_mode': "Modo cinematográfico 3D",
     'settings.cinematic_hint': "Fundo WebGL, dados 3D e efeitos visuais. Desativado no telemóvel.",
     'settings.cinematic_on': "Modo cinematográfico ativado",
+    'settings.show_stars': "Fundo estelar animado",
+    'settings.show_globe': "Globo terrestre giratório",
     'settings.high_contrast': "Alto contraste",
     'settings.theme': "Tema",
     'settings.theme_dark': "Escuro dourado",

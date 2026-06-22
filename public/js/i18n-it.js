@@ -322,6 +322,8 @@
     'settings.cinematic_mode': "Modalità cinematografica 3D",
     'settings.cinematic_hint': "Sfondo WebGL, dadi 3D e effetti visivi. Disattivato su mobile.",
     'settings.cinematic_on': "Modalità cinematografica attivata",
+    'settings.show_stars': "Sfondo stellato animato",
+    'settings.show_globe': "Globo terrestre rotante",
     'settings.high_contrast': "Alto contrasto",
     'settings.theme': "Tema",
     'settings.theme_dark': "Scuro dorato",

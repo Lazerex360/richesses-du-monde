@@ -322,6 +322,8 @@
     'settings.cinematic_mode': "Kinematischer 3D-Modus",
     'settings.cinematic_hint': "WebGL-Hintergrund, 3D-Würfel und Effekte. Auf Mobilgeräten standardmäßig aus.",
     'settings.cinematic_on': "Kinematischer Modus aktiviert",
+    'settings.show_stars': "Animiertes Sternenfeld",
+    'settings.show_globe': "Rotierender Erdglobus",
     'settings.high_contrast': "Hoher Kontrast",
     'settings.theme': "Thema",
     'settings.theme_dark': "Goldenes Dunkel",

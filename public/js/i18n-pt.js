@@ -169,6 +169,7 @@
     'titles.buy_price': "Preço de compra",
     'menu.resources': "Recursos",
     'menu.rules': "Regras",
+    'menu.tutorial': "Rever o tutorial",
     'menu.settings': "Definições",
     'resources.title': "Recursos do mundo",
     'resources.intro': "Referência Lansay: clique + para expandir cada recurso (países, preços, níveis de royalties).",

@@ -169,6 +169,7 @@
     'titles.buy_price': "Kaufpreis",
     'menu.resources': "Ressourcen",
     'menu.rules': "Regeln",
+    'menu.tutorial': "Tutorial erneut ansehen",
     'menu.settings': "Einstellungen",
     'resources.title': "Weltressourcen",
     'resources.intro': "Lansay-Referenz: klicke +, um jede Ressource zu erweitern (Länder, Preise, Royalty-Stufen).",

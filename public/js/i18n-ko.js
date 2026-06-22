@@ -169,6 +169,7 @@
     'titles.buy_price': "구매 가격",
     'menu.resources': "자원",
     'menu.rules': "규칙",
+    'menu.tutorial': "튜토리얼 다시 보기",
     'menu.settings': "설정",
     'resources.title': "세계 자원",
     'resources.intro': "Lansay 참고: +를 클릭하여 각 자원 확장 (국가, 가격, 로열티 단계).",

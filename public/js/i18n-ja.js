@@ -169,6 +169,7 @@
     'titles.buy_price': "購入価格",
     'menu.resources': "資源",
     'menu.rules': "ルール",
+    'menu.tutorial': "チュートリアルを見る",
     'menu.settings': "設定",
     'resources.title': "世界の資源",
     'resources.intro': "Lansay参考：+をクリックして各資源を展開（国、価格、ロイヤリティ段階）。",

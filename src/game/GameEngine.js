@@ -247,7 +247,7 @@ class GameEngine {
         }
         break;
       case 'auction':
-        if (player.laps >= 1 && this.getActivePlayers().length > 2) {
+        if (player.laps >= 1 && this.getActivePlayers().length >= 2) {
           if (player.joker) {
             this.pendingAction = {
               type: 'joker_choice',

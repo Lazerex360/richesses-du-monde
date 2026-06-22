@@ -393,3 +393,21 @@ Réinitialiser `boardCells = null` dans `resetGameAnimationState()` pour chaque 
 **Conclusion de l'audit:** la carte Actualité fonctionne correctement avec le code actuel (testé en partie réelle, 2 tirages distincts affichés correctement). Si le bug persiste côté utilisateur, cause probable = cache navigateur/SW d'un `client.js` antérieur aux correctifs (`0144a8b`, `b9fc7e5`, `3ac5af8`) — cf. LRN-015.
 
 **Promotion candidate:** oui — pattern réutilisable pour tout debug via `preview_eval` touchant des compteurs anti-replay/session.
+
+---
+
+### LRN-20260615-001 — Le mode hors-ligne plantait silencieusement au démarrage (lobby bloqué)
+- **Date:** 2026-06-15
+- **Priority:** high
+- **Status:** resolved
+- **Area:** mode hors-ligne / profil
+- **Related files:** `public/js/client.js`, `public/js/offline-game.js`
+- **Tags:** offline, profile, crash, lobby, preview-debug
+
+**Description:** En cliquant `#btn-offline`, le lobby s'affichait mais `#btn-start` et `#bot-controls` restaient masqués même avec tous les joueurs prêts — comme si `isHost` n'était jamais passé à `true`. Le profil minimal créé pour le mode hors-ligne était `{ displayName, avatar, level }`, alors que `renderProfileTab()` lit sans garde `profile.stats.played/wins/...` et `profile.ownedPawns.length`. Le tout premier `showScreen('screen-lobby')` (déclenché par `addBot()` → `broadcast()` → `dispatch('room_update', ...)`) appelle `applyLanguage()` → `renderProfileTab()`, qui plantait avec un `TypeError` non intercepté. Cette exception interrompait `RdmOffline.start()` en plein milieu : `dispatch('joined', { isHost: true })` et le `broadcast()` final n'étaient jamais exécutés.
+
+**Méthode de debug clé :** `preview_eval` ne fait PAS remonter les exceptions non interceptées dans la valeur de retour — il faut enregistrer un `window.addEventListener('error', e => window.__err = e.error.stack)` AVANT de déclencher l'action, puis relire `window.__err` après. La stack trace a immédiatement pointé vers `renderProfileTab (client.js:1470)` ← `applyLanguage` ← `showScreen` ← `dispatch('room_update')` ← `broadcast` ← `addBot` ← `RdmOffline.start`.
+
+**Resolution:** Nouvelle fonction `makeOfflineProfile(name)` reprenant la forme complète du profil serveur (cf. `accounts.js` → `toPublicProfile` : `stats`, `ownedPawns`, `xpIntoLevel`/`xpForNext`, `battlePass`, etc.) avec des valeurs neutres par défaut. Remplace le profil minimal dans `maybeAutoOffline()` et le handler `#btn-offline`.
+
+**Promotion candidate:** oui — règle générale : tout "objet minimal local" qui imite un objet serveur doit respecter la forme complète attendue par le code de rendu partagé, sinon le premier rendu qui touche un champ absent plante silencieusement (et peut interrompre une chaîne d'appels synchrone en cours). Et : pour débugger un throw silencieux dans `preview_eval`, toujours installer un `window.onerror`/`error` listener avant l'action.

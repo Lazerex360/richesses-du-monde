@@ -145,7 +145,7 @@
       room.players.map((p) => ({
         name: p.name, pawn: p.pawn,
         equippedDice: p.equippedDice || 'classic_dice',
-        isBot: p.isBot, honorTitle: p.honorTitle || '',
+        isBot: p.isBot, difficulty: p.difficulty, honorTitle: p.honorTitle || '',
       }))
     );
     room.players.forEach((p, i) => {
@@ -174,7 +174,7 @@
     if (room.players.length >= room.maxPlayers) return error('Salon complet');
     const { randomBotName, randomBotPawn } = window.RdmEngine.bot;
     room.players.push({
-      id: uuid(), userId: null, isBot: true,
+      id: uuid(), userId: null, isBot: true, difficulty: S.botDifficulty || 'normal',
       name: randomBotName(room.players.map((p) => p.name)),
       pawn: randomBotPawn(), avatar: '🤖', level: 0, ready: true, socketId: null,
     });
@@ -185,6 +185,7 @@
   function start(opts = {}) {
     stop();
     if (!window.RdmEngine) { error('Moteur hors-ligne indisponible'); return false; }
+    S.botDifficulty = ['easy', 'hard'].includes(opts.botDifficulty) ? opts.botDifficulty : 'normal';
     const me = {
       id: uuid(), userId: null, isBot: false,
       name: (opts.name || 'Explorateur').slice(0, 20),

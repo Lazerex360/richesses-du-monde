@@ -4,6 +4,22 @@ Format : `LRN-YYYYMMDD-NNN`
 
 ---
 
+### LRN-20260614-023 — `git commit` peut atterrir sur `main` malgré `checkout -b` antérieur
+- **Date:** 2026-06-14
+- **Priority:** medium
+- **Status:** resolved
+- **Area:** workflow git
+- **Related files:** `src/game/bot.js`, `feature/bots-difficulte`
+- **Tags:** git, branches, pr
+
+**Description:** Après un `git checkout -b feature/bots-difficulte` et un premier commit/push (PR #2 créée), un revert silencieux de `bot.js` (cf. LRN précédent) a nécessité de ré-appliquer les modifications. Le commit final a atterri sur `main` (`[main 8a98454]`) au lieu de la branche feature — `git status --porcelain` ne montrait alors aucun diff sur `bot.js` pour `main` car le fichier avait bien la version pristine d'origine, mais HEAD avait dérivé sur `main` entre-temps sans que je vérifie `git branch --show-current`.
+
+**Fix:** Plutôt que de force-push (réécriture d'historique sur une branche déjà poussée avec PR ouverte), j'ai calculé le diff entre l'ancien commit de la feature branch et le commit erroné sur `main` (`git diff <ancien> <main_HEAD>`), appliqué ce diff comme nouveau commit sur la feature branch (`git apply` + commit + push normal, fast-forward), puis `git reset --hard origin/main` pour nettoyer `main`. Aucune réécriture d'historique, PR existante mise à jour proprement.
+
+**Prévention:** Avant tout commit qui suit une série d'éditions longues/complexes (surtout après un "revert silencieux" ou une reconstruction), vérifier `git branch --show-current` immédiatement avant `git commit`, pas seulement avant `git checkout -b`.
+
+---
+
 ### LRN-20260608-001 — renderBoard rebuildait le DOM entier à chaque frame
 - **Date:** 2026-06-08
 - **Priority:** high
@@ -393,3 +409,21 @@ Réinitialiser `boardCells = null` dans `resetGameAnimationState()` pour chaque 
 **Conclusion de l'audit:** la carte Actualité fonctionne correctement avec le code actuel (testé en partie réelle, 2 tirages distincts affichés correctement). Si le bug persiste côté utilisateur, cause probable = cache navigateur/SW d'un `client.js` antérieur aux correctifs (`0144a8b`, `b9fc7e5`, `3ac5af8`) — cf. LRN-015.
 
 **Promotion candidate:** oui — pattern réutilisable pour tout debug via `preview_eval` touchant des compteurs anti-replay/session.
+
+---
+
+### LRN-20260614-022 — `preview_click` sur `#btn-offline` après `location.reload()` ne déclenche pas `RdmOffline.start()` (échec silencieux)
+- **Date:** 2026-06-14
+- **Priority:** low
+- **Status:** resolved
+- **Area:** preview testing / mode hors-ligne
+- **Related files:** `public/js/client.js`, `public/js/offline-game.js`
+- **Tags:** preview_click, false-negative, reload, offline-mode
+
+**Description:** En vérifiant la feature "difficulté des bots", après un `location.reload()` puis `preview_click('#btn-offline')`, l'écran restait sur `screen-auth` et `window.RdmOffline.active` valait `false` — sans aucune erreur console (le moteur `window.RdmEngine` était bien chargé). Le même clic juste après le premier chargement de page avait fonctionné (transition vers `screen-lobby`). Appeler directement `window.RdmOffline.start({name:'Test'})` via `preview_eval` a fonctionné immédiatement (`active: true`, transition vers `screen-lobby`).
+
+**Resolution:** Après un `location.reload()` dans `preview_eval`, ne pas enchaîner immédiatement un `preview_click` sur un bouton d'action critique pour la suite du test — soit attendre/poller que la page soit interactive, soit appeler directement la fonction JS exposée (ex. `window.RdmOffline.start(...)`) pour fiabiliser la vérification.
+
+**Règle générale :** `preview_click` juste après un `reload()` peut échouer silencieusement (probablement un souci de timing/attachement des handlers ou de focus de la page rechargée). Pour les actions pivot d'un scénario de vérification, préférer l'appel direct à l'API JS exposée par le module (`window.Xxx.method(...)`) plutôt qu'un clic DOM, surtout juste après un reload.
+
+**Promotion candidate:** non — astuce ponctuelle pour la vérification preview, pas un pattern de code applicatif.

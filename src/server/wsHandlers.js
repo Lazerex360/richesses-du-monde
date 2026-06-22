@@ -1,5 +1,9 @@
 const { randomBotName, randomBotPawn } = require('../game/bot');
 
+function normalizeBotDifficulty(value) {
+  return ['easy', 'hard'].includes(value) ? value : 'normal';
+}
+
 function createWsHandlers(hub, accounts, uuidv4) {
   const { send, broadcastRoom, broadcastLobbyList } = {
     send: (...args) => hub.send(...args),
@@ -258,6 +262,7 @@ function createWsHandlers(hub, accounts, uuidv4) {
           id: uuidv4(),
           userId: null,
           isBot: true,
+          difficulty: normalizeBotDifficulty(data.difficulty),
           name: randomBotName(usedNames),
           pawn: randomBotPawn(),
           avatar: '🤖',

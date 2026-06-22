@@ -224,6 +224,7 @@ class RoomHub {
         pawn: p.pawn,
         equippedDice: p.equippedDice || 'classic_dice',
         isBot: p.isBot,
+        difficulty: p.difficulty,
         honorTitle: p.honorTitle || '',
       }))
     );
